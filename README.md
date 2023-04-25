@@ -9,13 +9,16 @@
         <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
     <a href="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml">
-        <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml/badge.svg?branch=main" alt="Lint Code Base">
+        <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
     </a>
     <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb-client-go-3/tree/main">
         <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb-client-go-3/tree/main.svg?style=svg" alt="CircleCI">
     </a>
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
+    </a>
+    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3" > 
+        <img src="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3/branch/main/graph/badge.svg" alt="Code Cov"/> 
     </a>
 </p>
 

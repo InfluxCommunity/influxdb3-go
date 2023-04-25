@@ -18,5 +18,28 @@ jobs:
           paths:
             - "/go/pkg/mod"
       - run:
+          name: Create a temp directory for artifacts
+          command: |
+            mkdir -p /tmp/artifacts
+      - run:
           name: Run tests
-          command: go test -v ./...
+          command: go test -v -cover -coverprofile=coverage.out ./...
+      - run:
+          name: Coverage Report
+          command: |
+            go tool cover -html=coverage.out -o coverage.html
+            mv coverage.html /tmp/artifacts
+          when: always
+      - run:
+          name: Report test results to codecov
+          command: |
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x ./codecov
+            ./codecov
+      - store_artifacts:
+          path: /tmp/artifacts
