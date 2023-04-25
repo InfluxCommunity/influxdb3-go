@@ -17,7 +17,7 @@
     <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb-client-go-3/tree/main">
         <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb-client-go-3/tree/main.svg?style=svg" alt="CircleCI">
     </a>
-    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3"> 
+    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3">
         <img src="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3/branch/main/graph/badge.svg" alt="Code Cov"/>
     </a>
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
