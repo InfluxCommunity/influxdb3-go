@@ -2,6 +2,9 @@
     <a href="https://github.com/bonitoo-io/goinflux3/actions/workflows/codeql-analysis.yml">
         <img src="https://github.com/bonitoo-io/goinflux3/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
+    <a href="https://github.com/bonitoo-io/goinflux3/actions/workflows/linter.yml">
+        <img src="https://github.com/bonitoo-io/goinflux3/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
+    </a>
 </p>
 
 # InfluxDB 3 Go Client
