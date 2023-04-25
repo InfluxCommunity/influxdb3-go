@@ -17,6 +17,9 @@
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
     </a>
+    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3" > 
+        <img src="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3/branch/main/graph/badge.svg" alt="Code Cov"/> 
+    </a>
 </p>
 
 # InfluxDB 3 Go Client
