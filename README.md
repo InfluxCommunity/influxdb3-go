@@ -47,6 +47,18 @@ Token:      "my-token",
 
 ```
 
+to insert data you can use code like this:
+
+```go
+// TBD
+```
+
+to query your data you can use code like this:
+
+```go
+// TBD
+```
+
 ## Feedback
 
 For help please use, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA) or [Community Page](https://community.influxdata.com/).
