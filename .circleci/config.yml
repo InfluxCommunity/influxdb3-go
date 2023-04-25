@@ -7,28 +7,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-        keys:
-          - go-mod-v4-{{ checksum "go.sum" }}
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Install Dependencies
           command: |
             go get -v -t -d ./...
       - save_cache:
-          key: go-mod-v4-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
       - run:
           name: Run tests
           command: go test -v ./...
-#      - run:
-#          command: |
-#            gotestsum --junitfile /tmp/test-results/unit-tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic ./...
-#            bash <(curl -s https://codecov.io/bash)
-#            go tool cover -html=coverage.txt -o /tmp/artifacts/coverage.html
-#      - store_artifacts:
-#          path: /tmp/artifacts
-#      - store_artifacts:
-#          path: /tmp/test-results
-#          destination: raw-test-output
-#      - store_test_results:
-#          path: /tmp/test-results
