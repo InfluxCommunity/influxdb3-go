@@ -1,4 +1,4 @@
-package options
+package configs
 
 // ClientConfigs contains configuration for a client instance. The configuration can be changed via setters.
 type ClientConfigs struct {

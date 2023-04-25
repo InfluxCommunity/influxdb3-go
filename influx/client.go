@@ -1,6 +1,6 @@
 package influx
 
-import "github.com/bonitoo-io/influxdb-client-go-3/influx/options"
+import "github.com/bonitoo-io/influxdb-client-go-3/influx/configs"
 
 // Client provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
 type Client struct {
@@ -9,7 +9,7 @@ type Client struct {
 	token    string
 }
 
-func NewClient(cfg options.ClientConfigs) (*Client, error) {
+func NewClient(cfg configs.ClientConfigs) (*Client, error) {
 	client := &Client{host: *cfg.Host, database: *cfg.Database, token: *cfg.Token}
 
 	return client, nil
