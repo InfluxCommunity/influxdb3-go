@@ -32,7 +32,7 @@ go get github.com/bonitoo-io/influxdb-client-go-3
 
 ## Usage
 
-To start with the client, import the `influx` package and create a `inflix.Client` by the `NewClient` function:
+To start with the client, import the `influx` package and create a `influx.Client` by the `NewClient` function:
 
 ```go
 import (
