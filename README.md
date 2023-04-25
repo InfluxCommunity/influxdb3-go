@@ -1,6 +1,6 @@
 <p align="center">
     <a href="https://github.com/bonitoo-io/goinflux3/actions/workflows/codeql-analysis.yml">
-        <img src="https://github.com/bonitoo-io/goinflux3/actions/workflows/codeql-analysis.yml/badge.svg?branch=main">
+        <img src="https://github.com/bonitoo-io/goinflux3/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
 </p>
 
