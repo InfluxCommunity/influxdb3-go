@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="influxdb-logo.jpg" alt="InfluxDB logo">
+    <img src="gopher.png" alt="Gopher" width="150px">
 </p>
 <p align="center">
     <a href="https://pkg.go.dev/github.com/bonitoo-io/influxdb-client-go-3">
@@ -17,8 +17,8 @@
     <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb-client-go-3/tree/main">
         <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb-client-go-3/tree/main.svg?style=svg" alt="CircleCI">
     </a>
-    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3" > 
-        <img src="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3/branch/main/graph/badge.svg" alt="Code Cov"/> 
+    <a href="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3">
+        <img src="https://codecov.io/gh/bonitoo-io/influxdb-client-go-3/branch/main/graph/badge.svg" alt="Code Cov"/>
     </a>
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
@@ -27,13 +27,13 @@
 
 # InfluxDB 3 Go Client
 
-The go package that provides a simple and convenient way to interact with InfluxDB 3.
+The go package that provides an easy and convenient way to interact with InfluxDB 3.
 This package supports both writing data to InfluxDB and querying data using the FlightSQL client,
-which allows you to execute SQL queries on InfluxDB IOx.
+which allows you to execute SQL queries against InfluxDB IOx.
 
 ## Installation
 
-Add the latest version of the client package to your project dependencies (`go.mod`).
+Add the latest version of the client package to your project dependencies (`go.mod`):
 
 ```sh
 go get github.com/bonitoo-io/influxdb-client-go-3
@@ -60,13 +60,13 @@ client, err := NewClient(configs.ClientConfigs{
 )
 ```
 
-to insert data you can use code like this:
+to insert data, you can use code like this:
 
 ```go
 // TBD
 ```
 
-to query your data you can use code like this:
+to query your data, you can use code like this:
 
 ```go
 // TBD
@@ -74,7 +74,7 @@ to query your data you can use code like this:
 
 ## Feedback
 
-For help please use, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA)
+If you need help, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA)
 or [Community Page](https://community.influxdata.com/).
 
 New features and bugs can be reported on GitHub: <https://github.com/bonitoo-io/influxdb-client-go-3>
