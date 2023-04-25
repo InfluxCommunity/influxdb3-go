@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="influxdb-logo.webp" width="300" alt="InfluxDB logo">
+    <img src="influxdb-logo.jpg" alt="InfluxDB logo">
 </p>
 <p align="center">
     <a href="https://pkg.go.dev/github.com/bonitoo-io/influxdb-client-go-3">
