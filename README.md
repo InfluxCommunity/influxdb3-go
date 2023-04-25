@@ -9,7 +9,7 @@
         <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
     <a href="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml">
-        <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml/badge.svg?branch=main" alt="Lint Code Base">
+        <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
     </a>
     <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb-client-go-3/tree/main">
         <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb-client-go-3/tree/main.svg?style=svg" alt="CircleCI">

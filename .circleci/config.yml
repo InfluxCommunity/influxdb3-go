@@ -19,4 +19,10 @@ jobs:
             - "/go/pkg/mod"
       - run:
           name: Run tests
-          command: go test -v ./...
+          command: go test -v -cover -coverprofile=coverage.out ./...
+      - run:
+          name: Coverage Report
+          command: go tool cover -html=coverage.out -o coverage.html
+          when: always
+      - store_artifacts:
+          path: coverage.html
