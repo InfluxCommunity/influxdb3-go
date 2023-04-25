@@ -18,11 +18,17 @@ jobs:
           paths:
             - "/go/pkg/mod"
       - run:
+          name: Create a temp directory for artifacts
+          command: |
+            mkdir -p /tmp/artifacts
+      - run:
           name: Run tests
           command: go test -v -cover -coverprofile=coverage.out ./...
       - run:
           name: Coverage Report
-          command: go tool cover -html=coverage.out -o coverage.html
+          command: |
+            go tool cover -html=coverage.out -o coverage.html
+            mv coverage.html /tmp/artifacts
           when: always
       - store_artifacts:
-          path: coverage.html
+          path: /tmp/artifacts
