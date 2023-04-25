@@ -1,4 +1,4 @@
-name: govulncheck
+name: Vulnerabilities
 on:
   push:
     branches: [ main ]
@@ -8,7 +8,7 @@ on:
     # Trigger every day at 16:00 UTC
     - cron: '0 16 * * *'
 jobs:
-  Vulnerabilities-Check:
+  Check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
