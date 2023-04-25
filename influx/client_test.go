@@ -19,7 +19,7 @@ func TestClient(t *testing.T) {
 		)
 
 		assert.Equal(t, client.host, host)
-		assert.Equal(t, client.host, database)
+		assert.Equal(t, client.database, database)
 		assert.Equal(t, client.token, token)
 	})
 }
