@@ -1,4 +1,7 @@
 <p align="center">
+    <img src="influxdb-logo.webp" width="300" alt="InfluxDB logo">
+</p>
+<p align="center">
     <a href="https://pkg.go.dev/github.com/bonitoo-io/influxdb-client-go-3">
         <img src="https://pkg.go.dev/badge/github.com/bonitoo-io/influxdb-client-go-3.svg" alt="Go Reference">
     </a>
