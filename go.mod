@@ -1,3 +1,3 @@
-module github.com/bonitoo-io/influxdb_client_go_3
+module github.com/bonitoo-io/influxdb-client-go-3
 
 go 1.20
