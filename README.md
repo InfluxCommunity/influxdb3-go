@@ -11,6 +11,9 @@
     <a href="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml">
         <img src="https://github.com/bonitoo-io/influxdb-client-go-3/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
     </a>
+    <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb-client-go-3/tree/main">
+        <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb-client-go-3/tree/main.svg?style=svg" alt="CircleCI">
+    </a>
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
     </a>
@@ -36,15 +39,19 @@ To start with the client, import the `influx` package and create a `influx.Clien
 
 ```go
 import (
-"github.com/bonitoo-io/influxdb-client-go-3/influx"
+    "github.com/bonitoo-io/influxdb-client-go-3/influx"
+    "github.com/bonitoo-io/influxdb-client-go-3/influx/configs"
 )
 
-client, err := influx.NewClient(influx.configs.ClientConfigs{
-Host:       "https://eu-central-1-1.aws.cloud2.influxdata.com/",
-Database:   "my-database",
-Token:      "my-token",
-})
+host := "https://eu-central-1-1.aws.cloud2.influxdata.com/"
+database := "my-database"
+token := "my-token"
 
+client, err := NewClient(configs.ClientConfigs{
+    Host:     &host,
+    Database: &database,
+    Token:    &token},
+)
 ```
 
 to insert data you can use code like this:
@@ -61,13 +68,15 @@ to query your data you can use code like this:
 
 ## Feedback
 
-For help please use, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA) or [Community Page](https://community.influxdata.com/).
+For help please use, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA)
+or [Community Page](https://community.influxdata.com/).
 
 New features and bugs can be reported on GitHub: https://github.com/bonitoo-io/influxdb-client-go-3
 
 ## Contribution
 
-If you would like to contribute code you can do through GitHub by forking the repository and sending a pull request into the `main` branch.
+If you would like to contribute code you can do through GitHub by forking the repository and sending a pull request into
+the `main` branch.
 
 ## License
 
