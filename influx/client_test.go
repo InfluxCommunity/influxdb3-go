@@ -1,7 +1,7 @@
 package influx
 
 import (
-	"github.com/bonitoo-io/influxdb-client-go-3/influx/configs"
+	"github.com/bonitoo-io/influxdb3-go/influx/configs"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
