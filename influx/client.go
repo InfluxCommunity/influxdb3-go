@@ -1,6 +1,6 @@
 package influx
 
-import "github.com/bonitoo-io/influxdb-client-go-3/influx/configs"
+import "github.com/bonitoo-io/influxdb3-go/influx/configs"
 
 // Client provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
 type Client struct {
