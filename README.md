@@ -87,3 +87,11 @@ the `main` branch.
 ## License
 
 The InfluxDB 3 Go Client is released under the [MIT License](https://opensource.org/licenses/MIT).
+which allows you to execute SQL queries on InfluxDB IOx.
+
+### Basic Example
+
+set environment values : `INFLUXDB_REGION` `INFLUXDB_TOKEN` `INFLUXDB_BUCKET`
+
+run `go run ./example/main.go`
+
