@@ -41,36 +41,102 @@ go get github.com/bonitoo-io/influxdb3-go
 
 ## Usage
 
-To start with the client, import the `influx` package and create a `influx.Client` by the `NewClient` function:
+set environment variables:
+
+- `INFLUXDB_URL` region of your influxdb cloud e.g *https://us-east-1-1.aws.cloud2.influxdata.com/*
+- `INFLUXDB_TOKEN` read/write token generaterd in cloud
+- `INFLUXDB_BUCKET` name of bucket
+
+<details>
+  <summary>linux/macos</summary>
+
+```
+export INFLUXDB_URL=<url>
+export INFLUXDB_BUCKET=<bucket>
+export INFLUXDB_TOKEN=<token>
+```
+
+</details>
+
+<details>
+  <summary>windows</summary>
+
+```
+setx INFLUXDB_URL <url>
+setx INFLUXDB_BUCKET <bucket>
+setx INFLUXDB_TOKEN <token>
+```
+
+</details>
+
+To get started with influxdb client import `influxdb3-go` package.
 
 ```go
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/bonitoo-io/influxdb3-go/influx"
     "github.com/bonitoo-io/influxdb3-go/influx"
     "github.com/bonitoo-io/influxdb3-go/influx/configs"
 )
-
-host := "https://eu-central-1-1.aws.cloud2.influxdata.com/"
-database := "my-database"
-token := "my-token"
-
-client, err := NewClient(configs.ClientConfigs{
-    Host:     &host,
-    Database: &database,
-    Token:    &token},
-)
 ```
 
-to insert data, you can use code like this:
+Create `influx.Client` with `New` function. Make sure to `Close` client after with `defer` keyword.
 
 ```go
-// TBD
+url := os.Getenv("INFLUXDB_URL")
+token := os.Getenv("INFLUXDB_TOKEN")
+bucket := os.Getenv("INFLUXDB_BUCKET")
+
+// Create a new client using an InfluxDB server base URL and an authentication token
+client, err := influx.New(influx.Params{
+    ServerURL: url,
+    AuthToken: token,
+})
+defer client.Close()
 ```
 
-to query your data, you can use code like this:
+The `client` can be now used to insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/)
 
 ```go
-// TBD
+line := fmt.Sprintf("stat,unit=temperature avg=%f,max=%f", 23.5, 45.0)
+err = client.Write(context.Background(), bucket, []byte(line))
 ```
+
+Fetch data using FlightSQL query and print result.
+
+```go
+query := `
+        SELECT *
+        FROM "stat"
+        WHERE
+        time >= now() - interval '5 minute'
+        AND
+        "unit" IN ('temperature')
+`;
+
+reader, err := client.Query(context.Background(), bucket, query, nil)
+
+for reader.Next() {
+    record := reader.Record()
+    b, err := json.MarshalIndent(record, "", "  ")
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println(string(b))
+
+    if err := reader.Err(); err != nil {
+        panic(err)
+    }
+}
+```
+
+## Example
+
+Prepare environment like in [Usage](#usage) and run `go run ./example/main.go`.
 
 ## Feedback
 
@@ -88,10 +154,3 @@ the `main` branch.
 
 The InfluxDB 3 Go Client is released under the [MIT License](https://opensource.org/licenses/MIT).
 which allows you to execute SQL queries on InfluxDB IOx.
-
-### Basic Example
-
-set environment values : `INFLUXDB_REGION` `INFLUXDB_TOKEN` `INFLUXDB_BUCKET`
-
-run `go run ./example/main.go`
-

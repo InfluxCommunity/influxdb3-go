@@ -7,11 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/bonitoo-io/influxdb-client-go-3/influx"
+	"github.com/bonitoo-io/influxdb3-go/influx"
 )
 
 func main() {
-	url := os.Getenv("INFLUXDB_REGION")
+	// Use env variables to initialize client
+	url := os.Getenv("INFLUXDB_URL")
 	token := os.Getenv("INFLUXDB_TOKEN")
 	bucket := os.Getenv("INFLUXDB_BUCKET")
 
@@ -68,14 +69,15 @@ func main() {
 		panic(err)
 	}
 
-    query := `
-        SELECT *
-        FROM "stat"
-        WHERE
-        time >= now() - interval '5 minute'
-        AND
-        "unit" IN ('temperature')
-    `;
+	// Prepare FlightSQL query
+	query := `
+			SELECT *
+			FROM "stat"
+			WHERE
+			time >= now() - interval '5 minute'
+			AND
+			"unit" IN ('temperature')
+	`;
 
 	reader, err := client.Query(context.Background(), bucket, query, nil)
 
@@ -83,7 +85,8 @@ func main() {
 		panic(err)
 	}
 
-    fmt.Println("QUERY results:")
+	// Print out query results
+	fmt.Println("QUERY results:")
 	for reader.Next() {
 		record := reader.Record()
 		b, err := json.MarshalIndent(record, "", "  ")

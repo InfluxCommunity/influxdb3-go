@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bonitoo-io/influxdb-client-go-3/influx/gzip"
+	"github.com/bonitoo-io/influxdb3-go/influx/gzip"
 )
 
 // WritePoints writes all the given points to the server into the given bucket.
