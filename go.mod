@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/apache/arrow/go/v12 v12.0.0-20230427070130-07d02d6ccaf2
 	github.com/google/uuid v1.3.0
+	github.com/influxdata/line-protocol/v2 v2.2.1
 	google.golang.org/grpc v1.54.0
 )
 
