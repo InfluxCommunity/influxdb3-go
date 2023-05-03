@@ -14,8 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/bonitoo-io/influxdb-client-go-3/influx/model/oapi-codegen/runtime"
 )
 
 // Doer performs HTTP requests.
@@ -123,7 +121,7 @@ func (c *Client) PostDelete(ctx context.Context, params *PostDeleteAllParams) er
 		return err
 	}
 
-	operationPath := fmt.Sprintf("./delete")
+	operationPath := "./delete"
 
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
@@ -133,67 +131,19 @@ func (c *Client) PostDelete(ctx context.Context, params *PostDeleteAllParams) er
 	queryValues := queryURL.Query()
 
 	if params.Org != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "org", runtime.ParamLocationQuery, *params.Org); err != nil {
-			return err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
+		queryValues.Add("org", *params.Org)
 	}
 
 	if params.Bucket != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "bucket", runtime.ParamLocationQuery, *params.Bucket); err != nil {
-			return err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
+		queryValues.Add("bucket", *params.Bucket)
 	}
 
 	if params.OrgID != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orgID", runtime.ParamLocationQuery, *params.OrgID); err != nil {
-			return err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
+		queryValues.Add("orgID", *params.OrgID)
 	}
 
 	if params.BucketID != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "bucketID", runtime.ParamLocationQuery, *params.BucketID); err != nil {
-			return err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
+		queryValues.Add("bucketID", *params.BucketID)
 	}
 
 	queryURL.RawQuery = queryValues.Encode()
@@ -206,14 +156,7 @@ func (c *Client) PostDelete(ctx context.Context, params *PostDeleteAllParams) er
 	req.Header.Add("Content-Type", "application/json")
 
 	if params.ZapTraceSpan != nil {
-		var headerParam0 string
-
-		headerParam0, err = runtime.StyleParamWithLocation("simple", false, "Zap-Trace-Span", runtime.ParamLocationHeader, *params.ZapTraceSpan)
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Zap-Trace-Span", headerParam0)
+		req.Header.Set("Zap-Trace-Span", *params.ZapTraceSpan)
 	}
 
 	req = req.WithContext(ctx)
@@ -245,7 +188,7 @@ func (c *Client) GetReady(ctx context.Context, params *GetReadyParams) (*Ready, 
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("./ready")
+	operationPath := "./ready"
 
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
@@ -258,14 +201,7 @@ func (c *Client) GetReady(ctx context.Context, params *GetReadyParams) (*Ready, 
 	}
 
 	if params.ZapTraceSpan != nil {
-		var headerParam0 string
-
-		headerParam0, err = runtime.StyleParamWithLocation("simple", false, "Zap-Trace-Span", runtime.ParamLocationHeader, *params.ZapTraceSpan)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Zap-Trace-Span", headerParam0)
+		req.Header.Set("Zap-Trace-Span", *params.ZapTraceSpan)
 	}
 
 	req = req.WithContext(ctx)
@@ -305,7 +241,7 @@ func (c *Client) GetHealth(ctx context.Context, params *GetHealthParams) (*Healt
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("./health")
+	operationPath := "./health"
 
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
@@ -318,14 +254,7 @@ func (c *Client) GetHealth(ctx context.Context, params *GetHealthParams) (*Healt
 	}
 
 	if params.ZapTraceSpan != nil {
-		var headerParam0 string
-
-		headerParam0, err = runtime.StyleParamWithLocation("simple", false, "Zap-Trace-Span", runtime.ParamLocationHeader, *params.ZapTraceSpan)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Zap-Trace-Span", headerParam0)
+		req.Header.Set("Zap-Trace-Span", *params.ZapTraceSpan)
 	}
 
 	req = req.WithContext(ctx)
@@ -366,7 +295,7 @@ func (c *Client) GetPing(ctx context.Context) error {
 		return err
 	}
 
-	operationPath := fmt.Sprintf("./ping")
+	operationPath := "./ping"
 
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
@@ -394,5 +323,4 @@ func (c *Client) GetPing(ctx context.Context) error {
 		return decodeError(bodyBytes, rsp)
 	}
 	return nil
-
 }

@@ -21,8 +21,7 @@ type Error struct {
 // code is the machine-readable error code.
 type ErrorCode string
 
-// TraceSpan defines model for TraceSpan.
-type TraceSpan string
+
 
 // Defines values for ErrorCode.
 const (
@@ -90,7 +89,7 @@ type PostDeleteParams struct {
 	BucketID *string `json:"bucketID,omitempty"`
 
 	// OpenTracing span context
-	ZapTraceSpan *TraceSpan `json:"Zap-Trace-Span,omitempty"`
+	ZapTraceSpan *string `json:"Zap-Trace-Span,omitempty"`
 }
 
 // PostDeleteAllParams defines type for all parameters for PostDelete.
@@ -114,7 +113,7 @@ type ReadyStatus string
 // GetHealthParams defines parameters for GetHealth.
 type GetHealthParams struct {
 	// OpenTracing span context
-	ZapTraceSpan *TraceSpan `json:"Zap-Trace-Span,omitempty"`
+	ZapTraceSpan *string `json:"Zap-Trace-Span,omitempty"`
 }
 
 // HealthCheck defines model for HealthCheck.
@@ -133,14 +132,14 @@ type HealthCheckStatus string
 // GetReadyParams defines parameters for GetReady.
 type GetReadyParams struct {
 	// OpenTracing span context
-	ZapTraceSpan *TraceSpan `json:"Zap-Trace-Span,omitempty"`
+	ZapTraceSpan *string `json:"Zap-Trace-Span,omitempty"`
 }
 
 
 // GetFlagsParams defines parameters for GetFlags.
 type GetFlagsParams struct {
 	// OpenTracing span context
-	ZapTraceSpan *TraceSpan `json:"Zap-Trace-Span,omitempty"`
+	ZapTraceSpan *string `json:"Zap-Trace-Span,omitempty"`
 }
 
 // PostDeleteJSONRequestBody defines body for PostDelete for application/json ContentType.
