@@ -5,6 +5,8 @@ package influx
 import "strings"
 
 func ReplaceURLProtocolWithPort(url string) string {
+	url = strings.TrimSuffix(url, "/")
+
 	if strings.HasPrefix(url, "http://") {
 		url = strings.TrimPrefix(url, "http://")
 		if strings.Count(url, ":") == 0 {

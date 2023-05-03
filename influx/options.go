@@ -3,7 +3,7 @@ package influx
 import (
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	lineprotocol "github.com/bonitoo-io/influxdb-client-go-3/influx/line-protocol"
 )
 
 // RetryParams configures retry behavior used by PointsWriter

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func (c *Client) Query(ctx context.Context, bucket string,query string, queryParams interface{}) (*flight.Reader, error) {
+func (c *Client) Query(ctx context.Context, bucket string, query string, queryParams interface{}) (*flight.Reader, error) {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, fmt.Errorf("x509: %s", err)

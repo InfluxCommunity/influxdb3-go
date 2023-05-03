@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	lineprotocol "github.com/bonitoo-io/influxdb-client-go-3/influx/line-protocol"
 )
 
 // Tag holds the keys and values for a bunch of Tag k/v pairs.
