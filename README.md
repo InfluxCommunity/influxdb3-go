@@ -43,17 +43,17 @@ go get github.com/bonitoo-io/influxdb3-go
 
 set environment variables:
 
-- `INFLUXDB_URL` region of your influxdb cloud e.g *https://us-east-1-1.aws.cloud2.influxdata.com/*
-- `INFLUXDB_TOKEN` read/write token generaterd in cloud
+- `INFLUXDB_URL` region of your influxdb cloud e.g *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
+- `INFLUXDB_TOKEN` read/write token generaterd in cloud e.g *`my-bucket`*
 - `INFLUXDB_BUCKET` name of bucket
 
 <details>
   <summary>linux/macos</summary>
 
-```
-export INFLUXDB_URL=<url>
-export INFLUXDB_BUCKET=<bucket>
-export INFLUXDB_TOKEN=<token>
+```sh
+export INFLUXDB_URL="<url>"
+export INFLUXDB_BUCKET="<bucket>"
+export INFLUXDB_TOKEN="<token>"
 ```
 
 </details>
@@ -61,10 +61,10 @@ export INFLUXDB_TOKEN=<token>
 <details>
   <summary>windows</summary>
 
-```
-setx INFLUXDB_URL <url>
-setx INFLUXDB_BUCKET <bucket>
-setx INFLUXDB_TOKEN <token>
+```powershell
+setx INFLUXDB_URL "<url>"
+setx INFLUXDB_BUCKET "<bucket>"
+setx INFLUXDB_TOKEN "<token>"
 ```
 
 </details>
@@ -73,14 +73,12 @@ To get started with influxdb client import `influxdb3-go` package.
 
 ```go
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"os"
+  "context"
+  "encoding/json"
+  "fmt"
+  "os"
 
-	"github.com/bonitoo-io/influxdb3-go/influx"
-    "github.com/bonitoo-io/influxdb3-go/influx"
-    "github.com/bonitoo-io/influxdb3-go/influx/configs"
+  "github.com/bonitoo-io/influxdb3-go/influx"
 )
 ```
 

@@ -71,13 +71,13 @@ func main() {
 
 	// Prepare FlightSQL query
 	query := `
-			SELECT *
-			FROM "stat"
-			WHERE
-			time >= now() - interval '5 minute'
-			AND
-			"unit" IN ('temperature')
-	`;
+    SELECT *
+    FROM "stat"
+    WHERE
+    time >= now() - interval '5 minute'
+    AND
+    "unit" IN ('temperature')
+  `
 
 	reader, err := client.Query(context.Background(), bucket, query, nil)
 
