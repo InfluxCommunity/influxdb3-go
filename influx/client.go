@@ -16,9 +16,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/bonitoo-io/influxdb3-go/influx/model"
 )
 
 // Params holds the parameters for creating a new client.
@@ -57,8 +54,6 @@ type Client struct {
 	authorization string
 	// Cached base server API URL.
 	apiURL *url.URL
-	// generated server client
-	apiClient *model.Client
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -73,12 +68,6 @@ type httpParams struct {
 	headers http.Header
 	// HTTP POST/PUT body
 	body io.Reader
-}
-
-// apiCallDelegate delegates generated API client calls to client
-type apiCallDelegate struct {
-	// Client
-	c *Client
 }
 
 // TODO: escalation on invalid URL
@@ -101,6 +90,8 @@ func New(params Params) (*Client, error) {
 		// For subsequent path parts concatenation, url has to end with '/'
 		serverAddress = params.ServerURL + "/"
 	}
+	serverAddress += "api/v2/"
+	
 	var err error
 	// Prepare server API URL
 	c.apiURL, err = url.Parse(serverAddress)
@@ -110,116 +101,8 @@ func New(params Params) (*Client, error) {
 	if params.WriteParams.MaxBatchBytes == 0 {
 		c.params.WriteParams = DefaultWriteParams
 	}
-	// Create API client
-	c.apiClient, err = model.NewClient(c.apiURL.String(), &apiCallDelegate{c})
-	if err != nil {
-		return nil, fmt.Errorf("error creating server API client: %w", err)
-	}
-	// Update server API URL
-	c.apiURL, err = url.Parse(c.apiClient.APIEndpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing API endpoint URL: %w", err)
-	}
+
 	return c, nil
-}
-
-// APIClient returns generates API client
-func (c *Client) APIClient() *model.Client {
-	return c.apiClient
-}
-
-// DeleteParams holds options for DeletePoints.
-type DeleteParams struct {
-	// Bucket holds bucket name.
-	Bucket string
-	// BucketID holds bucket ID.
-	BucketID string
-	// Org holds organization name.
-	Org string
-	// OrgID holds organization ID.
-	OrgID string
-	// Predicate is an expression in delete predicate syntax.
-	Predicate string
-	// Start is the earliest time to delete from.
-	Start time.Time
-	// Stop is the latest time to delete from.
-	Stop time.Time
-}
-
-// DeletePoints deletes data from a bucket.
-func (c *Client) DeletePoints(ctx context.Context, params *DeleteParams) error {
-	if params == nil {
-		return fmt.Errorf("error calling DeletePoints: params cannot be nil")
-	}
-	if params.Bucket == "" && params.BucketID == "" {
-		return fmt.Errorf("error calling DeletePoints: either bucket or bucketID is required")
-	}
-	if params.Org == "" && params.OrgID == "" {
-		return fmt.Errorf("error calling DeletePoints: either org or orgID is required")
-	}
-	if params.Start.IsZero() {
-		return fmt.Errorf("error calling DeletePoints: invalid start time")
-	}
-	if params.Stop.IsZero() {
-		return fmt.Errorf("error calling DeletePoints: invalid stop time")
-	}
-	postParams := model.PostDeleteAllParams{
-		Body: model.PostDeleteJSONRequestBody{
-			Predicate: &params.Predicate,
-			Start:     params.Start,
-			Stop:      params.Stop,
-		},
-	}
-	if params.Bucket != "" {
-		postParams.Bucket = &params.Bucket
-	} else {
-		postParams.BucketID = &params.BucketID
-	}
-	if params.Org != "" {
-		postParams.Org = &params.Org
-	} else {
-		postParams.OrgID = &params.OrgID
-	}
-
-	err := c.apiClient.PostDelete(ctx, &postParams)
-	if err != nil {
-		return fmt.Errorf("error calling DeletePoints: %v", err)
-	}
-	return nil
-}
-
-// Ready checks that the server is ready, and reports the duration the instance
-// has been up if so. It does not validate authentication parameters.
-// See https://docs.influxdata.com/influxdb/v2.0/api/#operation/GetReady.
-func (c *Client) Ready(ctx context.Context) (time.Duration, error) {
-	resp, err := c.apiClient.GetReady(ctx, &model.GetReadyParams{})
-	if err != nil {
-		return 0, fmt.Errorf("error calling Ready: %v", err)
-	}
-	up, err := time.ParseDuration(*resp.Up)
-	if err != nil {
-		return 0, fmt.Errorf("error calling Ready: %v", err)
-	}
-	return up, nil
-}
-
-// Health returns an InfluxDB server health check result. Read the HealthCheck.Status field to get server status.
-// Health doesn't validate authentication params.
-func (c *Client) Health(ctx context.Context) (*model.HealthCheck, error) {
-	resp, err := c.apiClient.GetHealth(ctx, &model.GetHealthParams{})
-	if err != nil {
-		return nil, fmt.Errorf("error calling Health: %v", err)
-	}
-	return resp, nil
-}
-
-// Ping checks the status and InfluxDB version of the instance. Returns an error if it is not available.
-func (c *Client) Ping(ctx context.Context) error {
-	err := c.apiClient.GetPing(ctx)
-	if err != nil {
-		return fmt.Errorf("error calling Ping: %v", err)
-	}
-	return nil
 }
 
 // makeAPICall issues an HTTP request to InfluxDB server API url according to parameters.
@@ -302,19 +185,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	}
 
 	return &httpError.ServerError
-}
-
-// Do makes API call for generated client
-func (d *apiCallDelegate) Do(req *http.Request) (*http.Response, error) {
-	queryParams := req.URL.Query()
-	req.URL.RawQuery = ""
-	return d.c.makeAPICall(req.Context(), httpParams{
-		endpointURL: req.URL,
-		headers:     req.Header,
-		httpMethod:  req.Method,
-		body:        req.Body,
-		queryParams: queryParams,
-	})
 }
 
 // Close closes all idle connections.
