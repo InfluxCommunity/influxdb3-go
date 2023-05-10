@@ -14,6 +14,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -90,7 +91,6 @@ func New(params Params) (*Client, error) {
 		// For subsequent path parts concatenation, url has to end with '/'
 		serverAddress = params.ServerURL + "/"
 	}
-	serverAddress += "api/v2/"
 	
 	var err error
 	// Prepare server API URL
@@ -98,6 +98,9 @@ func New(params Params) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing server URL: %w", err)
 	}
+
+	c.apiURL.Path = path.Join(c.apiURL.Path,"api/v2") + "/"
+
 	if params.WriteParams.MaxBatchBytes == 0 {
 		c.params.WriteParams = DefaultWriteParams
 	}
