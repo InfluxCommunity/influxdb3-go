@@ -52,7 +52,11 @@ func (r *retryStrategy) NextDelay(err error, failedAttempts int) int {
 	}
 	minDelay := r.params.RetryInterval * powi(r.params.ExponentialBase, failedAttempts)
 	maxDelay := r.params.RetryInterval * powi(r.params.ExponentialBase, failedAttempts+1)
+	if minDelay >= r.params.MaxRetryInterval || minDelay < 0 { //check overflows
+		return r.params.MaxRetryInterval
+	}
 	diff := maxDelay - minDelay
+	// if maxDelay oveflows then diff will be negative
 	if diff <= 0 { //check overflows
 		return r.params.MaxRetryInterval
 	}
