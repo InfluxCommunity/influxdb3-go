@@ -214,17 +214,16 @@ func TestEncode(t *testing.T) {
 func genPoints(t *testing.T, count int) []*Point {
 	ps := make([]*Point, count)
 	ts := time.Now()
-	ts.Truncate(time.Second)
-	rand.Seed(321)
+	gen := rand.New(rand.NewSource(321))
 	for i := range ps {
 		p := NewPointWithMeasurement("host")
 		p.AddTag("rack", fmt.Sprintf("rack_%2d", i%10))
 		p.AddTag("name", fmt.Sprintf("machine_%2d", i))
-		p.AddField("temperature", rand.Float64()*80.0)
-		p.AddField("disk_free", rand.Float64()*1000.0)
+		p.AddField("temperature", gen.Float64()*80.0)
+		p.AddField("disk_free", gen.Float64()*1000.0)
 		p.AddField("disk_total", (i/10+1)*1000000)
 		p.AddField("mem_total", (i/100+1)*10000000)
-		p.AddField("mem_free", rand.Uint64())
+		p.AddField("mem_free", gen.Uint64())
 		p.Timestamp = ts
 		ps[i] = p
 		ts = ts.Add(time.Millisecond)
