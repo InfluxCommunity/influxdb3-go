@@ -28,6 +28,7 @@ func (c *Client) Query(ctx context.Context, bucket string, query string, queryPa
 	if err != nil {
 		return nil, fmt.Errorf("flightsql: %s", err)
 	}
+	defer client.Close()
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.params.AuthToken)
 	ctx = metadata.AppendToOutgoingContext(ctx, "bucket-name", bucket)
