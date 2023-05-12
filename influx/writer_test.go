@@ -2,12 +2,9 @@ package influx
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -138,118 +135,6 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func TestWriteRetriesWithoutErrors(t *testing.T) {
-	output := make([]byte, 0, 10)
-	requests := 0
-	params := DefaultWriteParams
-	params.RetryInterval = 100
-	params.FlushInterval = 5
-	params.RetryJitter = 0
-	failures := 0
-	success := 0
-	params.WriteFailed = func(err error, lines []byte, attempt int, expires time.Time) bool {
-		mu.Lock()
-		defer mu.Unlock()
-		failures++
-		return true
-	}
-	w := NewPointsWriter(func(ctx context.Context, bucket string, bs []byte) error {
-		mu.Lock()
-		defer mu.Unlock()
-		requests++
-		if requests%2 == 0 {
-			success = success + linesCount(bs)
-			output = append(output, bs...)
-			return nil
-		} else {
-			//return &ServerError{StatusCode: 500, Message: "error"}
-			return errors.New("error")
-		}
-	}, "bucket", params)
-
-	w.WritePoints(NewPointWithMeasurement("test").AddField("f", 35))
-	waitForCondition(t, 5000, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return success == 1
-	})
-	assert.EqualValues(t, 1, failures)
-
-	output = output[:0]
-	w.WritePoints(&Point{}, //ignored, with warning, will call writeFailed callback
-		NewPointWithMeasurement("test"), //ignore, with warning, //ignored, with warning, will call writeFailed callback
-		NewPointWithMeasurement("test").AddField("f", 2),
-		NewPointWithMeasurement("test").AddField("f", 3),
-		NewPointWithMeasurement("test").AddField("f", 4).SetTimestamp(time.Unix(1, 0)),
-	)
-
-	waitForCondition(t, 5000, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return success == 4
-	})
-	assert.EqualValues(t, 4, failures)
-	s1 := struct {
-		Measurement string `lp:"measurement"`
-		F           int    `lp:"field,f"`
-	}{
-		"air",
-		5,
-	}
-	s2 := struct { //will generate warning
-		Measurement string `lp:"measurement"`
-	}{
-		"air",
-	}
-	w.WriteData(s1, s2)
-	waitForCondition(t, 5000, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return success == 5
-	})
-	assert.EqualValues(t, 6, failures)
-
-}
-
-func TestWriteRetriesExpiration(t *testing.T) {
-	var buff strings.Builder
-	log.SetOutput(&buff)
-	defer fmt.Println(buff.String())
-	params := DefaultWriteParams
-	params.RetryInterval = 100
-	params.MaxRetryTime = 100
-	params.RetryJitter = 0
-	params.FlushInterval = 5
-	failures := 0
-	requests := 0
-	success := 0
-	params.WriteFailed = func(err error, lines []byte, attempt int, expires time.Time) bool {
-		mu.Lock()
-		defer mu.Unlock()
-		failures++
-		return true
-	}
-	w := NewPointsWriter(func(ctx context.Context, bucket string, bs []byte) error {
-		mu.Lock()
-		defer mu.Unlock()
-		requests++
-		if requests%2 == 0 {
-			success = success + linesCount(bs)
-			return nil
-		} else {
-			//return &ServerError{StatusCode: 500, Message: "error"}
-			return errors.New("error")
-		}
-	}, "bucket", params)
-	w.Write([]byte("test f=35"))
-	waitForCondition(t, 5000, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return failures == 2 //one per failed write, second for the expired time
-	})
-	assert.EqualValues(t, 0, success)
-}
-
 func TestIgnoreErrors(t *testing.T) {
 	i := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -277,17 +162,22 @@ func TestIgnoreErrors(t *testing.T) {
 
 	b := &batch{
 		lines:             []byte("a"),
-		remainingAttempts: 0,
 		expires:           time.Time{},
 	}
-	err = writer.writeBatch(b, 0)
+	err = writer.writeBatch(b)
 	assert.NoError(t, err)
-	err = writer.writeBatch(b, 0)
-	assert.NoError(t, err)
-	err = writer.writeBatch(b, 1)
-	assert.NoError(t, err)
-	err = writer.writeBatch(b, 2)
-	assert.NoError(t, err)
-	err = writer.writeBatch(b, 3)
-	assert.Error(t, err)
+}
+
+func waitForCondition(t *testing.T, timeout int, a func() bool) {
+	step := 5
+	for {
+		<-time.After(time.Duration(step) * time.Millisecond)
+		timeout -= step
+		if timeout < 0 {
+			t.Fatal("wait timeout")
+		}
+		if a() {
+			return
+		}
+	}
 }

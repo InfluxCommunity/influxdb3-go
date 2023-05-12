@@ -54,7 +54,7 @@ func (w *WriteBuffer) Reset() []byte {
 	return ret
 }
 
-// PointsWriter is asynchronous writer with automated batching and retrying capabilities.
+// PointsWriter is asynchronous writer with automated batching.
 // It is parametrized by the WriteParams.
 // It is obtained using the Client.PointsWriter()
 // Use Write, WriteData or WritePoints for sending data
@@ -71,13 +71,10 @@ type PointsWriter struct {
 	params        WriteParams
 	bucket        string
 	writeBuffer   *WriteBuffer
-	retryBuffer   *RetryBuffer
-	retryStrategy RetryStrategy
 }
 
 type batch struct {
 	lines             []byte
-	remainingAttempts int
 	expires           time.Time
 }
 
@@ -97,11 +94,9 @@ func NewPointsWriter(writer BytesWrite, bucket string, params WriteParams) *Poin
 		maxLength: params.BatchSize,
 		maxBytes:  params.MaxBatchBytes,
 		flushFn: func(bytes []byte) {
-			write.sendBatch(bytes, params.MaxRetries, time.Now().Add(time.Duration(params.MaxRetryTime)*time.Millisecond))
+			write.sendBatch(bytes, time.Now().Add(time.Duration(params.ExpirationTime)*time.Millisecond))
 		},
 	}
-	write.retryStrategy = GetRetryStrategyFactory()(params.RetryParams)
-	write.retryBuffer = NewRetryBuffer(params.RetryBufferLimit, write.sendBatch, params.WriteRetrySkipped)
 
 	go write.writeProc()
 	go write.bufferProc()
@@ -126,7 +121,7 @@ func (p *PointsWriter) WritePoints(points ...*Point) {
 			mess := fmt.Sprintf("Point encoding failed: %v", err)
 			log.Printf("[W] PointsWriter: %s", mess)
 			if p.params.WriteFailed != nil {
-				p.params.WriteFailed(errors.New(mess), nil, 0, time.Time{})
+				p.params.WriteFailed(errors.New(mess), nil, time.Time{})
 			}
 			continue
 		}
@@ -158,7 +153,7 @@ func (p *PointsWriter) WriteData(points ...interface{}) {
 			mess := fmt.Sprintf("Point encoding failed: %v", err)
 			log.Printf("[W] PointsWriter: %s", mess)
 			if p.params.WriteFailed != nil {
-				p.params.WriteFailed(errors.New(mess), nil, 0, time.Time{})
+				p.params.WriteFailed(errors.New(mess), nil, time.Time{})
 			}
 			continue
 		}
@@ -175,10 +170,9 @@ func (p *PointsWriter) scheduleFlush() {
 	})
 }
 
-func (p *PointsWriter) sendBatch(lines []byte, remainingAttempts int, expires time.Time) {
+func (p *PointsWriter) sendBatch(lines []byte, expires time.Time) {
 	p.batchCh <- &batch{
 		lines,
-		remainingAttempts,
 		expires,
 	}
 }
@@ -204,47 +198,32 @@ func (p *PointsWriter) bufferProc() {
 
 func (p *PointsWriter) writeProc() {
 	for batch := range p.batchCh {
-		failedAttempts := p.params.MaxRetries - batch.remainingAttempts + 1
 		if batch.expires.Before(time.Now()) {
-			err := errors.New("max retry time exceeded")
+			err := errors.New("max time exceeded")
 			log.Printf("[W] PointsWriter: %s", err.Error())
 			if p.params.WriteFailed != nil {
-				p.params.WriteFailed(err, batch.lines, failedAttempts, batch.expires)
+				p.params.WriteFailed(err, batch.lines, batch.expires)
 			}
 			continue
 		}
-		if err := p.writeBatch(batch, failedAttempts); err == nil {
-			p.retryStrategy.Success()
+		if err := p.writeBatch(batch); err == nil {
 		}
 	}
 	p.stopCh <- struct{}{}
 }
 
-func (p *PointsWriter) writeBatch(batch *batch, failedAttempts int) error {
+func (p *PointsWriter) writeBatch(batch *batch) error {
 	err := p.writer(context.Background(), p.bucket, batch.lines)
 	if err != nil {
-		retry := true
 		if se, ok := err.(*ServerError); ok {
 			if isIgnorableError(se) {
 				log.Printf("[W] PointsWriter: write to InfluxDB returns: %s", se.Message)
 				return nil
 			}
-			retry = se.StatusCode >= 429
 		}
 		if p.params.WriteFailed != nil {
-			retry = p.params.WriteFailed(err, batch.lines, failedAttempts, batch.expires) && retry
 		}
-		retry = p.params.RetryInterval > 0 && retry
-		if retry {
-			p.retryBuffer.AddLines(
-				batch.lines,
-				batch.remainingAttempts-1,
-				p.retryStrategy.NextDelay(err, failedAttempts-1),
-				batch.expires)
-			log.Printf("[W] PointsWriter: write to InfluxDB failed (attempt: %d): %v", failedAttempts, err)
-		} else {
-			log.Printf("[E] PointsWriter:  write to InfluxDB failed: %v", err)
-		}
+		log.Printf("[E] PointsWriter:  write to InfluxDB failed: %v", err)
 	}
 	return err
 }
@@ -253,7 +232,6 @@ func (p *PointsWriter) writeBatch(batch *batch, failedAttempts int) error {
 // This enforces sending data on demand, even when flush conditions (batch size, flush interval, max batch bytes)
 // are not met.
 func (p *PointsWriter) Flush() {
-	p.retryBuffer.Flush()
 	p.flushCh <- struct{}{}
 	for len(p.bufferCh) > 0 {
 		<-time.After(time.Millisecond)
@@ -267,7 +245,6 @@ func (p *PointsWriter) Flush() {
 // Close stops internal routines and closes resources
 // Must be called by user at the end
 func (p *PointsWriter) Close() {
-	p.retryBuffer.Close()
 	p.stopCh <- struct{}{}
 	close(p.bufferCh)
 	close(p.batchCh)
