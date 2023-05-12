@@ -22,6 +22,11 @@ jobs:
           command: |
             mkdir -p /tmp/artifacts
       - run:
+          name: Lint go code
+          command: | 
+            go vet  ./...
+            go install golang.org/x/lint/golint@latest && golint ./...
+      - run:
           name: Run tests
           command: go test -v -cover -coverprofile=coverage.out ./...
       - run:
