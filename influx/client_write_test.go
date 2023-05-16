@@ -197,9 +197,9 @@ func TestEncode(t *testing.T) {
 	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
 
-			client, err := New(Params{ServerURL: "http://localhost:8086"})
+			client, err := New(Configs{HostURL: "http://localhost:8086"})
 			require.NoError(t, err)
-			b, err := encode(ts.s, client.params.WriteParams)
+			b, err := encode(ts.s, client.configs.WriteParams)
 			if ts.error == "" {
 				require.NoError(t, err)
 				assert.Equal(t, ts.line, string(b))
@@ -268,8 +268,8 @@ func TestWriteCorrectUrl(t *testing.T) {
 
 	params := DefaultWriteParams
 	params.Precision = lineprotocol.Millisecond
-	c, err := New(Params{
-		ServerURL:    ts.URL + "/path/",
+	c, err := New(Configs{
+		HostURL:    ts.URL + "/path/",
 		Organization: "my-org",
 		WriteParams:  params,
 	})
@@ -277,7 +277,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	err = c.Write(context.Background(), "my-bucket", []byte("a f=1"))
 	assert.NoError(t, err)
 	correctPath = "/path/api/v2/write?bucket=my-bucket&consistency=quorum&org=my-org&precision=ms"
-	c.params.WriteParams.Consistency = ConsistencyQuorum
+	c.configs.WriteParams.Consistency = ConsistencyQuorum
 	err = c.Write(context.Background(), "my-bucket", []byte("a f=1"))
 	assert.NoError(t, err)
 
@@ -304,11 +304,11 @@ func TestWritePointsAndBytes(t *testing.T) {
 		w.WriteHeader(204)
 	}))
 	defer ts.Close()
-	c, err := New(Params{
-		ServerURL: ts.URL,
+	c, err := New(Configs{
+		HostURL: ts.URL,
 	})
-	c.params.WriteParams.Precision = lineprotocol.Millisecond
-	c.params.WriteParams.GzipThreshold = 0
+	c.configs.WriteParams.Precision = lineprotocol.Millisecond
+	c.configs.WriteParams.GzipThreshold = 0
 	require.NoError(t, err)
 	err = c.Write(context.Background(), "b", byts)
 	assert.NoError(t, err)
@@ -362,10 +362,10 @@ func TestWriteData(t *testing.T) {
 		w.WriteHeader(204)
 	}))
 	defer ts.Close()
-	c, err := New(Params{
-		ServerURL: ts.URL,
+	c, err := New(Configs{
+		HostURL: ts.URL,
 	})
-	c.params.WriteParams.GzipThreshold = 0
+	c.configs.WriteParams.GzipThreshold = 0
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), "b", s)
 	assert.NoError(t, err)
@@ -398,8 +398,8 @@ func TestGzip(t *testing.T) {
 		w.WriteHeader(204)
 	}))
 	defer ts.Close()
-	c, err := New(Params{
-		ServerURL: ts.URL,
+	c, err := New(Configs{
+		HostURL: ts.URL,
 	})
 	require.NoError(t, err)
 	//Test no gzip on small body
@@ -414,7 +414,7 @@ func TestGzip(t *testing.T) {
 	assert.True(t, wasGzip)
 	// Test disable gzipping
 	wasGzip = false
-	c.params.WriteParams.GzipThreshold = 0
+	c.configs.WriteParams.GzipThreshold = 0
 	err = c.Write(context.Background(), "b", byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)

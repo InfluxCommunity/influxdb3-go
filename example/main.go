@@ -17,8 +17,8 @@ func main() {
 	bucket := os.Getenv("INFLUXDB_BUCKET")
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
-	client, err := influx.New(influx.Params{
-		ServerURL: url,
+	client, err := influx.New(influx.Configs{
+		HostURL: url,
 		AuthToken: token,
 	})
 

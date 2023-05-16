@@ -22,7 +22,7 @@ func (c *Client) Query(ctx context.Context, bucket string, query string, queryPa
 		transport,
 	}
 
-	url := ReplaceURLProtocolWithPort(c.params.ServerURL)
+	url := ReplaceURLProtocolWithPort(c.configs.HostURL)
 
 	client, err := flightsql.NewClient(url, nil, nil, opts...)
 	if err != nil {
@@ -30,7 +30,7 @@ func (c *Client) Query(ctx context.Context, bucket string, query string, queryPa
 	}
 	defer client.Close()
 
-	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.params.AuthToken)
+	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
 	ctx = metadata.AppendToOutgoingContext(ctx, "bucket-name", bucket)
 
 	info, err := client.Execute(ctx, query)

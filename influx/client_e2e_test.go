@@ -19,8 +19,8 @@ func TestWriteAndQueryExample(t *testing.T) {
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	bucket := os.Getenv("TESTING_INFLUXDB_BUCKET")
 
-	client, err := influx.New(influx.Params{
-		ServerURL: url,
+	client, err := influx.New(influx.Configs{
+		HostURL: url,
 		AuthToken: token,
 	})
 

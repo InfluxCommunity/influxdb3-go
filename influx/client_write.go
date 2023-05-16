@@ -20,7 +20,7 @@ import (
 func (c *Client) WritePoints(ctx context.Context, bucket string, points ...*Point) error {
 	var buff []byte
 	for _, p := range points {
-		bts, err := p.MarshalBinary(c.params.WriteParams.Precision, c.params.WriteParams.DefaultTags)
+		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision, c.configs.WriteParams.DefaultTags)
 		if err != nil {
 			return err
 		}
@@ -39,16 +39,16 @@ func (c *Client) Write(ctx context.Context, bucket string, buff []byte) error {
 	var err error
 	u, _ := c.apiURL.Parse("write")
 	params := u.Query()
-	params.Set("org", c.params.Organization)
+	params.Set("org", c.configs.Organization)
 	params.Set("bucket", bucket)
-	params.Set("precision", c.params.WriteParams.Precision.String())
-	if c.params.WriteParams.Consistency != "" {
-		params.Set("consistency", string(c.params.WriteParams.Consistency))
+	params.Set("precision", c.configs.WriteParams.Precision.String())
+	if c.configs.WriteParams.Consistency != "" {
+		params.Set("consistency", string(c.configs.WriteParams.Consistency))
 	}
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"application/json"}}
-	if c.params.WriteParams.GzipThreshold > 0 && len(buff) >= c.params.WriteParams.GzipThreshold {
+	if c.configs.WriteParams.GzipThreshold > 0 && len(buff) >= c.configs.WriteParams.GzipThreshold {
 		body, err = gzip.CompressWithGzip(body)
 		if err != nil {
 			return fmt.Errorf("unable to compress write body: %w", err)
@@ -88,7 +88,7 @@ func (c *Client) Write(ctx context.Context, bucket string, buff []byte) error {
 func (c *Client) WriteData(ctx context.Context, bucket string, points ...interface{}) error {
 	var buff []byte
 	for _, p := range points {
-		byts, err := encode(p, c.params.WriteParams)
+		byts, err := encode(p, c.configs.WriteParams)
 		if err != nil {
 			return fmt.Errorf("error encoding point: %w", err)
 		}
@@ -161,5 +161,5 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 // The returned PointsWriter must be closed after use to release resources
 // and flush any buffered points.
 func (c *Client) PointsWriter(bucket string) *PointsWriter {
-	return NewPointsWriter(c.Write, bucket, c.params.WriteParams)
+	return NewPointsWriter(c.Write, bucket, c.configs.WriteParams)
 }

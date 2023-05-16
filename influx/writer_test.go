@@ -155,7 +155,7 @@ func TestIgnoreErrors(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cl, err := New(Params{ServerURL: server.URL})
+	cl, err := New(Configs{HostURL: server.URL})
 	require.NoError(t, err)
 
 	writer := cl.PointsWriter("bucket")
