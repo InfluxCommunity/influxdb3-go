@@ -45,14 +45,14 @@ set environment variables:
 
 - `INFLUXDB_URL` region of your influxdb cloud e.g *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
 - `INFLUXDB_TOKEN` read/write token generaterd in cloud e.g *`my-bucket`*
-- `INFLUXDB_BUCKET` name of bucket
+- `INFLUXDB_DATABASE` name of database
 
 <details>
   <summary>linux/macos</summary>
 
 ```sh
 export INFLUXDB_URL="<url>"
-export INFLUXDB_BUCKET="<bucket>"
+export INFLUXDB_DATABASE="<database>"
 export INFLUXDB_TOKEN="<token>"
 ```
 
@@ -63,7 +63,7 @@ export INFLUXDB_TOKEN="<token>"
 
 ```powershell
 setx INFLUXDB_URL "<url>"
-setx INFLUXDB_BUCKET "<bucket>"
+setx INFLUXDB_DATABASE "<database>"
 setx INFLUXDB_TOKEN "<token>"
 ```
 
@@ -87,7 +87,7 @@ Create `influx.Client` with `New` function. Make sure to `Close` client after wi
 ```go
 url := os.Getenv("INFLUXDB_URL")
 token := os.Getenv("INFLUXDB_TOKEN")
-bucket := os.Getenv("INFLUXDB_BUCKET")
+database := os.Getenv("INFLUXDB_DATABASE")
 
 // Create a new client using an InfluxDB server base URL and an authentication token
 client, err := influx.New(influx.Params{
@@ -97,10 +97,10 @@ client, err := influx.New(influx.Params{
 defer client.Close()
 ```
 
-The `client` can be now used to insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/)
+The `client` can be now used to insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/).
 
 ```go
-line := fmt.Sprintf("stat,unit=temperature avg=%f,max=%f", 23.5, 45.0)
+line := "stat,unit=temperature avg=23.5,max=45.0"
 err = client.Write(context.Background(), bucket, []byte(line))
 ```
 

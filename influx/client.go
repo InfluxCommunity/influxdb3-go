@@ -22,10 +22,10 @@ import (
 // Params holds the parameters for creating a new client.
 // The only mandatory field is ServerURL. AuthToken is also important
 // if authentication was not done outside this client.
-type Params struct {
+type Configs struct {
 	// ServerURL holds the URL of the InfluxDB server to connect to.
 	// This must be non-empty. E.g. http://localhost:8086
-	ServerURL string
+	HostURL string
 
 	// AuthToken holds the authorization token for the API.
 	// This can be obtained through the GUI web browser interface.
@@ -50,7 +50,7 @@ type Params struct {
 // Client implements an InfluxDB client.
 type Client struct {
 	// Configuration params.
-	params Params
+	configs Configs
 	// Pre-created Authorization HTTP header value.
 	authorization string
 	// Cached base server API URL.
@@ -71,7 +71,6 @@ type httpParams struct {
 	body io.Reader
 }
 
-// TODO: escalation on invalid URL
 
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
 func New(params Params) (*Client, error) {
@@ -179,7 +178,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 	}
 	if httpError.Message == "" {
-		//TODO: "This could be a large piece of unreadable body; we might be able to do better than this"
 		if len(body) > 0 {
 			httpError.Message = string(body)
 		} else {

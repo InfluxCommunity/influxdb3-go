@@ -1,4 +1,3 @@
-// TODO: check if this is enough go-ish
 
 package influx
 
