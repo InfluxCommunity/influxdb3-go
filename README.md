@@ -94,7 +94,13 @@ client, err := influx.New(influx.Params{
     ServerURL: url,
     AuthToken: token,
 })
-defer client.Close()
+// Close client at the end and escalate error if present
+defer func (client *influx.Client)  {
+    err := client.Close()
+    if err != nil {
+        panic(err)
+    }
+}(client)
 ```
 
 The `client` can be now used to insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/).

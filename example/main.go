@@ -24,8 +24,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// Close client at the end
-	defer client.Close()
+	// Close client at the end and escalate error if present
+	defer func (client *influx.Client)  {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(client)
 
 	// Create point using full params constructor
 	p := influx.NewPoint("stat",

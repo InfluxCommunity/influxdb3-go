@@ -201,6 +201,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 func (c *Client) Close() error {
 	c.configs.HTTPClient.CloseIdleConnections()
 	// Support closer interface
-	c.queryClient.Close()
-	return nil
+	err := c.queryClient.Close()
+	return err
 }
