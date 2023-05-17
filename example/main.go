@@ -13,7 +13,7 @@ func main() {
 	// Use env variables to initialize client
 	url := os.Getenv("INFLUXDB_URL")
 	token := os.Getenv("INFLUXDB_TOKEN")
-	bucket := os.Getenv("INFLUXDB_BUCKET")
+	database := os.Getenv("INFLUXDB_DATABASE")
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influx.New(influx.Configs{
@@ -33,7 +33,7 @@ func main() {
 		map[string]interface{}{"avg": 24.5, "max": 45.0},
 		time.Now())
 	// write point synchronously
-	err = client.WritePoints(context.Background(), bucket, p)
+	err = client.WritePoints(context.Background(), database, p)
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +44,7 @@ func main() {
 		AddField("max", 45.0).
 		SetTimestamp(time.Now())
 	// write point synchronously
-	err = client.WritePoints(context.Background(), bucket, p)
+	err = client.WritePoints(context.Background(), database, p)
 	if err != nil {
 		panic(err)
 	}
@@ -57,13 +57,13 @@ func main() {
 		Time  time.Time `lp:"timestamp"`
 	}{"stat", "temperature", 22.3, 40.3, time.Now()}
 	// Write point
-	err = client.WriteData(context.Background(), bucket, sensorData)
+	err = client.WriteData(context.Background(), database, sensorData)
 	if err != nil {
 		panic(err)
 	}
 	// Or write directly line protocol
 	line := fmt.Sprintf("stat,unit=temperature avg=%f,max=%f", 23.5, 45.0)
-	err = client.Write(context.Background(), bucket, []byte(line))
+	err = client.Write(context.Background(), database, []byte(line))
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +78,7 @@ func main() {
     "unit" IN ('temperature')
   `
 
-	iterator, err := client.Query(context.Background(), bucket, query, nil)
+	iterator, err := client.Query(context.Background(), database, query, nil)
 
 	if err != nil {
 		panic(err)

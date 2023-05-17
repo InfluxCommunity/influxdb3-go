@@ -260,7 +260,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 }
 
 func TestWriteCorrectUrl(t *testing.T) {
-	correctPath := "/path/api/v2/write?bucket=my-bucket&org=my-org&precision=ms"
+	correctPath := "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.EqualValues(t, correctPath, r.URL.String())
 		w.WriteHeader(204)
@@ -274,11 +274,11 @@ func TestWriteCorrectUrl(t *testing.T) {
 		WriteParams:  params,
 	})
 	require.NoError(t, err)
-	err = c.Write(context.Background(), "my-bucket", []byte("a f=1"))
+	err = c.Write(context.Background(), "my-database", []byte("a f=1"))
 	assert.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-bucket&consistency=quorum&org=my-org&precision=ms"
+	correctPath = "/path/api/v2/write?bucket=my-database&consistency=quorum&org=my-org&precision=ms"
 	c.configs.WriteParams.Consistency = ConsistencyQuorum
-	err = c.Write(context.Background(), "my-bucket", []byte("a f=1"))
+	err = c.Write(context.Background(), "my-database", []byte("a f=1"))
 	assert.NoError(t, err)
 
 }

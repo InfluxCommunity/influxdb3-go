@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// BytesWrite is a function writing data to a bucket
-type BytesWrite func(ctx context.Context, bucket string, bs []byte) error
+// BytesWrite is a function writing data to a database
+type BytesWrite func(ctx context.Context, database string, bs []byte) error
 
 // WriteBuffer stores lines after line and flushes batch when maxLength (bach size) is  reached
 // or maxBytes exceeds
@@ -69,7 +69,7 @@ type PointsWriter struct {
 	flushCh       chan struct{}
 	flushT        *time.Timer
 	params        WriteParams
-	bucket        string
+  database      string
 	writeBuffer   *WriteBuffer
 }
 
@@ -78,8 +78,8 @@ type batch struct {
 	expires           time.Time
 }
 
-// NewPointsWriter creates fast asynchronous PointsWriter writing to a bucket using given writer according the params
-func NewPointsWriter(writer BytesWrite, bucket string, params WriteParams) *PointsWriter {
+// NewPointsWriter creates fast asynchronous PointsWriter writing to a database using given writer according the params
+func NewPointsWriter(writer BytesWrite, database string, params WriteParams) *PointsWriter {
 
 	write := &PointsWriter{
 		writer:   writer,
@@ -88,7 +88,7 @@ func NewPointsWriter(writer BytesWrite, bucket string, params WriteParams) *Poin
 		flushCh:  make(chan struct{}),
 		stopCh:   make(chan struct{}),
 		params:   params,
-		bucket:   bucket,
+		database: database,
 	}
 	write.writeBuffer = &WriteBuffer{
 		maxLength: params.BatchSize,
@@ -130,7 +130,7 @@ func (p *PointsWriter) WritePoints(points ...*Point) {
 }
 
 // WriteData asynchronously encodes fields of custom points into line protocol
-// and writes line protocol record(s) to the server into the given bucket.
+// and writes line protocol record(s) to the server into the given database.
 // Any error encountered during asynchronous processing is reported by WriteParams.WriteFailed callback.
 // Each custom point must be annotated with 'lp' prefix and values measurement,tag, field or timestamp.
 // Valid point must contain measurement and at least one field.
@@ -213,7 +213,7 @@ func (p *PointsWriter) writeProc() {
 }
 
 func (p *PointsWriter) writeBatch(batch *batch) error {
-	err := p.writer(context.Background(), p.bucket, batch.lines)
+	err := p.writer(context.Background(), p.database, batch.lines)
 	if err != nil {
 		if se, ok := err.(*ServerError); ok {
 			if isIgnorableError(se) {

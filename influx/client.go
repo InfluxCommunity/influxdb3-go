@@ -33,7 +33,7 @@ type Configs struct {
 	// This can be obtained through the GUI web browser interface.
 	AuthToken string
 
-	// Organization is name or ID of organization where data (buckets, users, tasks, etc.) belongs to
+	// Organization is name or ID of organization where data (databases, users, tasks, etc.) belongs to
 	// Optional for InfluxDB Cloud
 	Organization string
 

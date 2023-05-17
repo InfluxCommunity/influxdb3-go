@@ -22,7 +22,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
-	bucket := os.Getenv("TESTING_INFLUXDB_BUCKET")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
 	client, err := influx.New(influx.Configs{
 		HostURL:   url,
@@ -40,7 +40,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		AddField("max", max1).
 		AddField("testId", testId).
 		SetTimestamp(time.Now())
-	err = client.WritePoints(context.Background(), bucket, p)
+	err = client.WritePoints(context.Background(), database, p)
 	require.NoError(t, err)
 
 	sensorData := struct {
@@ -51,7 +51,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		TestId int64     `lp:"field,testId"`
 		Time   time.Time `lp:"timestamp"`
 	}{"stat", "temperature", avg2, max2, testId, time.Now()}
-	err = client.WriteData(context.Background(), bucket, sensorData)
+	err = client.WriteData(context.Background(), database, sensorData)
 	require.NoError(t, err)
 
 	// Query test
@@ -68,7 +68,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	sleepTime := 2 * time.Second
 
 	time.Sleep(sleepTime)
-	iterator, err := client.Query(context.Background(), bucket, query, nil)
+	iterator, err := client.Query(context.Background(), database, query, nil)
 	require.NoError(t, err)
 
 	hasValue := iterator.Next()

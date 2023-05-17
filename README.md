@@ -44,7 +44,7 @@ go get github.com/bonitoo-io/influxdb3-go
 set environment variables:
 
 - `INFLUXDB_URL` region of your influxdb cloud e.g *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
-- `INFLUXDB_TOKEN` read/write token generaterd in cloud e.g *`my-bucket`*
+- `INFLUXDB_TOKEN` read/write token generaterd in cloud e.g *`my-database`*
 - `INFLUXDB_DATABASE` name of database
 
 <details>
@@ -101,7 +101,7 @@ The `client` can be now used to insert data using [line-protocol](https://docs.i
 
 ```go
 line := "stat,unit=temperature avg=23.5,max=45.0"
-err = client.Write(context.Background(), bucket, []byte(line))
+err = client.Write(context.Background(), database, []byte(line))
 ```
 
 Fetch data using FlightSQL query and print result.
@@ -116,7 +116,7 @@ query := `
         "unit" IN ('temperature')
 `;
 
-reader, err := client.Query(context.Background(), bucket, query, nil)
+reader, err := client.Query(context.Background(), database, query, nil)
 
 for reader.Next() {
     record := reader.Record()

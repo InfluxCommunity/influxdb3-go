@@ -13,11 +13,11 @@ import (
 	"github.com/bonitoo-io/influxdb3-go/influx/gzip"
 )
 
-// WritePoints writes all the given points to the server into the given bucket.
+// WritePoints writes all the given points to the server into the given database.
 // The points are written synchronously. For a higher throughput
 // API that buffers individual points and writes them asynchronously,
 // use the PointsWriter method.
-func (c *Client) WritePoints(ctx context.Context, bucket string, points ...*Point) error {
+func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
 	var buff []byte
 	for _, p := range points {
 		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision, c.configs.WriteParams.DefaultTags)
@@ -26,21 +26,21 @@ func (c *Client) WritePoints(ctx context.Context, bucket string, points ...*Poin
 		}
 		buff = append(buff, bts...)
 	}
-	return c.Write(ctx, bucket, buff)
+	return c.Write(ctx, database, buff)
 }
 
-// Write writes line protocol record(s) to the server into the given bucket.
+// Write writes line protocol record(s) to the server into the given database.
 // Multiple records must be separated by the new line character (\n)
 // Data are written synchronously. For a higher throughput
 // API that buffers individual points and writes them asynchronously,
 // use the PointsWriter method.
-func (c *Client) Write(ctx context.Context, bucket string, buff []byte) error {
+func (c *Client) Write(ctx context.Context, database string, buff []byte) error {
 	var body io.Reader
 	var err error
 	u, _ := c.apiURL.Parse("write")
 	params := u.Query()
 	params.Set("org", c.configs.Organization)
-	params.Set("bucket", bucket)
+	params.Set("bucket", database)
 	params.Set("precision", c.configs.WriteParams.Precision.String())
 	if c.configs.WriteParams.Consistency != "" {
 		params.Set("consistency", string(c.configs.WriteParams.Consistency))
@@ -66,7 +66,7 @@ func (c *Client) Write(ctx context.Context, bucket string, buff []byte) error {
 }
 
 // WriteData encodes fields of custom points into line protocol
-// and writes line protocol record(s) to the server into the given bucket.
+// and writes line protocol record(s) to the server into the given database.
 // Each custom point must be annotated with 'lp' prefix and values measurement,tag, field or timestamp.
 // Valid point must contain measurement and at least one field.
 //
@@ -85,7 +85,7 @@ func (c *Client) Write(ctx context.Context, bucket string, buff []byte) error {
 // The points are written synchronously. For a higher throughput
 // API that buffers individual points and writes them asynchronously,
 // use the PointsWriter method.
-func (c *Client) WriteData(ctx context.Context, bucket string, points ...interface{}) error {
+func (c *Client) WriteData(ctx context.Context, database string, points ...interface{}) error {
 	var buff []byte
 	for _, p := range points {
 		byts, err := encode(p, c.configs.WriteParams)
@@ -95,7 +95,7 @@ func (c *Client) WriteData(ctx context.Context, bucket string, points ...interfa
 		buff = append(buff, byts...)
 	}
 
-	return c.Write(ctx, bucket, buff)
+	return c.Write(ctx, database, buff)
 }
 
 func encode(x interface{}, params WriteParams) ([]byte, error) {
@@ -156,10 +156,10 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 }
 
 // PointsWriter returns a PointsWriter value that support fast asynchronous
-// writing of points to Influx. All the points are written into the given bucket.
+// writing of points to Influx. All the points are written into the given database.
 //
 // The returned PointsWriter must be closed after use to release resources
 // and flush any buffered points.
-func (c *Client) PointsWriter(bucket string) *PointsWriter {
-	return NewPointsWriter(c.Write, bucket, c.configs.WriteParams)
+func (c *Client) PointsWriter(database string) *PointsWriter {
+	return NewPointsWriter(c.Write, database, c.configs.WriteParams)
 }

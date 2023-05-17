@@ -120,12 +120,12 @@ func TestWrite(t *testing.T) {
 		output = output[:0]
 		mu.Unlock()
 		t.Run(test.name, func(t *testing.T) {
-			w = NewPointsWriter(func(ctx context.Context, bucket string, bs []byte) error {
+			w = NewPointsWriter(func(ctx context.Context, database string, bs []byte) error {
 				mu.Lock()
 				defer mu.Unlock()
 				output = append(output, bs...)
 				return nil
-			}, "bucket", test.paramsF())
+			}, "database", test.paramsF())
 
 			test.testF(t)
 
@@ -158,7 +158,7 @@ func TestIgnoreErrors(t *testing.T) {
 	cl, err := New(Configs{HostURL: server.URL})
 	require.NoError(t, err)
 
-	writer := cl.PointsWriter("bucket")
+	writer := cl.PointsWriter("database")
 
 	b := &batch{
 		lines:             []byte("a"),
