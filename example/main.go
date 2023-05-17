@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -79,24 +78,16 @@ func main() {
     "unit" IN ('temperature')
   `
 
-	reader, err := client.Query(context.Background(), bucket, query, nil)
+	iterator, err := client.Query(context.Background(), bucket, query, nil)
 
 	if err != nil {
 		panic(err)
 	}
 
-	// Print out query results
-	fmt.Println("QUERY results:")
-	for reader.Next() {
-		record := reader.Record()
-		b, err := json.MarshalIndent(record, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(b))
+	for iterator.Next() {
+		value := iterator.Value()
 
-		if err := reader.Err(); err != nil {
-			panic(err)
-		}
+		fmt.Println(value)
 	}
+
 }

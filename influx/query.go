@@ -5,14 +5,13 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/apache/arrow/go/v12/arrow/flight"
 	"github.com/apache/arrow/go/v12/arrow/flight/flightsql"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 )
 
-func (c *Client) Query(ctx context.Context, bucket string, query string, queryParams interface{}) (*flight.Reader, error) {
+func (c *Client) Query(ctx context.Context, bucket string, query string, queryParams interface{}) (*QueryIterator, error) {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, fmt.Errorf("x509: %s", err)
@@ -41,5 +40,6 @@ func (c *Client) Query(ctx context.Context, bucket string, query string, queryPa
 	if err != nil {
 		return nil, fmt.Errorf("flightsql do get: %s", err)
 	}
-	return reader, nil
+	iterator := newQueryIterator(reader)
+	return iterator, nil
 }

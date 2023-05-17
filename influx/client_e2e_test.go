@@ -20,7 +20,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	bucket := os.Getenv("TESTING_INFLUXDB_BUCKET")
 
 	client, err := influx.New(influx.Configs{
-		HostURL: url,
+		HostURL:   url,
 		AuthToken: token,
 	})
 
@@ -45,7 +45,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		Max    float64   `lp:"field,max"`
 		TestId int64     `lp:"field,testId"`
 		Time   time.Time `lp:"timestamp"`
-	}{"stat", "temperature", 22.3, 40.3, testId, time.Now()}
+	}{"stat", "temperature", 22.3, 45.0, testId, time.Now()}
 	err = client.WriteData(context.Background(), bucket, sensorData)
 	require.NoError(t, err)
 
@@ -66,16 +66,17 @@ func TestWriteAndQueryExample(t *testing.T) {
 	success := false
 	for try := 0; try < maxTries; try++ {
 		time.Sleep(sleepTime)
-		reader, err := client.Query(context.Background(), bucket, query, nil)
+		iterator, err := client.Query(context.Background(), bucket, query, nil)
 		require.NoError(t, err)
 
+		success = true
 		lines := 0
-		for reader.Next() {
-			record := reader.Record()
-			err = reader.Err()
-			require.NoError(t, err)
+		for iterator.Next() {
+			value := iterator.Value()
 
-			lines += int(record.NumRows())
+			assert.Equal(t, value["max"], 45.0)
+
+			lines++
 		}
 		if lines == 2 {
 			success = true
