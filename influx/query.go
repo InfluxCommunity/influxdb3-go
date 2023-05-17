@@ -8,20 +8,28 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/flight/flightsql"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
 
 func (c *Client) initializeQueryClient() error {
-	pool, err := x509.SystemCertPool()
-	if err != nil {
-		return fmt.Errorf("x509: %s", err)
+	url, safe := ReplaceURLProtocolWithPort(c.configs.HostURL)
+
+	var transport grpc.DialOption
+
+	if (safe == nil || *safe) {
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			return fmt.Errorf("x509: %s", err)
+		}
+		transport = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, ""))
+	} else {
+		transport = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
-	transport := grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, ""))
+
 	opts := []grpc.DialOption{
 		transport,
 	}
-
-	url := ReplaceURLProtocolWithPort(c.configs.HostURL)
 
 	client, err := flightsql.NewClient(url, nil, nil, opts...)
 	if err != nil {
