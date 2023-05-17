@@ -17,6 +17,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/apache/arrow/go/v12/arrow/flight/flightsql"
 )
 
 // Configs holds the parameters for creating a new client.
@@ -55,6 +57,8 @@ type Client struct {
 	authorization string
 	// Cached base server API URL.
 	apiURL *url.URL
+	// Flight client for executing queries
+	queryClient *flightsql.Client
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -85,17 +89,17 @@ func New(params Configs) (*Client, error) {
 		c.configs.HTTPClient = http.DefaultClient
 	}
 
-	serverAddress := params.HostURL
-	if !strings.HasSuffix(serverAddress, "/") {
+	hostAddress := params.HostURL
+	if !strings.HasSuffix(hostAddress, "/") {
 		// For subsequent path parts concatenation, url has to end with '/'
-		serverAddress = params.HostURL + "/"
+		hostAddress = params.HostURL + "/"
 	}
 	
 	var err error
-	// Prepare server API URL
-	c.apiURL, err = url.Parse(serverAddress)
+	// Prepare host API URL
+	c.apiURL, err = url.Parse(hostAddress)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing server URL: %w", err)
+		return nil, fmt.Errorf("parsing host URL: %w", err)
 	}
 
 	c.apiURL.Path = path.Join(c.apiURL.Path,"api/v2") + "/"
@@ -104,12 +108,17 @@ func New(params Configs) (*Client, error) {
 		c.configs.WriteParams = DefaultWriteParams
 	}
 
+	err = c.initializeQueryClient()
+	if err != nil {
+		return nil, fmt.Errorf("flight client: %w", err)
+	}
+
 	return c, nil
 }
 
-// makeAPICall issues an HTTP request to InfluxDB server API url according to parameters.
+// makeAPICall issues an HTTP request to InfluxDB host API url according to parameters.
 // Additionally, sets Authorization header and User-Agent.
-// It returns http.Response or error. Error can be a *ServerError if server responded with error.
+// It returns http.Response or error. Error can be a *hostError if host responded with error.
 func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Response, error) {
 	// copy URL
 	urlObj := *params.endpointURL
@@ -142,7 +151,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	return resp, nil
 }
 
-// resolveHTTPError parses server error response and returns error with human-readable message
+// resolveHTTPError parses host error response and returns error with human-readable message
 func (c *Client) resolveHTTPError(r *http.Response) error {
 	// successful status code range
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
@@ -192,5 +201,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 func (c *Client) Close() error {
 	c.configs.HTTPClient.CloseIdleConnections()
 	// Support closer interface
+	c.queryClient.Close()
 	return nil
 }
