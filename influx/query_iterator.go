@@ -82,7 +82,7 @@ func (i *QueryIterator) Index() interface{} {
 	return i.i
 }
 
-func (i *QueryIterator) Done() interface{} {
+func (i *QueryIterator) Done() bool {
 	return i.done
 }
 

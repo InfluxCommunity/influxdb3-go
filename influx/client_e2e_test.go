@@ -15,6 +15,11 @@ import (
 func TestWriteAndQueryExample(t *testing.T) {
 	testId := time.Now().UnixNano()
 
+	const avg1 = 23.2
+	const max1 = 45.0
+	const avg2 = 25.8
+	const max2 = 46.0
+
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	bucket := os.Getenv("TESTING_INFLUXDB_BUCKET")
@@ -31,8 +36,8 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	p := influx.NewPointWithMeasurement("stat").
 		AddTag("unit", "temperature").
-		AddField("avg", 23.2).
-		AddField("max", 45.0).
+		AddField("avg", avg1).
+		AddField("max", max1).
 		AddField("testId", testId).
 		SetTimestamp(time.Now())
 	err = client.WritePoints(context.Background(), bucket, p)
@@ -45,13 +50,13 @@ func TestWriteAndQueryExample(t *testing.T) {
 		Max    float64   `lp:"field,max"`
 		TestId int64     `lp:"field,testId"`
 		Time   time.Time `lp:"timestamp"`
-	}{"stat", "temperature", 22.3, 45.0, testId, time.Now()}
+	}{"stat", "temperature", avg2, max2, testId, time.Now()}
 	err = client.WriteData(context.Background(), bucket, sensorData)
 	require.NoError(t, err)
 
 	// Query test
 	query := fmt.Sprintf(`
-		SELECT 1
+		SELECT *
 		FROM "stat"
 		WHERE
 		time >= now() - interval '10 minute'
@@ -60,28 +65,26 @@ func TestWriteAndQueryExample(t *testing.T) {
 	`, testId)
 
 	// retry query few times ultil data updates
-	maxTries := 10
-	sleepTime := 500 * time.Millisecond
+	sleepTime := 2 * time.Second
 
-	success := false
-	for try := 0; try < maxTries; try++ {
-		time.Sleep(sleepTime)
-		iterator, err := client.Query(context.Background(), bucket, query, nil)
-		require.NoError(t, err)
+	time.Sleep(sleepTime)
+	iterator, err := client.Query(context.Background(), bucket, query, nil)
+	require.NoError(t, err)
 
-		success = true
-		lines := 0
-		for iterator.Next() {
-			value := iterator.Value()
+	var value map[string]interface {}
 
-			assert.Equal(t, value["max"], 45.0)
+	value = iterator.NextValue()
+	assert.Equal(t, value["avg"], avg1)
+	assert.Equal(t, value["max"], max1)
 
-			lines++
-		}
-		if lines == 2 {
-			success = true
-			break
-		}
-	}
-	assert.True(t, success)
+	hasValue := iterator.Next()
+	assert.True(t, hasValue)
+	value = iterator.Value()
+	assert.Equal(t, value["avg"], avg2)
+	assert.Equal(t, value["max"], max2)
+
+	assert.False(t, iterator.Done())
+
+	assert.False(t, iterator.Next())
+	assert.True(t, iterator.Done())
 }
