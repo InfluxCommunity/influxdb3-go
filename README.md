@@ -122,19 +122,17 @@ query := `
         "unit" IN ('temperature')
 `;
 
-reader, err := client.Query(context.Background(), database, query, nil)
+iterator, err := client.Query(context.Background(), database, query, nil)
 
-for reader.Next() {
-    record := reader.Record()
-    b, err := json.MarshalIndent(record, "", "  ")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(string(b))
+if err != nil {
+    panic(err)
+}
 
-    if err := reader.Err(); err != nil {
-        panic(err)
-    }
+for iterator.Next() {
+    value := iterator.Value()
+
+    fmt.Printf("avg is %f\n", value["avg"])
+    fmt.Printf("max is %f\n", value["max"])
 }
 ```
 
