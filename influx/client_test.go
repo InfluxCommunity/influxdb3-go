@@ -6,6 +6,7 @@ package influx
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,7 +24,7 @@ func TestNew(t *testing.T) {
 
 	_, err = New(Configs{HostURL: "http@localhost:8086"})
 	require.Error(t, err)
-	assert.Equal(t, "error parsing server URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
+	assert.Equal(t, "parsing host URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
 
 	c, err := New(Configs{HostURL: "http://localhost:8086"})
 	require.NoError(t, err)
@@ -33,7 +34,8 @@ func TestNew(t *testing.T) {
 
 	_, err = New(Configs{HostURL: "localhost\n"})
 	if assert.Error(t, err) {
-		assert.True(t, strings.HasPrefix(err.Error(), "error parsing server URL:"))
+		expectedMessage := "parsing host URL:"
+		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
 	}
 
 	c, err = New(Configs{HostURL: "http://localhost:8086", AuthToken: "my-token"})
