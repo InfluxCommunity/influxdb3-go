@@ -87,7 +87,8 @@ func main() {
 	for iterator.Next() {
 		value := iterator.Value()
 
-		fmt.Println(value)
+		fmt.Printf("avg is %f\n", value["avg"])
+		fmt.Printf("max is %f\n", value["max"])
 	}
 
 }

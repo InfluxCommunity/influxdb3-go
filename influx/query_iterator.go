@@ -69,15 +69,6 @@ func (i *QueryIterator) Value() map[string]interface{} {
 	return i.current
 }
 
-// Move to next and returns value if present
-func (i *QueryIterator) NextValue() map[string]interface{} {
-	if !i.Next() {
-		return nil
-	} else {
-		return i.Value()
-	}
-}
-
 func (i *QueryIterator) Index() interface{} {
 	return i.i
 }

@@ -71,13 +71,13 @@ func TestWriteAndQueryExample(t *testing.T) {
 	iterator, err := client.Query(context.Background(), bucket, query, nil)
 	require.NoError(t, err)
 
-	var value map[string]interface {}
-
-	value = iterator.NextValue()
+	hasValue := iterator.Next()
+	assert.True(t, hasValue)
+	value := iterator.Value()
 	assert.Equal(t, value["avg"], avg1)
 	assert.Equal(t, value["max"], max1)
 
-	hasValue := iterator.Next()
+	hasValue = iterator.Next()
 	assert.True(t, hasValue)
 	value = iterator.Value()
 	assert.Equal(t, value["avg"], avg2)
