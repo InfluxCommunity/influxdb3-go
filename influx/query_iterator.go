@@ -159,6 +159,7 @@ func getArrowValue(arrayNoType arrow.Array, i int) (interface{}, error) {
 	// 	return arrayNoType.(*array.RunEndEncoded).Value(i), nil
 
 	default:
-		return nil, fmt.Errorf("")
+		return nil, fmt.Errorf("not supported data type: %s", arrayNoType.DataType().ID().String())
+
 	}
 }

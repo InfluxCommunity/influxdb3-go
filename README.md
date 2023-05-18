@@ -43,9 +43,9 @@ go get github.com/bonitoo-io/influxdb3-go
 
 set environment variables:
 
-- `INFLUXDB_URL` region of your influxdb cloud e.g *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
-- `INFLUXDB_TOKEN` read/write token generaterd in cloud e.g *`my-database`*
-- `INFLUXDB_DATABASE` name of database
+- `INFLUXDB_URL` region of your influxdb cloud e.g. *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
+- `INFLUXDB_TOKEN` read/write token generated in cloud
+- `INFLUXDB_DATABASE` name of database e.g .*`my-database`*
 
 <details>
   <summary>linux/macos</summary>
