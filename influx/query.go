@@ -41,6 +41,7 @@ func (c *Client) initializeQueryClient() error {
 
 func (c *Client) Query(ctx context.Context, database string, query string, queryParams interface{}) (*QueryIterator, error) {
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
+	ctx = metadata.AppendToOutgoingContext(ctx, "database", database)
 	ctx = metadata.AppendToOutgoingContext(ctx, "bucket-name", database)
 
 	info, err := c.queryClient.Execute(ctx, query)
