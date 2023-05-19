@@ -46,7 +46,7 @@ func TestNew(t *testing.T) {
 
 func TestURLs(t *testing.T) {
 	urls := []struct {
-		HostURL    string
+		HostURL      string
 		serverAPIURL string
 	}{
 		{"http://host:8086", "http://host:8086/api/v2/"},
@@ -230,4 +230,68 @@ func TestResolveErrorNoError(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, `500 Internal Server Error`, err.Error())
+}
+
+func TestNewServerError(t *testing.T) {
+	message := "message"
+	err := NewServerError(message)
+	assert.Equal(t, err.Message, message)
+}
+
+func TestFixUrl(t *testing.T) {
+	boolRef := func(val bool) *bool {
+		b := new(bool)
+		*b = val
+		return b
+	}
+
+	testCases := []*struct {
+		input        string
+		expected     string
+		expectedSafe *bool
+	}{
+		{
+			input:        "https://192.168.0.1:85",
+			expected:     "192.168.0.1:85",
+			expectedSafe: boolRef(true),
+		},
+		{
+			input:        "http://192.168.0.1:85",
+			expected:     "192.168.0.1:85",
+			expectedSafe: boolRef(false),
+		},
+		{
+			input:        "192.168.0.1:443",
+			expected:     "192.168.0.1:443",
+			expectedSafe: nil,
+		},
+		{
+			input:        "192.168.0.1:80",
+			expected:     "192.168.0.1:80",
+			expectedSafe: nil,
+		},
+		{
+			input:        "https://192.168.0.1",
+			expected:     "192.168.0.1:443",
+			expectedSafe: boolRef(true),
+		},
+		{
+			input:        "http://192.168.0.1",
+			expected:     "192.168.0.1:80",
+			expectedSafe: boolRef(false),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("fix url: %s", tc.input),
+			func(t *testing.T) {
+				url, safe := ReplaceURLProtocolWithPort(tc.input)
+				assert.Equal(t, tc.expected, url)
+				if safe == nil || tc.expectedSafe == nil {
+					assert.Equal(t, tc.expectedSafe, safe)
+				} else {
+					assert.Equal(t, *tc.expectedSafe, *safe)
+				}
+			})
+	}
 }
