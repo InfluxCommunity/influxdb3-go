@@ -39,10 +39,11 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
-func (c *Client) Query(ctx context.Context, database string, query string, queryParams interface{}) (*QueryIterator, error) {
+func (c *Client) Query(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
 	ctx = metadata.AppendToOutgoingContext(ctx, "database", database)
 	ctx = metadata.AppendToOutgoingContext(ctx, "bucket-name", database)
+	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
 
 	info, err := c.queryClient.Execute(ctx, query)
 	if err != nil {

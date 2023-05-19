@@ -68,7 +68,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	sleepTime := 2 * time.Second
 
 	time.Sleep(sleepTime)
-	iterator, err := client.Query(context.Background(), database, query, nil)
+	iterator, err := client.Query(context.Background(), database, query)
 	require.NoError(t, err)
 
 	hasValue := iterator.Next()
