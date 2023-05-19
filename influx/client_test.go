@@ -66,6 +66,29 @@ func TestURLs(t *testing.T) {
 	}
 }
 
+func TestMakeAPICall(t *testing.T) {
+	html := `<html><body><h1>Response</h1></body></html>`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(html))
+	}))
+	defer ts.Close()
+	client, err := New(Configs{HostURL: ts.URL})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.NotNil(t, res)
+	assert.Nil(t, err)
+}
+
 func TestResolveErrorMessage(t *testing.T) {
 	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +135,56 @@ func TestResolveErrorHTML(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, html, err.Error())
+}
+
+func TestResolveErrorRetryAfter(t *testing.T) {
+	html := `<html><body><h1>Too many requests</h1></body></html>`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		w.Header().Add("Retry-After", "256")
+		w.WriteHeader(492)
+		_, _ = w.Write([]byte(html))
+	}))
+	defer ts.Close()
+	client, err := New(Configs{HostURL: ts.URL})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.Nil(t, res)
+	require.Error(t, err)
+	assert.Equal(t, html, err.Error())
+}
+
+func TestResolveErrorWrongJsonResponse(t *testing.T) {
+	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(400)
+		// Missing closing }
+		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"`))
+	}))
+	defer ts.Close()
+	client, err := New(Configs{HostURL: ts.URL})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.Nil(t, res)
+	require.Error(t, err)
+	assert.Equal(t, errMsg, err.Error())
 }
 
 func TestResolveErrorV1(t *testing.T) {
