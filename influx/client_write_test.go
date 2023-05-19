@@ -284,7 +284,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	params := DefaultWriteParams
 	params.Precision = lineprotocol.Millisecond
 	c, err := New(Configs{
-		HostURL:    ts.URL + "/path/",
+		HostURL:      ts.URL + "/path/",
 		Organization: "my-org",
 		WriteParams:  params,
 	})
@@ -302,6 +302,10 @@ func TestWritePointsAndBytes(t *testing.T) {
 	byts := points2bytes(t, points)
 	reqs := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// itialization of query client
+		if r.Method == "PRI" {
+			return
+		}
 		reqs++
 		buff, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -463,4 +467,3 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	})
 	assert.Error(t, err)
 }
-
