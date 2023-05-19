@@ -32,3 +32,4 @@ jobs:
           MARKDOWN_CONFIG_FILE: .markdownlint.yml
           VALIDATE_MARKDOWN: true
           VALIDATE_BASH: true
+          VALIDATE_GITHUB_ACTIONS: true

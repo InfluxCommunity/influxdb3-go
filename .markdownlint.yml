@@ -1,7 +1,7 @@
 {
   "MD013": false,
   "MD033": {
-    "allowed_elements": [ "a", "img", "p" ]
+    "allowed_elements": [ "a", "img", "p", "details", "summary" ]
   },
   "MD041": false,
 }
