@@ -144,8 +144,9 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, c.resolveHTTPError(resp)
+	err = c.resolveHTTPError(resp);
+	if err != nil {
+		return nil, err
 	}
 
 	return resp, nil
