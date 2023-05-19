@@ -83,7 +83,7 @@ func main() {
     "unit" IN ('temperature')
   `
 
-	iterator, err := client.Query(context.Background(), database, query, nil)
+	iterator, err := client.Query(context.Background(), database, query)
 
 	if err != nil {
 		panic(err)
