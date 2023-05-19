@@ -170,6 +170,21 @@ func TestEncode(t *testing.T) {
 			error: `multiple tag attributes are not supported`,
 		},
 		{
+			name: "test invalid tag attribute",
+			s: &struct {
+				Measurement string  `lp:"measurement"`
+				Sensor      string  `lp:"blah,a"`
+				Temp        float64 `lp:"field,a"`
+				Hum         float64 `lp:"field,a"`
+			}{
+				"air",
+				"SHT31",
+				23.5,
+				43.1,
+			},
+			error: `invalid tag blah`,
+		},
+		{
 			name: "test wrong timestamp type",
 			s: &struct {
 				Measurement string  `lp:"measurement"`
@@ -419,3 +434,33 @@ func TestGzip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
 }
+
+func TestWriteErrorMarshalPoint(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+	}))
+	defer ts.Close()
+	c, err := New(Configs{
+		HostURL: ts.URL,
+	})
+	c.configs.WriteParams.Precision = lineprotocol.Millisecond
+	c.configs.WriteParams.GzipThreshold = 0
+	require.NoError(t, err)
+
+	p := NewPointWithMeasurement("host")
+	p.AddTag("rack", fmt.Sprintf("rack_%2d", 7))
+	p.AddTag("name", fmt.Sprintf("machine_%2d", 2))
+	// invalid field
+	p.AddField("", 80.0)
+
+	p.Timestamp = time.Now()
+
+	err = c.WritePoints(context.Background(), "b", p)
+	assert.Error(t, err)
+
+	err = c.WriteData(context.Background(), "b", []interface{}{
+		0,
+	})
+	assert.Error(t, err)
+}
+

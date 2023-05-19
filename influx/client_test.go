@@ -184,7 +184,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 	})
 	assert.Nil(t, res)
 	require.Error(t, err)
-	assert.Equal(t, errMsg, err.Error())
+	assert.Equal(t, "cannot decode error response: unexpected end of JSON input", err.Error())
 }
 
 func TestResolveErrorV1(t *testing.T) {
