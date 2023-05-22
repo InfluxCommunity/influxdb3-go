@@ -3,7 +3,7 @@ module github.com/bonitoo-io/influxdb3-go
 go 1.20
 
 require (
-	github.com/apache/arrow/go/v12 v12.0.0-20230427070130-07d02d6ccaf2
+	github.com/apache/arrow/go/v12 v12.0.0
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/stretchr/testify v1.8.0
 	google.golang.org/grpc v1.54.0
