@@ -77,6 +77,10 @@ func (i *QueryIterator) Done() bool {
 	return i.done
 }
 
+func (i *QueryIterator) Raw() *flight.Reader {
+	return i.reader
+}
+
 func getArrowValue(arrayNoType arrow.Array, i int) (interface{}, error) {
 	switch arrayNoType.DataType().ID() {
 	case arrow.NULL:

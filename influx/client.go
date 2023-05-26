@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow/flight/flightsql"
+	"github.com/apache/arrow/go/v12/arrow/flight"
 )
 
 // Configs holds the parameters for creating a new client.
@@ -49,6 +49,12 @@ type Configs struct {
 	WriteParams WriteParams
 }
 
+type QueryType string
+const (
+	SQL QueryType = "sql"
+	InfluxQL QueryType = "influxql"
+)
+
 // Client implements an InfluxDB client.
 type Client struct {
 	// Configuration configs.
@@ -58,7 +64,9 @@ type Client struct {
 	// Cached base server API URL.
 	apiURL *url.URL
 	// Flight client for executing queries
-	queryClient *flightsql.Client
+	queryClient *flight.Client
+	// Type of query used sql/influxql
+	queryType QueryType
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -78,7 +86,7 @@ type httpParams struct {
 
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
 func New(params Configs) (*Client, error) {
-	c := &Client{configs: params}
+	c := &Client{configs: params, queryType: SQL}
 	if params.HostURL == "" {
 		return nil, errors.New("empty server URL")
 	}
@@ -201,7 +209,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 // Close closes all idle connections.
 func (c *Client) Close() error {
 	c.configs.HTTPClient.CloseIdleConnections()
-	// Support closer interface
-	err := c.queryClient.Close()
+	err := (*c.queryClient).Close()
 	return err
 }
