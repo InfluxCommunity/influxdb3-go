@@ -42,10 +42,6 @@ func TestNew(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Token my-token", c.authorization)
 	assert.EqualValues(t, DefaultWriteParams, c.configs.WriteParams)
-	assert.Equal(t, c.QueryType(), SQL)
-
-	c.SetQueryType(InfluxQL)
-	assert.Equal(t, c.QueryType(), InfluxQL)
 }
 
 func TestURLs(t *testing.T) {

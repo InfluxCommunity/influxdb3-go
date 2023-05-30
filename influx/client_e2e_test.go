@@ -87,4 +87,8 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
+
+	iterator, err = client.QueryInfluxQL(context.Background(), database, "SHOW MEASUREMENTS")
+	require.NoError(t, err)
+	assert.NotNil(t, iterator.Raw())
 }

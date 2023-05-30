@@ -43,14 +43,22 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
+func (c *Client) QueryInfluxQL(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, database, query, "influxql", queryParams...)
+}
+
 func (c *Client) Query(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, database, query, "sql", queryParams...)
+}
+
+func (c *Client) queryWithType(ctx context.Context, database string, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
 	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
 
 	ticketData := map[string]interface{}{
 		"database": database,
 		"sql_query": query,
-		"query_type": c.queryType,
+		"query_type": queryType,
 	}
 
 	ticketJson, err := json.Marshal(ticketData);
@@ -71,12 +79,4 @@ func (c *Client) Query(ctx context.Context, database string, query string, query
 
 	iterator := newQueryIterator(reader)
 	return iterator, nil
-}
-
-func (c *Client) QueryType() QueryType {
-	return c.queryType
-}
-
-func (c *Client) SetQueryType(queryType QueryType) {
-	c.queryType = queryType;
 }

@@ -49,12 +49,6 @@ type Configs struct {
 	WriteParams WriteParams
 }
 
-type QueryType string
-const (
-	SQL QueryType = "sql"
-	InfluxQL QueryType = "influxql"
-)
-
 // Client implements an InfluxDB client.
 type Client struct {
 	// Configuration configs.
@@ -65,8 +59,6 @@ type Client struct {
 	apiURL *url.URL
 	// Flight client for executing queries
 	queryClient *flight.Client
-	// Type of query used sql/influxql
-	queryType QueryType
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -86,7 +78,7 @@ type httpParams struct {
 
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
 func New(params Configs) (*Client, error) {
-	c := &Client{configs: params, queryType: SQL}
+	c := &Client{configs: params}
 	if params.HostURL == "" {
 		return nil, errors.New("empty server URL")
 	}
