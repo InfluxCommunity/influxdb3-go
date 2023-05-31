@@ -248,7 +248,7 @@ func genPoints(t *testing.T, count int) []*Point {
 func points2bytes(t *testing.T, points []*Point) []byte {
 	var bytes []byte
 	for _, p := range points {
-		bs, err := p.MarshalBinary(lineprotocol.Millisecond, nil)
+		bs, err := p.MarshalBinary(lineprotocol.Millisecond)
 		require.NoError(t, err)
 		bytes = append(bytes, bs...)
 	}

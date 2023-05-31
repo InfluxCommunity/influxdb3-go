@@ -20,7 +20,7 @@ import (
 func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
 	var buff []byte
 	for _, p := range points {
-		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision, c.configs.WriteParams.DefaultTags)
+		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision)
 		if err != nil {
 			return err
 		}
@@ -152,5 +152,5 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 	if len(point.Fields) == 0 {
 		return nil, fmt.Errorf("no struct field with tag 'field'")
 	}
-	return point.MarshalBinary(params.Precision, params.DefaultTags)
+	return point.MarshalBinary(params.Precision)
 }

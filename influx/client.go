@@ -104,10 +104,6 @@ func New(params Configs) (*Client, error) {
 
 	c.apiURL.Path = path.Join(c.apiURL.Path,"api/v2") + "/"
 
-	if params.WriteParams.MaxBatchBytes == 0 {
-		c.configs.WriteParams = DefaultWriteParams
-	}
-
 	err = c.initializeQueryClient()
 	if err != nil {
 		return nil, fmt.Errorf("flight client: %w", err)
