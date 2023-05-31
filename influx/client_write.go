@@ -154,12 +154,3 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 	}
 	return point.MarshalBinary(params.Precision, params.DefaultTags)
 }
-
-// PointsWriter returns a PointsWriter value that support fast asynchronous
-// writing of points to Influx. All the points are written into the given database.
-//
-// The returned PointsWriter must be closed after use to release resources
-// and flush any buffered points.
-func (c *Client) PointsWriter(database string) *PointsWriter {
-	return NewPointsWriter(c.Write, database, c.configs.WriteParams)
-}
