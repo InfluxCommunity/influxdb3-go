@@ -43,10 +43,28 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
+// Query data from InfluxDB IOx using InfluxQL.
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - database: The database to be used for InfluxDB operations.
+//   - query: The InfluxQL query string to execute.
+//   - queryParams: Additional query parameters.
+// Returns:
+//   - A custom iterator (*QueryIterator).
+//   - An error, if any.
 func (c *Client) QueryInfluxQL(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
 	return c.queryWithType(ctx, database, query, "influxql", queryParams...)
 }
 
+// Query data from InfluxDB IOx using FlightSQL.
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - database: The database to be used for InfluxDB operations.
+//   - query: The SQL query string to execute.
+//   - queryParams: Additional query parameters.
+// Returns:
+//   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
+//   - An error, if any.
 func (c *Client) Query(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
 	return c.queryWithType(ctx, database, query, "sql", queryParams...)
 }

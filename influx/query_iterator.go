@@ -8,6 +8,9 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/flight"
 )
 
+// QueryIterator is a custom query iterator that encapsulates and simplifies the logic for
+// the flight reader. It provides methods such as Next, Value, and Index to consume the flight reader,
+// or users can use the underlying reader directly with the Raw method.
 type QueryIterator struct {
 	reader *flight.Reader
 	// Current record
@@ -32,6 +35,10 @@ func newQueryIterator(reader *flight.Reader) *QueryIterator {
 	}
 }
 
+// Next reads the next value of the flight reader and returns true if a value is present.
+//
+// Returns:
+//   - true if a value is present, false otherwise.
 func (i *QueryIterator) Next() bool {
 	if i.done {
 		return false
@@ -65,18 +72,37 @@ func (i *QueryIterator) Next() bool {
 	return true
 }
 
+// Value returns the current value from the flight reader as a map object.
+// The map contains the fields and tags as key-value pairs.
+//
+// Returns:
+//   - A map[string]interface{} object representing the current value.
 func (i *QueryIterator) Value() map[string]interface{} {
 	return i.current
 }
 
+// Index returns the current index of Value.
+//
+// Returns:
+//   - The current index value.
 func (i *QueryIterator) Index() interface{} {
 	return i.i
 }
 
+// Done returns a boolean value indicating whether the iteration is complete or not.
+//
+// Returns:
+//   - true if the iteration is complete, false otherwise.
 func (i *QueryIterator) Done() bool {
 	return i.done
 }
 
+// Raw returns the underlying flight.Reader associated with the QueryIterator.
+// WARNING: It is imperative to use either the Raw method or the Value and Next functions, but not both at the same time,
+// as it can lead to unpredictable behavior.
+//
+// Returns:
+//   - The underlying flight.Reader.
 func (i *QueryIterator) Raw() *flight.Reader {
 	return i.reader
 }

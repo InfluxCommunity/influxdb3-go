@@ -32,14 +32,27 @@ type Point struct {
 	Timestamp   time.Time
 }
 
-// NewPointWithMeasurement is a convenient function for creating a Point from measurement name for later adding data
+// NewPointWithMeasurement is a convenient function for creating a Point with the given measurement name for later adding data.
+//
+// Parameters:
+//   - measurement: The measurement name for the Point.
+// Returns:
+//   - The created Point.
 func NewPointWithMeasurement(measurement string) *Point {
 	return &Point{
 		Measurement: measurement,
 	}
 }
 
-// NewPoint is a convenient function for creating a Point from measurement name, tags, fields and a timestamp.
+// NewPoint is a convenient function for creating a Point with the given measurement name, tags, fields, and timestamp.
+//
+// Parameters:
+//   - measurement: The measurement name for the Point.
+//   - tags: The tags for the Point.
+//   - fields: The fields for the Point.
+//   - ts: The timestamp for the Point.
+// Returns:
+//   - The created Point.
 func NewPoint(measurement string, tags map[string]string, fields map[string]interface{}, ts time.Time) *Point {
 	m := &Point{
 		Measurement: measurement,
@@ -62,20 +75,33 @@ func NewPoint(measurement string, tags map[string]string, fields map[string]inte
 	return m
 }
 
-// SortTags orders the tags of a point alphanumerically by key.
-// This is just here as a helper, to make it easy to keep tags sorted if you are creating a Point manually.
+// SortTags orders the tags of a Point alphanumerically by key.
+// This function is a helper to keep the tags sorted when creating a Point manually.
+//
+// Returns:
+//   - The updated Point with sorted tags.
 func (m *Point) SortTags() *Point {
 	sort.Slice(m.Tags, func(i, j int) bool { return m.Tags[i].Key < m.Tags[j].Key })
 	return m
 }
 
-// SortFields orders the fields of a point alphanumerically by key.
+// SortFields orders the fields of a Point alphanumerically by key.
+// This function is a helper to keep the fields sorted when creating a Point manually.
+//
+// Returns:
+//   - The updated Point with sorted fields.
 func (m *Point) SortFields() *Point {
 	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Key < m.Fields[j].Key })
 	return m
 }
 
-// AddTag adds a tag to a point.
+// AddTag adds a tag to the Point.
+//
+// Parameters:
+//   - k: The key of the tag.
+//   - v: The value of the tag.
+// Returns:
+//   - The updated Point with the tag added.
 func (m *Point) AddTag(k, v string) *Point {
 	for i, tag := range m.Tags {
 		if k == tag.Key {
@@ -87,7 +113,13 @@ func (m *Point) AddTag(k, v string) *Point {
 	return m
 }
 
-// AddField adds a field to a point.
+// AddField adds a field to the Point.
+//
+// Parameters:
+//   - k: The key of the field.
+//   - v: The value of the field.
+// Returns:
+//   - The updated Point with the field added.
 func (m *Point) AddField(k string, v interface{}) *Point {
 	val, _ := lineprotocol.NewValue(convertField(v))
 	for i, field := range m.Fields {
@@ -101,12 +133,25 @@ func (m *Point) AddField(k string, v interface{}) *Point {
 	return m
 }
 
-// SetTimestamp is helper function for complete fluent interface
+// AddField adds a field to the Point.
+//
+// Parameters:
+//   - k: The key of the field.
+//   - v: The value of the field.
+// Returns:
+//   - The updated Point with the field added.
 func (m *Point) SetTimestamp(t time.Time) *Point {
 	m.Timestamp = t
 	return m
 }
 
+// MarshalBinary converts the Point to its binary representation in line protocol format.
+//
+// Parameters:
+//   - precision: The precision to use for timestamp encoding in line protocol format.
+// Returns:
+//   - The binary representation of the Point in line protocol format.
+//   - An error, if any.
 func (m *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) {
 	var enc lineprotocol.Encoder
 	enc.SetPrecision(precision)
