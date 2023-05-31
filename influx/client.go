@@ -75,7 +75,6 @@ type httpParams struct {
 	body io.Reader
 }
 
-
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
 func New(params Configs) (*Client, error) {
 	c := &Client{configs: params}
@@ -94,7 +93,7 @@ func New(params Configs) (*Client, error) {
 		// For subsequent path parts concatenation, url has to end with '/'
 		hostAddress = params.HostURL + "/"
 	}
-	
+
 	var err error
 	// Prepare host API URL
 	c.apiURL, err = url.Parse(hostAddress)
@@ -102,7 +101,14 @@ func New(params Configs) (*Client, error) {
 		return nil, fmt.Errorf("parsing host URL: %w", err)
 	}
 
-	c.apiURL.Path = path.Join(c.apiURL.Path,"api/v2") + "/"
+	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
+
+	// Default params if nothing set
+	if params.WriteParams.GzipThreshold == 0 &&
+		params.WriteParams.Precision == 0 &&
+		params.WriteParams.Consistency == "" {
+		c.configs.WriteParams = DefaultWriteParams
+	}
 
 	err = c.initializeQueryClient()
 	if err != nil {
@@ -140,7 +146,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
 	}
-	err = c.resolveHTTPError(resp);
+	err = c.resolveHTTPError(resp)
 	if err != nil {
 		return nil, err
 	}
