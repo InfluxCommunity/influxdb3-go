@@ -14,13 +14,18 @@ import (
 )
 
 // WritePoints writes all the given points to the server into the given database.
-// The points are written synchronously. For a higher throughput
-// API that buffers individual points and writes them asynchronously,
-// use the PointsWriter method.
+// The data is written synchronously.
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - database: The database to write the points to.
+//   - points: The points to write.
+// Returns:
+//   - An error, if any.
 func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
 	var buff []byte
 	for _, p := range points {
-		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision, c.configs.WriteParams.DefaultTags)
+		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision)
 		if err != nil {
 			return err
 		}
@@ -30,10 +35,15 @@ func (c *Client) WritePoints(ctx context.Context, database string, points ...*Po
 }
 
 // Write writes line protocol record(s) to the server into the given database.
-// Multiple records must be separated by the new line character (\n)
-// Data are written synchronously. For a higher throughput
-// API that buffers individual points and writes them asynchronously,
-// use the PointsWriter method.
+// Multiple records must be separated by the new line character (\n).
+// The data is written synchronously.
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - database: The database to write the records to.
+//   - buff: The line protocol record(s) to write.
+// Returns:
+//   - An error, if any.
 func (c *Client) Write(ctx context.Context, database string, buff []byte) error {
 	var body io.Reader
 	var err error
@@ -67,24 +77,29 @@ func (c *Client) Write(ctx context.Context, database string, buff []byte) error 
 
 // WriteData encodes fields of custom points into line protocol
 // and writes line protocol record(s) to the server into the given database.
-// Each custom point must be annotated with 'lp' prefix and values measurement,tag, field or timestamp.
-// Valid point must contain measurement and at least one field.
+// Each custom point must be annotated with 'lp' prefix and values measurement, tag, field, or timestamp.
+// A valid point must contain a measurement and at least one field.
+// The points are written synchronously.
 //
-// A field with timestamp must be of a type time.Time
+// A field with a timestamp must be of type time.Time.
 //
-//	 type TemperatureSensor struct {
-//		  Measurement string `lp:"measurement"`
-//		  Sensor string `lp:"tag,sensor"`
-//		  ID string `lp:"tag,device_id"`
-//		  Temp float64 `lp:"field,temperature"`
-//		  Hum int	`lp:"field,humidity"`
-//		  Time time.Time `lp:"timestamp"`
-//		  Description string `lp:"-"`
-//	 }
+// Example usage:
+//   type TemperatureSensor struct {
+//       Measurement  string    `lp:"measurement"`
+//       Sensor       string    `lp:"tag,sensor"`
+//       ID           string    `lp:"tag,device_id"`
+//       Temp         float64   `lp:"field,temperature"`
+//       Hum          int       `lp:"field,humidity"`
+//       Time         time.Time `lp:"timestamp"`
+//       Description  string    `lp:"-"`
+//   }
 //
-// The points are written synchronously. For a higher throughput
-// API that buffers individual points and writes them asynchronously,
-// use the PointsWriter method.
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - database: The database to write the points to.
+//   - points: The custom points to encode and write.
+// Returns:
+//   - An error, if any.
 func (c *Client) WriteData(ctx context.Context, database string, points ...interface{}) error {
 	var buff []byte
 	for _, p := range points {
@@ -152,14 +167,5 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 	if len(point.Fields) == 0 {
 		return nil, fmt.Errorf("no struct field with tag 'field'")
 	}
-	return point.MarshalBinary(params.Precision, params.DefaultTags)
-}
-
-// PointsWriter returns a PointsWriter value that support fast asynchronous
-// writing of points to Influx. All the points are written into the given database.
-//
-// The returned PointsWriter must be closed after use to release resources
-// and flush any buffered points.
-func (c *Client) PointsWriter(database string) *PointsWriter {
-	return NewPointsWriter(c.Write, database, c.configs.WriteParams)
+	return point.MarshalBinary(params.Precision)
 }

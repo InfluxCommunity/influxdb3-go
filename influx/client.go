@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow/flight/flightsql"
+	"github.com/apache/arrow/go/v12/arrow/flight"
 )
 
 // Configs holds the parameters for creating a new client.
@@ -58,7 +58,7 @@ type Client struct {
 	// Cached base server API URL.
 	apiURL *url.URL
 	// Flight client for executing queries
-	queryClient *flightsql.Client
+	queryClient *flight.Client
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -74,7 +74,6 @@ type httpParams struct {
 	// HTTP POST/PUT body
 	body io.Reader
 }
-
 
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
 func New(params Configs) (*Client, error) {
@@ -94,7 +93,7 @@ func New(params Configs) (*Client, error) {
 		// For subsequent path parts concatenation, url has to end with '/'
 		hostAddress = params.HostURL + "/"
 	}
-	
+
 	var err error
 	// Prepare host API URL
 	c.apiURL, err = url.Parse(hostAddress)
@@ -102,9 +101,12 @@ func New(params Configs) (*Client, error) {
 		return nil, fmt.Errorf("parsing host URL: %w", err)
 	}
 
-	c.apiURL.Path = path.Join(c.apiURL.Path,"api/v2") + "/"
+	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
 
-	if params.WriteParams.MaxBatchBytes == 0 {
+	// Default params if nothing set
+	if params.WriteParams.GzipThreshold == 0 &&
+		params.WriteParams.Precision == 0 &&
+		params.WriteParams.Consistency == "" {
 		c.configs.WriteParams = DefaultWriteParams
 	}
 
@@ -144,7 +146,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
 	}
-	err = c.resolveHTTPError(resp);
+	err = c.resolveHTTPError(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +203,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 // Close closes all idle connections.
 func (c *Client) Close() error {
 	c.configs.HTTPClient.CloseIdleConnections()
-	// Support closer interface
-	err := c.queryClient.Close()
+	err := (*c.queryClient).Close()
 	return err
 }
