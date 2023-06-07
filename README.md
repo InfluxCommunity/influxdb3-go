@@ -2,23 +2,23 @@
     <img src="gopher.png" alt="Gopher" width="150px">
 </p>
 <p align="center">
-    <a href="https://pkg.go.dev/github.com/bonitoo-io/influxdb3-go">
-        <img src="https://pkg.go.dev/badge/github.com/bonitoo-io/influxdb3-go.svg" alt="Go Reference">
+    <a href="https://pkg.go.dev/github.com/InfluxCommunity/influxdb3-go">
+        <img src="https://pkg.go.dev/badge/github.com/InfluxCommunity/influxdb3-go.svg" alt="Go Reference">
     </a>
-    <a href="https://goreportcard.com/report/github.com/bonitoo-io/influxdb3-go">
-        <img src="https://goreportcard.com/badge/github.com/bonitoo-io/influxdb3-go" alt="Go Report Card">
+    <a href="https://goreportcard.com/report/github.com/InfluxCommunity/influxdb3-go">
+        <img src="https://goreportcard.com/badge/github.com/InfluxCommunity/influxdb3-go" alt="Go Report Card">
     </a>
-    <a href="https://github.com/bonitoo-io/influxdb3-go/actions/workflows/codeql-analysis.yml">
-        <img src="https://github.com/bonitoo-io/influxdb3-go/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
+    <a href="https://github.com/InfluxCommunity/influxdb3-go/actions/workflows/codeql-analysis.yml">
+        <img src="https://github.com/InfluxCommunity/influxdb3-go/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
-    <a href="https://github.com/bonitoo-io/influxdb3-go/actions/workflows/linter.yml">
-        <img src="https://github.com/bonitoo-io/influxdb3-go/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
+    <a href="https://github.com/InfluxCommunity/influxdb3-go/actions/workflows/linter.yml">
+        <img src="https://github.com/InfluxCommunity/influxdb3-go/actions/workflows/linter.yml/badge.svg" alt="Lint Code Base">
     </a>
-    <a href="https://dl.circleci.com/status-badge/redirect/gh/bonitoo-io/influxdb3-go/tree/main">
-        <img src="https://dl.circleci.com/status-badge/img/gh/bonitoo-io/influxdb3-go/tree/main.svg?style=svg" alt="CircleCI">
+    <a href="https://dl.circleci.com/status-badge/redirect/gh/InfluxCommunity/influxdb3-go/tree/main">
+        <img src="https://dl.circleci.com/status-badge/img/gh/InfluxCommunity/influxdb3-go/tree/main.svg?style=svg" alt="CircleCI">
     </a>
-    <a href="https://codecov.io/gh/bonitoo-io/influxdb3-go">
-        <img src="https://codecov.io/gh/bonitoo-io/influxdb3-go/branch/main/graph/badge.svg" alt="Code Cov"/>
+    <a href="https://codecov.io/gh/InfluxCommunity/influxdb3-go">
+        <img src="https://codecov.io/gh/InfluxCommunity/influxdb3-go/branch/main/graph/badge.svg" alt="Code Cov"/>
     </a>
     <a href="https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
@@ -36,7 +36,7 @@ which allows you to execute SQL queries against InfluxDB IOx.
 Add the latest version of the client package to your project dependencies (`go.mod`):
 
 ```sh
-go get github.com/bonitoo-io/influxdb3-go
+go get github.com/InfluxCommunity/influxdb3-go
 ```
 
 ## Usage
@@ -78,7 +78,7 @@ import (
   "fmt"
   "os"
 
-  "github.com/bonitoo-io/influxdb3-go/influx"
+  "github.com/InfluxCommunity/influxdb3-go/influx"
 )
 ```
 
@@ -145,7 +145,7 @@ Prepare environment like in [Usage](#usage) and run `go run ./example/main.go`.
 If you need help, please use our [Community Slack](https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA)
 or [Community Page](https://community.influxdata.com/).
 
-New features and bugs can be reported on GitHub: <https://github.com/bonitoo-io/influxdb3-go>
+New features and bugs can be reported on GitHub: <https://github.com/InfluxCommunity/influxdb3-go>
 
 ## Contribution
 

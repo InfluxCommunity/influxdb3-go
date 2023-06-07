@@ -1,4 +1,4 @@
-module github.com/bonitoo-io/influxdb3-go
+module github.com/influxcommunity/influxdb3-go
 
 go 1.20
 

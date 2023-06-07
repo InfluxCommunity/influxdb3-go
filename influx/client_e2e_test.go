@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bonitoo-io/influxdb3-go/influx"
+	"github.com/influxcommunity/influxdb3-go/influx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

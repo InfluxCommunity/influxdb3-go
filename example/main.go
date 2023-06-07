@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bonitoo-io/influxdb3-go/influx"
+	"github.com/influxcommunity/influxdb3-go/influx"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influx.New(influx.Configs{
-		HostURL: url,
+		HostURL:   url,
 		AuthToken: token,
 	})
 
@@ -25,7 +25,7 @@ func main() {
 		panic(err)
 	}
 	// Close client at the end and escalate error if present
-	defer func (client *influx.Client)  {
+	defer func(client *influx.Client) {
 		err := client.Close()
 		if err != nil {
 			panic(err)

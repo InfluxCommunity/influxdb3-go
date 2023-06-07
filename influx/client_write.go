@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bonitoo-io/influxdb3-go/influx/gzip"
+	"github.com/influxcommunity/influxdb3-go/influx/gzip"
 )
 
 // WritePoints writes all the given points to the server into the given database.
@@ -20,6 +20,7 @@ import (
 //   - ctx: The context.Context to use for the request.
 //   - database: The database to write the points to.
 //   - points: The points to write.
+//
 // Returns:
 //   - An error, if any.
 func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
@@ -42,6 +43,7 @@ func (c *Client) WritePoints(ctx context.Context, database string, points ...*Po
 //   - ctx: The context.Context to use for the request.
 //   - database: The database to write the records to.
 //   - buff: The line protocol record(s) to write.
+//
 // Returns:
 //   - An error, if any.
 func (c *Client) Write(ctx context.Context, database string, buff []byte) error {
@@ -84,20 +86,22 @@ func (c *Client) Write(ctx context.Context, database string, buff []byte) error 
 // A field with a timestamp must be of type time.Time.
 //
 // Example usage:
-//   type TemperatureSensor struct {
-//       Measurement  string    `lp:"measurement"`
-//       Sensor       string    `lp:"tag,sensor"`
-//       ID           string    `lp:"tag,device_id"`
-//       Temp         float64   `lp:"field,temperature"`
-//       Hum          int       `lp:"field,humidity"`
-//       Time         time.Time `lp:"timestamp"`
-//       Description  string    `lp:"-"`
-//   }
+//
+//	type TemperatureSensor struct {
+//	    Measurement  string    `lp:"measurement"`
+//	    Sensor       string    `lp:"tag,sensor"`
+//	    ID           string    `lp:"tag,device_id"`
+//	    Temp         float64   `lp:"field,temperature"`
+//	    Hum          int       `lp:"field,humidity"`
+//	    Time         time.Time `lp:"timestamp"`
+//	    Description  string    `lp:"-"`
+//	}
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - database: The database to write the points to.
 //   - points: The custom points to encode and write.
+//
 // Returns:
 //   - An error, if any.
 func (c *Client) WriteData(ctx context.Context, database string, points ...interface{}) error {
