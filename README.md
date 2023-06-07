@@ -36,7 +36,7 @@ which allows you to execute SQL queries against InfluxDB IOx.
 Add the latest version of the client package to your project dependencies (`go.mod`):
 
 ```sh
-go get github.com/InfluxCommunity/influxdb3-go
+go get github.com/influxcommunity/influxdb3-go
 ```
 
 ## Usage
