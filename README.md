@@ -90,8 +90,8 @@ token := os.Getenv("INFLUXDB_TOKEN")
 database := os.Getenv("INFLUXDB_DATABASE")
 
 // Create a new client using an InfluxDB server base URL and an authentication token
-client, err := influx.New(influx.Params{
-    ServerURL: url,
+client, err := influx.New(influx.Configs{
+    HostURL: url,
     AuthToken: token,
 })
 // Close client at the end and escalate error if present
