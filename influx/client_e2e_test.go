@@ -62,6 +62,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		time >= now() - interval '10 minute'
 		AND
 		"testId" = %d
+		ORDER BY time
 	`, testId)
 
 	// retry query few times ultil data updates
