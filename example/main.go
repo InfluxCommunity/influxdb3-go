@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/influxcommunity/influxdb3-go/influx"
+	"github.com/InfluxCommunity/influxdb3-go/influx"
 )
 
 func main() {
