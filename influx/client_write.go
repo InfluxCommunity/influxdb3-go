@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxcommunity/influxdb3-go/influx/gzip"
+	"github.com/InfluxCommunity/influxdb3-go/influx/gzip"
 )
 
 // WritePoints writes all the given points to the server into the given database.

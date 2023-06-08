@@ -1,4 +1,4 @@
-module github.com/influxcommunity/influxdb3-go
+module github.com/InfluxCommunity/influxdb3-go
 
 go 1.20
 
