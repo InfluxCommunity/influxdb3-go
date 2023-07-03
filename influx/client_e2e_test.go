@@ -27,6 +27,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	client, err := influx.New(influx.Configs{
 		HostURL:   url,
 		AuthToken: token,
+		Database: database,
 	})
 
 	require.NoError(t, err)
@@ -69,7 +70,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	sleepTime := 2 * time.Second
 
 	time.Sleep(sleepTime)
-	iterator, err := client.Query(context.Background(), database, query)
+	iterator, err := client.Query(context.Background(), query)
 	require.NoError(t, err)
 
 	hasValue := iterator.Next()
@@ -89,7 +90,14 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
 
-	iterator, err = client.QueryInfluxQL(context.Background(), database, "SHOW MEASUREMENTS")
+	// query with explicit database argument
+	iterator, err = client.Query(context.Background(), query, database)
+	require.NoError(t, err)
+	hasValue = iterator.Next()
+	assert.True(t, hasValue)
+	assert.False(t, iterator.Done())
+
+	iterator, err = client.QueryInfluxQL(context.Background(), "SHOW MEASUREMENTS", database)
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }

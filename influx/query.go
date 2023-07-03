@@ -46,32 +46,48 @@ func (c *Client) initializeQueryClient() error {
 // Query data from InfluxDB IOx using InfluxQL.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to be used for InfluxDB operations.
 //   - query: The InfluxQL query string to execute.
+//   - database: The first optional parameter of queryParams to be used for InfluxDB operations,
+//               if not present or empty, the database from Configs is used.
 //   - queryParams: Additional query parameters.
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
-func (c *Client) QueryInfluxQL(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, database, query, "influxql", queryParams...)
+func (c *Client) QueryInfluxQL(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, query, "influxql", queryParams...)
 }
 
 // Query data from InfluxDB IOx using FlightSQL.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to be used for InfluxDB operations.
 //   - query: The SQL query string to execute.
+//   - database: The first optional parameter of queryParams to be used for InfluxDB operations,
+//               if not present or empty, the database from Configs is used.
 //   - queryParams: Additional query parameters.
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, database, query, "sql", queryParams...)
+func (c *Client) Query(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, query, "sql", queryParams...)
 }
 
-func (c *Client) queryWithType(ctx context.Context, database string, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
+func (c *Client) queryWithType(ctx context.Context, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
+	var database string
+
+	hasParams := len(queryParams) > 0;
+	if (hasParams && queryParams[0] != ""){
+			database = queryParams[0]
+	} else {
+			database = c.configs.Database
+	}
+	if database == "" {
+		return nil, fmt.Errorf("config: No database specified in arguments or in the configuration")
+	}
+
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
-	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
+	if hasParams {
+		ctx = metadata.AppendToOutgoingContext(ctx, queryParams[1:]...)
+	}
 
 	ticketData := map[string]interface{}{
 		"database": database,
