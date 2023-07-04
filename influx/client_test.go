@@ -295,3 +295,18 @@ func TestFixUrl(t *testing.T) {
 			})
 	}
 }
+
+func TestErrorOnMissingDatabase(t *testing.T) {
+	client, err := New(Configs{HostURL: "http://localhost/"})
+	assert.NoError(t, err)
+
+	query, err := client.Query(context.Background(), "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No database")
+	assert.Nil(t, query)
+
+	query, err = client.Query(context.Background(), "", "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No database")
+	assert.Nil(t, query)
+}
