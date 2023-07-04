@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
+	grpcmetadata "google.golang.org/grpc/metadata"
 )
 
 func (c *Client) initializeQueryClient() error {
@@ -47,36 +47,36 @@ func (c *Client) initializeQueryClient() error {
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - query: The InfluxQL query string to execute.
-//   - database: The first optional parameter of queryParams to be used for InfluxDB operations,
+//   - database: The first optional parameter of metadata to be used for InfluxDB operations,
 //               if not present or empty, the database from Configs is used.
-//   - queryParams: Additional query parameters.
+//   - metadata: Additional query parameters.
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
-func (c *Client) QueryInfluxQL(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, query, "influxql", queryParams...)
+func (c *Client) QueryInfluxQL(ctx context.Context, query string, metadata ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, query, "influxql", metadata...)
 }
 
 // Query data from InfluxDB IOx using FlightSQL.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - query: The SQL query string to execute.
-//   - database: The first optional parameter of queryParams to be used for InfluxDB operations,
+//   - database: The first optional parameter of metadata to be used for InfluxDB operations,
 //               if not present or empty, the database from Configs is used.
-//   - queryParams: Additional query parameters.
+//   - metadata: Additional query parameters.
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, query, "sql", queryParams...)
+func (c *Client) Query(ctx context.Context, query string, metadata ...string) (*QueryIterator, error) {
+	return c.queryWithType(ctx, query, "sql", metadata...)
 }
 
-func (c *Client) queryWithType(ctx context.Context, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
+func (c *Client) queryWithType(ctx context.Context, query string, queryType string, metadata ...string) (*QueryIterator, error) {
 	var database string
 
-	hasParams := len(queryParams) > 0;
-	if (hasParams && queryParams[0] != ""){
-			database = queryParams[0]
+	hasParams := len(metadata) > 0;
+	if (hasParams && metadata[0] != ""){
+			database = metadata[0]
 	} else {
 			database = c.configs.Database
 	}
@@ -84,9 +84,9 @@ func (c *Client) queryWithType(ctx context.Context, query string, queryType stri
 		return nil, fmt.Errorf("config: No database specified in arguments or in the configuration")
 	}
 
-	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
+	ctx = grpcmetadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
 	if hasParams {
-		ctx = metadata.AppendToOutgoingContext(ctx, queryParams[1:]...)
+		ctx = grpcmetadata.AppendToOutgoingContext(ctx, metadata[1:]...)
 	}
 
 	ticketData := map[string]interface{}{
