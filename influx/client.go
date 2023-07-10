@@ -37,6 +37,9 @@ type Configs struct {
 	// Optional for InfluxDB Cloud
 	Organization string
 
+	// Default database for write query if not present as argument.
+	Database string
+
 	// HTTPClient is used to make API requests.
 	//
 	// This can be used to specify a custom TLS configuration
