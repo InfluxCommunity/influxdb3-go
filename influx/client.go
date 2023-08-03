@@ -45,8 +45,12 @@ type Configs struct {
 	//
 	// It HTTPClient is nil, http.DefaultClient will be used.
 	HTTPClient *http.Client
+
 	// Write Params
 	WriteParams WriteParams
+
+	// Default HTTP headers to be included in requests
+	Headers http.Header
 }
 
 // Client implements an InfluxDB client.
@@ -131,6 +135,11 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	req, err := http.NewRequestWithContext(ctx, params.httpMethod, fullURL, params.body)
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
+	}
+	for k, v := range c.configs.Headers {
+		for _, i := range v {
+			req.Header.Add(k, i)
+		}
 	}
 	for k, v := range params.headers {
 		for _, i := range v {

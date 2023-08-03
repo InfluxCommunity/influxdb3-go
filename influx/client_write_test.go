@@ -302,7 +302,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 	byts := points2bytes(t, points)
 	reqs := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// itialization of query client
+		// initialization of query client
 		if r.Method == "PRI" {
 			return
 		}
@@ -437,6 +437,33 @@ func TestGzip(t *testing.T) {
 	err = c.Write(context.Background(), "b", byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
+}
+
+func TestCustomHeaders(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
+			return
+		}
+		xHeader := r.Header.Get("X-device")
+		assert.Equal(t, "ab-01", xHeader)
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, "cpu,host=local usage_user=16.75\n", string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(Configs{
+		HostURL: ts.URL,
+		Headers: http.Header{
+			"X-device": []string{"ab-01"},
+		},
+	})
+	require.NoError(t, err)
+	err = c.WritePoints(context.Background(), "database", p)
+	require.NoError(t, err)
 }
 
 func TestWriteErrorMarshalPoint(t *testing.T) {
