@@ -16,7 +16,7 @@ import (
 )
 
 func (c *Client) initializeQueryClient() error {
-	url, safe := ReplaceURLProtocolWithPort(c.configs.HostURL)
+	url, safe := ReplaceURLProtocolWithPort(c.config.Host)
 
 	var transport grpc.DialOption
 
@@ -70,7 +70,7 @@ func (c *Client) Query(ctx context.Context, database string, query string, query
 }
 
 func (c *Client) queryWithType(ctx context.Context, database string, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.configs.AuthToken)
+	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
 	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
 
 	ticketData := map[string]interface{}{

@@ -21,42 +21,10 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/flight"
 )
 
-// Configs holds the parameters for creating a new client.
-// The only mandatory field is ServerURL. AuthToken is also important
-// if authentication was not done outside this client.
-type Configs struct {
-	// HostURL holds the URL of the InfluxDB server to connect to.
-	// This must be non-empty. E.g. http://localhost:8086
-	HostURL string
-
-	// AuthToken holds the authorization token for the API.
-	// This can be obtained through the GUI web browser interface.
-	AuthToken string
-
-	// Organization is name or ID of organization where data (databases, users, tasks, etc.) belongs to
-	// Optional for InfluxDB Cloud
-	Organization string
-
-	// HTTPClient is used to make API requests.
-	//
-	// This can be used to specify a custom TLS configuration
-	// (TLSClientConfig), a custom request timeout (Timeout),
-	// or other customization as required.
-	//
-	// It HTTPClient is nil, http.DefaultClient will be used.
-	HTTPClient *http.Client
-
-	// Write Params
-	WriteParams WriteParams
-
-	// Default HTTP headers to be included in requests
-	Headers http.Header
-}
-
 // Client implements an InfluxDB client.
 type Client struct {
-	// Configuration configs.
-	configs Configs
+	// Configuration options.
+	config ClientConfig
 	// Pre-created Authorization HTTP header value.
 	authorization string
 	// Cached base server API URL.
@@ -80,22 +48,22 @@ type httpParams struct {
 }
 
 // New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
-func New(params Configs) (*Client, error) {
-	c := &Client{configs: params}
-	if params.HostURL == "" {
+func New(config ClientConfig) (*Client, error) {
+	c := &Client{config: config}
+	if config.Host == "" {
 		return nil, errors.New("empty server URL")
 	}
-	if c.configs.AuthToken != "" {
-		c.authorization = "Token " + c.configs.AuthToken
+	if c.config.Token != "" {
+		c.authorization = "Token " + c.config.Token
 	}
-	if c.configs.HTTPClient == nil {
-		c.configs.HTTPClient = http.DefaultClient
+	if c.config.HTTPClient == nil {
+		c.config.HTTPClient = http.DefaultClient
 	}
 
-	hostAddress := params.HostURL
+	hostAddress := config.Host
 	if !strings.HasSuffix(hostAddress, "/") {
 		// For subsequent path parts concatenation, url has to end with '/'
-		hostAddress = params.HostURL + "/"
+		hostAddress = config.Host + "/"
 	}
 
 	var err error
@@ -108,10 +76,9 @@ func New(params Configs) (*Client, error) {
 	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
 
 	// Default params if nothing set
-	if params.WriteParams.GzipThreshold == 0 &&
-		params.WriteParams.Precision == 0 &&
-		params.WriteParams.Consistency == "" {
-		c.configs.WriteParams = DefaultWriteParams
+	if config.WriteOptions.GzipThreshold == 0 &&
+		config.WriteOptions.Precision == 0 {
+		c.config.WriteOptions = DefaultWriteOptions
 	}
 
 	err = c.initializeQueryClient()
@@ -136,7 +103,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
 	}
-	for k, v := range c.configs.Headers {
+	for k, v := range c.config.Headers {
 		for _, i := range v {
 			req.Header.Add(k, i)
 		}
@@ -151,7 +118,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 		req.Header.Add("Authorization", c.authorization)
 	}
 
-	resp, err := c.configs.HTTPClient.Do(req)
+	resp, err := c.config.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
 	}
@@ -211,7 +178,7 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 
 // Close closes all idle connections.
 func (c *Client) Close() error {
-	c.configs.HTTPClient.CloseIdleConnections()
+	c.config.HTTPClient.CloseIdleConnections()
 	err := (*c.queryClient).Close()
 	return err
 }

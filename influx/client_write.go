@@ -26,7 +26,7 @@ import (
 func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
 	var buff []byte
 	for _, p := range points {
-		bts, err := p.MarshalBinary(c.configs.WriteParams.Precision)
+		bts, err := p.MarshalBinary(c.config.WriteOptions.Precision)
 		if err != nil {
 			return err
 		}
@@ -51,16 +51,13 @@ func (c *Client) Write(ctx context.Context, database string, buff []byte) error 
 	var err error
 	u, _ := c.apiURL.Parse("write")
 	params := u.Query()
-	params.Set("org", c.configs.Organization)
+	params.Set("org", c.config.Organization)
 	params.Set("bucket", database)
-	params.Set("precision", c.configs.WriteParams.Precision.String())
-	if c.configs.WriteParams.Consistency != "" {
-		params.Set("consistency", string(c.configs.WriteParams.Consistency))
-	}
+	params.Set("precision", c.config.WriteOptions.Precision.String())
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"application/json"}}
-	if c.configs.WriteParams.GzipThreshold > 0 && len(buff) >= c.configs.WriteParams.GzipThreshold {
+	if c.config.WriteOptions.GzipThreshold > 0 && len(buff) >= c.config.WriteOptions.GzipThreshold {
 		body, err = gzip.CompressWithGzip(body)
 		if err != nil {
 			return fmt.Errorf("unable to compress write body: %w", err)
@@ -107,7 +104,7 @@ func (c *Client) Write(ctx context.Context, database string, buff []byte) error 
 func (c *Client) WriteData(ctx context.Context, database string, points ...interface{}) error {
 	var buff []byte
 	for _, p := range points {
-		byts, err := encode(p, c.configs.WriteParams)
+		byts, err := encode(p, c.config.WriteOptions)
 		if err != nil {
 			return fmt.Errorf("error encoding point: %w", err)
 		}
@@ -117,7 +114,7 @@ func (c *Client) WriteData(ctx context.Context, database string, points ...inter
 	return c.Write(ctx, database, buff)
 }
 
-func encode(x interface{}, params WriteParams) ([]byte, error) {
+func encode(x interface{}, options WriteOptions) ([]byte, error) {
 	if err := checkContainerType(x, false, "point"); err != nil {
 		return nil, err
 	}
@@ -171,5 +168,5 @@ func encode(x interface{}, params WriteParams) ([]byte, error) {
 	if len(point.Fields) == 0 {
 		return nil, fmt.Errorf("no struct field with tag 'field'")
 	}
-	return point.MarshalBinary(params.Precision)
+	return point.MarshalBinary(options.Precision)
 }

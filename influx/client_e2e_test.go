@@ -24,9 +24,9 @@ func TestWriteAndQueryExample(t *testing.T) {
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
-	client, err := influx.New(influx.Configs{
-		HostURL:   url,
-		AuthToken: token,
+	client, err := influx.New(influx.ClientConfig{
+		Host:   url,
+		Token: token,
 	})
 
 	require.NoError(t, err)
