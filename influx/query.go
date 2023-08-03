@@ -20,7 +20,7 @@ func (c *Client) initializeQueryClient() error {
 
 	var transport grpc.DialOption
 
-	if (safe == nil || *safe) {
+	if safe == nil || *safe {
 		pool, err := x509.SystemCertPool()
 		if err != nil {
 			return fmt.Errorf("x509: %s", err)
@@ -74,12 +74,12 @@ func (c *Client) queryWithType(ctx context.Context, database string, query strin
 	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
 
 	ticketData := map[string]interface{}{
-		"database": database,
-		"sql_query": query,
+		"database":   database,
+		"sql_query":  query,
 		"query_type": queryType,
 	}
 
-	ticketJson, err := json.Marshal(ticketData);
+	ticketJson, err := json.Marshal(ticketData)
 	if err != nil {
 		return nil, fmt.Errorf("serialize: %s", err)
 	}

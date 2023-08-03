@@ -36,6 +36,7 @@ type Point struct {
 //
 // Parameters:
 //   - measurement: The measurement name for the Point.
+//
 // Returns:
 //   - The created Point.
 func NewPointWithMeasurement(measurement string) *Point {
@@ -51,6 +52,7 @@ func NewPointWithMeasurement(measurement string) *Point {
 //   - tags: The tags for the Point.
 //   - fields: The fields for the Point.
 //   - ts: The timestamp for the Point.
+//
 // Returns:
 //   - The created Point.
 func NewPoint(measurement string, tags map[string]string, fields map[string]interface{}, ts time.Time) *Point {
@@ -100,6 +102,7 @@ func (m *Point) SortFields() *Point {
 // Parameters:
 //   - k: The key of the tag.
 //   - v: The value of the tag.
+//
 // Returns:
 //   - The updated Point with the tag added.
 func (m *Point) AddTag(k, v string) *Point {
@@ -118,6 +121,7 @@ func (m *Point) AddTag(k, v string) *Point {
 // Parameters:
 //   - k: The key of the field.
 //   - v: The value of the field.
+//
 // Returns:
 //   - The updated Point with the field added.
 func (m *Point) AddField(k string, v interface{}) *Point {
@@ -138,6 +142,7 @@ func (m *Point) AddField(k string, v interface{}) *Point {
 // Parameters:
 //   - k: The key of the field.
 //   - v: The value of the field.
+//
 // Returns:
 //   - The updated Point with the field added.
 func (m *Point) SetTimestamp(t time.Time) *Point {
@@ -149,6 +154,7 @@ func (m *Point) SetTimestamp(t time.Time) *Point {
 //
 // Parameters:
 //   - precision: The precision to use for timestamp encoding in line protocol format.
+//
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
