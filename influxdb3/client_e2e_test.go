@@ -25,7 +25,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
 	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:   url,
+		Host:  url,
 		Token: token,
 	})
 

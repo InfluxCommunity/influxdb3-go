@@ -14,6 +14,7 @@ import (
 //
 // Parameters:
 //   - url: The URL to process.
+//
 // Returns:
 //   - The modified URL with the protocol replaced by the port.
 //   - A boolean value indicating the safety of communication (true for safe, false for unsafe) or nil if not detected.

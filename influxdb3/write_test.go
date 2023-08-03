@@ -284,9 +284,9 @@ func TestWriteCorrectUrl(t *testing.T) {
 	options := DefaultWriteOptions
 	options.Precision = lineprotocol.Millisecond
 	c, err := New(ClientConfig{
-		Host:      ts.URL + "/path/",
+		Host:         ts.URL + "/path/",
 		Organization: "my-org",
-		WriteOptions:  options,
+		WriteOptions: options,
 	})
 	require.NoError(t, err)
 	err = c.Write(context.Background(), "my-database", []byte("a f=1"))

@@ -49,6 +49,7 @@ func (c *Client) initializeQueryClient() error {
 //   - database: The database to be used for InfluxDB operations.
 //   - query: The InfluxQL query string to execute.
 //   - queryParams: Additional query parameters.
+//
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
@@ -62,6 +63,7 @@ func (c *Client) QueryInfluxQL(ctx context.Context, database string, query strin
 //   - database: The database to be used for InfluxDB operations.
 //   - query: The SQL query string to execute.
 //   - queryParams: Additional query parameters.
+//
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.

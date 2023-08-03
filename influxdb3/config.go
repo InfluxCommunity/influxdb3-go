@@ -35,4 +35,3 @@ type ClientConfig struct {
 	// Default HTTP headers to be included in requests
 	Headers http.Header
 }
-
