@@ -494,3 +494,23 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	})
 	assert.Error(t, err)
 }
+
+func TestHttpError(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
+			return
+		}
+		panic("simulate error")
+	}))
+	defer ts.Close()
+	c, err := New(Configs{
+		HostURL: ts.URL,
+	})
+	require.NoError(t, err)
+	err = c.WritePoints(context.Background(), "database", p)
+	assert.Error(t, fmt.Errorf("error calling"), err)
+	assert.ErrorContains(t, err, "error calling")
+}
