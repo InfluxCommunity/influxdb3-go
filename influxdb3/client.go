@@ -20,7 +20,7 @@
  THE SOFTWARE.
 */
 
-// Package influx provides client for InfluxDB server.
+// Package influxdb3 provides client for InfluxDB server.
 package influxdb3
 
 import (
