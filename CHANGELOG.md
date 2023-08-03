@@ -2,7 +2,7 @@
 
 ### Features
 
-1. [#30](https://github.com/InfluxCommunity/influxdb3-csharp/pull/go): Add custom HTTP headers support
+1. [#30](https://github.com/InfluxCommunity/influxdb3-go/pull/go): Add custom HTTP headers support
 
 ## 0.1.0 [2023-06-09]
 
