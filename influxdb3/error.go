@@ -1,6 +1,8 @@
-package influx
+package influxdb3
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ServerError holds InfluxDB server error info
 // ServerError represents an error returned from an InfluxDB API server.

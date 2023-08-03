@@ -1,6 +1,8 @@
-package influx
+package influxdb3
 
-import "strings"
+import (
+	"strings"
+)
 
 // ReplaceURLProtocolWithPort removes the "http://" or "https://" protocol from the given URL and replaces it with the port number.
 // Currently, Apache Arrow does not support the "http://" or "https://" protocol in the URL, so this function is used to remove it.

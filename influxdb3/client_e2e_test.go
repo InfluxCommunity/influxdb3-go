@@ -1,4 +1,4 @@
-package influx_test
+package influxdb3_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influx"
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
-	client, err := influx.New(influx.ClientConfig{
+	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:   url,
 		Token: token,
 	})
@@ -34,7 +34,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	// Write test
 
-	p := influx.NewPointWithMeasurement("stat").
+	p := influxdb3.NewPointWithMeasurement("stat").
 		AddTag("unit", "temperature").
 		AddField("avg", avg1).
 		AddField("max", max1).

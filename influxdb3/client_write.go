@@ -1,4 +1,4 @@
-package influx
+package influxdb3
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influx/gzip"
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3/gzip"
 )
 
 // WritePoints writes all the given points to the server into the given database.

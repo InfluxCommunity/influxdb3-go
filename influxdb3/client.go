@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package influx provides client for InfluxDB server.
-package influx
+package influxdb3
 
 import (
 	"context"

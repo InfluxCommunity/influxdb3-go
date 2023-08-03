@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influx"
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	database := os.Getenv("INFLUXDB_DATABASE")
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
-	client, err := influx.New(influx.ClientConfig{
+	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:   url,
 		Token: token,
 	})
@@ -25,7 +25,7 @@ func main() {
 		panic(err)
 	}
 	// Close client at the end and escalate error if present
-	defer func(client *influx.Client) {
+	defer func(client *influxdb3.Client) {
 		err := client.Close()
 		if err != nil {
 			panic(err)
@@ -33,7 +33,7 @@ func main() {
 	}(client)
 
 	// Create point using full params constructor
-	p := influx.NewPoint("stat",
+	p := influxdb3.NewPoint("stat",
 		map[string]string{"unit": "temperature"},
 		map[string]interface{}{"avg": 24.5, "max": 45.0},
 		time.Now())
@@ -43,7 +43,7 @@ func main() {
 		panic(err)
 	}
 	// Create point using fluent style
-	p = influx.NewPointWithMeasurement("stat").
+	p = influxdb3.NewPointWithMeasurement("stat").
 		AddTag("unit", "temperature").
 		AddField("avg", 23.2).
 		AddField("max", 45.0).

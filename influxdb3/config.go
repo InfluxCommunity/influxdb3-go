@@ -1,4 +1,4 @@
-package influx
+package influxdb3
 
 import (
 	"net/http"

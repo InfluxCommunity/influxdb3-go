@@ -1,4 +1,4 @@
-package influx
+package influxdb3
 
 import (
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
