@@ -82,7 +82,7 @@ import (
 )
 ```
 
-Create `influx.Client` with `New` function. Make sure to `Close` client after with `defer` keyword.
+Create `influxdb3.Client` with `New` function. Make sure to `Close` client after with `defer` keyword.
 
 ```go
 url := os.Getenv("INFLUXDB_URL")
@@ -90,12 +90,12 @@ token := os.Getenv("INFLUXDB_TOKEN")
 database := os.Getenv("INFLUXDB_DATABASE")
 
 // Create a new client using an InfluxDB server base URL and an authentication token
-client, err := influx.New(influx.Configs{
-    HostURL: url,
-    AuthToken: token,
+client, err := influxdb3.New(influxdb3.ClientConfig{
+    Host: url,
+    Token: token,
 })
 // Close client at the end and escalate error if present
-defer func (client *influx.Client)  {
+defer func (client *influxdb3.Client)  {
     err := client.Close()
     if err != nil {
         panic(err)
