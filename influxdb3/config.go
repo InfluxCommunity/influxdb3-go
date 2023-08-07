@@ -27,7 +27,7 @@ import (
 )
 
 // ClientConfig holds the parameters for creating a new client.
-// The only mandatory field is ServerURL. AuthToken is also important
+// The only mandatory field is Host. Token is also important
 // if authentication was not done outside this client.
 type ClientConfig struct {
 	// Host holds the URL of the InfluxDB server to connect to.
