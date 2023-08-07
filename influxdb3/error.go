@@ -26,7 +26,6 @@ import (
 	"fmt"
 )
 
-// ServerError holds InfluxDB server error info
 // ServerError represents an error returned from an InfluxDB API server.
 type ServerError struct {
 	// Code holds the Influx error code, or empty if the code is unknown.
