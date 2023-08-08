@@ -42,6 +42,9 @@ type ClientConfig struct {
 	// Optional for InfluxDB Cloud
 	Organization string
 
+	// Database used by the client.
+	Database string
+
 	// HTTPClient is used to make API requests.
 	//
 	// This can be used to specify a custom TLS configuration
@@ -52,7 +55,7 @@ type ClientConfig struct {
 	HTTPClient *http.Client
 
 	// Write options
-	WriteOptions WriteOptions
+	WriteOptions *WriteOptions
 
 	// Default HTTP headers to be included in requests
 	Headers http.Header

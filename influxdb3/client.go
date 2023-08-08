@@ -94,9 +94,9 @@ func New(config ClientConfig) (*Client, error) {
 	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
 
 	// Default params if nothing set
-	if config.WriteOptions.GzipThreshold == 0 &&
-		config.WriteOptions.Precision == 0 {
-		c.config.WriteOptions = DefaultWriteOptions
+	if config.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.config.WriteOptions = &options
 	}
 
 	err = c.initializeQueryClient()

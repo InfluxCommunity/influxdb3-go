@@ -19,6 +19,7 @@ func main() {
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:  url,
 		Token: token,
+		Database: database,
 	})
 
 	if err != nil {
@@ -38,7 +39,7 @@ func main() {
 		map[string]interface{}{"avg": 24.5, "max": 45.0},
 		time.Now())
 	// write point synchronously
-	err = client.WritePoints(context.Background(), database, p)
+	err = client.WritePoints(context.Background(), p)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +50,7 @@ func main() {
 		AddField("max", 45.0).
 		SetTimestamp(time.Now())
 	// write point synchronously
-	err = client.WritePoints(context.Background(), database, p)
+	err = client.WritePoints(context.Background(), p)
 	if err != nil {
 		panic(err)
 	}
@@ -62,13 +63,13 @@ func main() {
 		Time  time.Time `lp:"timestamp"`
 	}{"stat", "temperature", 22.3, 40.3, time.Now()}
 	// Write point
-	err = client.WriteData(context.Background(), database, sensorData)
+	err = client.WriteData(context.Background(), sensorData)
 	if err != nil {
 		panic(err)
 	}
 	// Or write directly line protocol
 	line := fmt.Sprintf("stat,unit=temperature avg=%f,max=%f", 23.5, 45.0)
-	err = client.Write(context.Background(), database, []byte(line))
+	err = client.Write(context.Background(), []byte(line))
 	if err != nil {
 		panic(err)
 	}

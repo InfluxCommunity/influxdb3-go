@@ -23,38 +23,38 @@
 package influxdb3
 
 import (
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// QueryOptions holds options for query
-type QueryOptions struct {
-	// Database for querying. Use in `QueryWithOptions` method to override default database in `ClientConfig`.
-	Database string
-
-	// Query type.
-	QueryType QueryType
+func TestQueryDatabaseNotSet(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	c, err := New(ClientConfig{
+		Host: "http://localhost:8086",
+	})
+	require.NoError(t, err)
+	iterator, err := c.QueryWithOptions(context.Background(), nil, "SHOW NAMESPACES")
+	assert.Nil(t, iterator)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "database not specified")
 }
 
-// WriteOptions holds options for write
-type WriteOptions struct {
-	// Database for writing. Use in `WriteWithOptions` methods to override default database in `ClientConfig`.
-	Database string
-
-	// Precision to use in writes for timestamp.
-	// Default `lineprotocol.Nanosecond`
-	Precision lineprotocol.Precision
-
-	// Write body larger than the threshold is gzipped. 0 to don't gzip at all
-	GzipThreshold int
-}
-
-// DefaultQueryOptions specifies default query options
-var DefaultQueryOptions = QueryOptions{
-	QueryType: FlightSQL,
-}
-
-// DefaultWriteOptions specifies default write options
-var DefaultWriteOptions = WriteOptions{
-	Precision:     lineprotocol.Nanosecond,
-	GzipThreshold: 1_000,
+func TestQueryWithOptionsNotSet(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	c, err := New(ClientConfig{
+		Host: "http://localhost:8086",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+	iterator, err := c.QueryWithOptions(context.Background(), nil, "SHOW NAMESPACES")
+	assert.Nil(t, iterator)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "options not set")
 }

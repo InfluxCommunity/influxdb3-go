@@ -56,10 +56,11 @@ func TestNew(t *testing.T) {
 		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
 	}
 
-	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token"})
+	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Database: "my-database"})
 	require.NoError(t, err)
 	assert.Equal(t, "Token my-token", c.authorization)
-	assert.EqualValues(t, DefaultWriteOptions, c.config.WriteOptions)
+	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
+	assert.Equal(t, "my-database", c.config.Database)
 }
 
 func TestURLs(t *testing.T) {

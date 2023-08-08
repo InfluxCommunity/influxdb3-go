@@ -299,6 +299,10 @@ func compArrays(b1 []byte, b2 []byte) int {
 func TestWriteCorrectUrl(t *testing.T) {
 	correctPath := "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
 		assert.EqualValues(t, correctPath, r.URL.String())
 		w.WriteHeader(204)
 	}))
@@ -308,16 +312,17 @@ func TestWriteCorrectUrl(t *testing.T) {
 	c, err := New(ClientConfig{
 		Host:         ts.URL + "/path/",
 		Organization: "my-org",
-		WriteOptions: options,
+		Database:     "my-database",
+		WriteOptions: &options,
 	})
 	require.NoError(t, err)
-	err = c.Write(context.Background(), "my-database", []byte("a f=1"))
+	err = c.Write(context.Background(), []byte("a f=1"))
 	assert.NoError(t, err)
 	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
-	err = c.Write(context.Background(), "my-database", []byte("a f=1"))
+	err = c.Write(context.Background(), []byte("a f=1"))
 	assert.NoError(t, err)
-
 }
+
 func TestWritePointsAndBytes(t *testing.T) {
 	points := genPoints(t, 5000)
 	byts := points2bytes(t, points)
@@ -346,23 +351,53 @@ func TestWritePointsAndBytes(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 	})
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
-	err = c.Write(context.Background(), "b", byts)
+	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, reqs)
 
-	err = c.WritePoints(context.Background(), "b", points...)
+	err = c.WritePoints(context.Background(), points...)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, reqs)
 
 	// test error
-	err = c.Write(context.Background(), "b", []byte("line"))
+	err = c.Write(context.Background(), []byte("line"))
 	require.Error(t, err)
 	assert.Equal(t, 3, reqs)
 	assert.Equal(t, "invalid: error lens are not equal 911244 vs 4", err.Error())
+}
+
+func TestWritePointsWithOptions(t *testing.T) {
+	points := genPoints(t, 1)
+	lp := points2bytes(t, points)
+	correctPath := "/api/v2/write?bucket=x-db&org=&precision=ms"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+
+		assert.EqualValues(t, correctPath, r.URL.String())
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, string(lp), string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host: ts.URL,
+		Database: "my-database",
+	})
+	options := WriteOptions{
+		Database: "x-db",
+		Precision: lineprotocol.Millisecond,
+	}
+	err = c.WritePointsWithOptions(context.Background(), &options, points...)
+	assert.NoError(t, err)
 }
 
 func TestWriteData(t *testing.T) {
@@ -384,32 +419,72 @@ func TestWriteData(t *testing.T) {
 		now,
 		"Room temp",
 	}
-	byts := []byte(fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()))
+	lp := fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano())
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		buff, err := io.ReadAll(r.Body)
-		if err != nil {
-			returnHTTPError(w, http.StatusInternalServerError, fmt.Sprintf("error reading body: %v", err))
+		// initialization of query client
+		if r.Method == "PRI" {
 			return
 		}
-		if r := compArrays(byts, buff); r != 0 {
-			if r == -1 {
-				returnHTTPError(w, http.StatusInternalServerError, fmt.Sprintf("error lens are not equal %d vs %d", len(byts), len(buff)))
-			} else {
-				returnHTTPError(w, http.StatusInternalServerError, fmt.Sprintf("error bytes are not equal %d", r))
-			}
-			return
-		}
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, lp, string(body))
 		w.WriteHeader(204)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 	})
-	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
-	err = c.WriteData(context.Background(), "b", s)
+	err = c.WriteData(context.Background(), s)
 	assert.NoError(t, err)
+}
 
+func TestWriteDataWithOptions(t *testing.T) {
+	now := time.Now()
+	s := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Temp        float64   `lp:"field,temperature"`
+		Hum         int       `lp:"field,humidity"`
+		Time        time.Time `lp:"timestamp"`
+		Description string    `lp:"-"`
+	}{
+		"air",
+		"SHT31",
+		"10",
+		23.5,
+		55,
+		now,
+		"Room temp",
+	}
+	lp := fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
+	correctPath := "/api/v2/write?bucket=x-db&org=my-org&precision=s"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, lp, string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host: ts.URL,
+		Organization: "my-org",
+		Database: "my-database",
+	})
+	options := WriteOptions{
+		Database: "x-db",
+		Precision: lineprotocol.Second,
+	}
+	require.NoError(t, err)
+	err = c.WriteDataWithOptions(context.Background(), &options, s)
+	assert.NoError(t, err)
 }
 
 func TestGzip(t *testing.T) {
@@ -417,6 +492,10 @@ func TestGzip(t *testing.T) {
 	byts := points2bytes(t, points)
 	wasGzip := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
 		body := r.Body
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			body, _ = gzip.NewReader(body)
@@ -440,22 +519,23 @@ func TestGzip(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 	})
 	require.NoError(t, err)
 	//Test no gzip on small body
-	err = c.Write(context.Background(), "b", byts)
+	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
 	// Test gzip on larger body
 	points = genPoints(t, 100)
 	byts = points2bytes(t, points)
-	err = c.Write(context.Background(), "b", byts)
+	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.True(t, wasGzip)
 	// Test disable gzipping
 	wasGzip = false
 	c.config.WriteOptions.GzipThreshold = 0
-	err = c.Write(context.Background(), "b", byts)
+	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
 }
@@ -478,12 +558,13 @@ func TestCustomHeaders(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 		Headers: http.Header{
 			"X-device": []string{"ab-01"},
 		},
 	})
 	require.NoError(t, err)
-	err = c.WritePoints(context.Background(), "database", p)
+	err = c.WritePoints(context.Background(), p)
 	require.NoError(t, err)
 }
 
@@ -494,6 +575,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 	})
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
@@ -507,10 +589,10 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 
 	p.Timestamp = time.Now()
 
-	err = c.WritePoints(context.Background(), "b", p)
+	err = c.WritePoints(context.Background(), p)
 	assert.Error(t, err)
 
-	err = c.WriteData(context.Background(), "b", []interface{}{
+	err = c.WriteData(context.Background(), []interface{}{
 		0,
 	})
 	assert.Error(t, err)
@@ -524,14 +606,42 @@ func TestHttpError(t *testing.T) {
 		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
 			return
 		}
-		panic("simulate error")
+		panic("simulated server error")
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host: ts.URL,
+		Database: "my-database",
 	})
 	require.NoError(t, err)
-	err = c.WritePoints(context.Background(), "database", p)
-	assert.Error(t, fmt.Errorf("error calling"), err)
+	err = c.WritePoints(context.Background(), p)
+	assert.Error(t, err)
 	assert.ErrorContains(t, err, "error calling")
+}
+
+func TestWriteDatabaseNotSet(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	c, err := New(ClientConfig{
+		Host: "http://localhost:8086",
+	})
+	require.NoError(t, err)
+	err = c.WritePoints(context.Background(), p)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "database not specified")
+}
+
+func TestWriteWithOptionsNotSet(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.AddTag("host", "local")
+	p.AddField("usage_user", 16.75)
+	c, err := New(ClientConfig{
+		Host: "http://localhost:8086",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+	err = c.WritePointsWithOptions(context.Background(), nil, p)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "options not set")
 }

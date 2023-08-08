@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3/gzip"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 // WritePoints writes all the given points to the server into the given database.
@@ -40,21 +41,40 @@ import (
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to write the points to.
 //   - points: The points to write.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) WritePoints(ctx context.Context, database string, points ...*Point) error {
+func (c *Client) WritePoints(ctx context.Context, points ...*Point) error {
+	return c.WritePointsWithOptions(ctx, c.config.WriteOptions, points...)
+}
+
+// WritePointsWithOptions writes all the given points to the server into the given database.
+// The data is written synchronously.
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - points: The points to write.
+//   - options: Write options.
+//
+// Returns:
+//   - An error, if any.
+func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptions, points ...*Point) error {
 	var buff []byte
+	var precision lineprotocol.Precision
+	if options != nil {
+		precision = options.Precision
+	} else {
+		precision = c.config.WriteOptions.Precision
+	}
 	for _, p := range points {
-		bts, err := p.MarshalBinary(c.config.WriteOptions.Precision)
+		bts, err := p.MarshalBinary(precision)
 		if err != nil {
 			return err
 		}
 		buff = append(buff, bts...)
 	}
-	return c.Write(ctx, database, buff)
+	return c.WriteWithOptions(ctx, options, buff)
 }
 
 // Write writes line protocol record(s) to the server into the given database.
@@ -63,23 +83,54 @@ func (c *Client) WritePoints(ctx context.Context, database string, points ...*Po
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to write the records to.
 //   - buff: The line protocol record(s) to write.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) Write(ctx context.Context, database string, buff []byte) error {
+func (c *Client) Write(ctx context.Context, buff []byte) error {
+	return c.WriteWithOptions(ctx, c.config.WriteOptions, buff)
+}
+
+// WriteWithOptions writes line protocol record(s) to the server into the given database.
+// Multiple records must be separated by the new line character (\n).
+// The data is written synchronously.
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - buff: The line protocol record(s) to write.
+//   - options: Write options.
+//
+// Returns:
+//   - An error, if any.
+func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, buff []byte) error {
+	if options == nil {
+		return fmt.Errorf("options not set")
+	}
+	var database string
+	var precision lineprotocol.Precision
+	var gzipThreshold int
+	if options.Database != "" {
+		database = options.Database
+	} else {
+		database = c.config.Database
+	}
+	if database == "" {
+		return fmt.Errorf("database not specified")
+	}
+	precision = options.Precision
+	gzipThreshold = options.GzipThreshold
+
 	var body io.Reader
 	var err error
 	u, _ := c.apiURL.Parse("write")
 	params := u.Query()
 	params.Set("org", c.config.Organization)
 	params.Set("bucket", database)
-	params.Set("precision", c.config.WriteOptions.Precision.String())
+	params.Set("precision", precision.String())
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"application/json"}}
-	if c.config.WriteOptions.GzipThreshold > 0 && len(buff) >= c.config.WriteOptions.GzipThreshold {
+	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
 		body, err = gzip.CompressWithGzip(body)
 		if err != nil {
 			return fmt.Errorf("unable to compress write body: %w", err)
@@ -118,25 +169,55 @@ func (c *Client) Write(ctx context.Context, database string, buff []byte) error 
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to write the points to.
 //   - points: The custom points to encode and write.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) WriteData(ctx context.Context, database string, points ...interface{}) error {
+func (c *Client) WriteData(ctx context.Context, points ...interface{}) error {
+	return c.WriteDataWithOptions(ctx, c.config.WriteOptions, points...)
+}
+
+// WriteData encodes fields of custom points into line protocol
+// and writes line protocol record(s) to the server into the given database.
+// Each custom point must be annotated with 'lp' prefix and values measurement, tag, field, or timestamp.
+// A valid point must contain a measurement and at least one field.
+// The points are written synchronously.
+//
+// A field with a timestamp must be of type time.Time.
+//
+// Example usage:
+//
+//	type TemperatureSensor struct {
+//	    Measurement  string    `lp:"measurement"`
+//	    Sensor       string    `lp:"tag,sensor"`
+//	    ID           string    `lp:"tag,device_id"`
+//	    Temp         float64   `lp:"field,temperature"`
+//	    Hum          int       `lp:"field,humidity"`
+//	    Time         time.Time `lp:"timestamp"`
+//	    Description  string    `lp:"-"`
+//	}
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - points: The custom points to encode and write.
+//   - options: Write options.
+//
+// Returns:
+//   - An error, if any.
+func (c *Client) WriteDataWithOptions(ctx context.Context, options *WriteOptions, points ...interface{}) error {
 	var buff []byte
 	for _, p := range points {
-		byts, err := encode(p, c.config.WriteOptions)
+		byts, err := encode(p, options)
 		if err != nil {
 			return fmt.Errorf("error encoding point: %w", err)
 		}
 		buff = append(buff, byts...)
 	}
 
-	return c.Write(ctx, database, buff)
+	return c.WriteWithOptions(ctx, options, buff)
 }
 
-func encode(x interface{}, options WriteOptions) ([]byte, error) {
+func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	if err := checkContainerType(x, false, "point"); err != nil {
 		return nil, err
 	}

@@ -27,6 +27,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/apache/arrow/go/v12/arrow/flight"
 	"github.com/apache/arrow/go/v12/arrow/ipc"
@@ -65,42 +66,53 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
-// Query data from InfluxDB IOx using InfluxQL.
+// Query data from InfluxDB IOx with FlightSQL.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to be used for InfluxDB operations.
 //   - query: The InfluxQL query string to execute.
 //   - queryParams: Additional query parameters.
 //
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
-func (c *Client) QueryInfluxQL(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, database, query, "influxql", queryParams...)
+func (c *Client) Query(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
+	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query, queryParams...)
 }
 
-// Query data from InfluxDB IOx using FlightSQL.
+// Query data from InfluxDB IOx with query options.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - database: The database to be used for InfluxDB operations.
-//   - query: The SQL query string to execute.
-//   - queryParams: Additional query parameters.
+//   - options: Query options (query type, optional database).
+//   - query: The query string to execute.
+//   - params: Additional query parameters.
 //
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, database string, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.queryWithType(ctx, database, query, "sql", queryParams...)
-}
+func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string, params ...string) (*QueryIterator, error) {
+	if options == nil {
+		return nil, fmt.Errorf("options not set")
+	}
 
-func (c *Client) queryWithType(ctx context.Context, database string, query string, queryType string, queryParams ...string) (*QueryIterator, error) {
+	var database string
+	var queryType QueryType
+	if options.Database != "" {
+		database = options.Database
+	} else {
+		database = c.config.Database
+	}
+	if database == "" {
+		return nil, fmt.Errorf("database not specified")
+	}
+	queryType = options.QueryType
+
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
-	ctx = metadata.AppendToOutgoingContext(ctx, queryParams...)
+	ctx = metadata.AppendToOutgoingContext(ctx, params...)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
 		"sql_query":  query,
-		"query_type": queryType,
+		"query_type": strings.ToLower(queryType.String()),
 	}
 
 	ticketJson, err := json.Marshal(ticketData)

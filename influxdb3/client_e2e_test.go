@@ -49,6 +49,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:  url,
 		Token: token,
+		Database: database,
 	})
 
 	require.NoError(t, err)
@@ -62,7 +63,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		AddField("max", max1).
 		AddField("testId", testId).
 		SetTimestamp(time.Now())
-	err = client.WritePoints(context.Background(), database, p)
+	err = client.WritePoints(context.Background(), p)
 	require.NoError(t, err)
 
 	sensorData := struct {
@@ -73,10 +74,11 @@ func TestWriteAndQueryExample(t *testing.T) {
 		TestId int64     `lp:"field,testId"`
 		Time   time.Time `lp:"timestamp"`
 	}{"stat", "temperature", avg2, max2, testId, time.Now()}
-	err = client.WriteData(context.Background(), database, sensorData)
+	err = client.WriteData(context.Background(), sensorData)
 	require.NoError(t, err)
 
 	// Query test
+
 	query := fmt.Sprintf(`
 		SELECT *
 		FROM "stat"
@@ -87,11 +89,11 @@ func TestWriteAndQueryExample(t *testing.T) {
 		ORDER BY time
 	`, testId)
 
-	// retry query few times ultil data updates
+	// retry query few times until data updates
 	sleepTime := 2 * time.Second
 
 	time.Sleep(sleepTime)
-	iterator, err := client.Query(context.Background(), database, query)
+	iterator, err := client.Query(context.Background(), query)
 	require.NoError(t, err)
 
 	hasValue := iterator.Next()
@@ -111,7 +113,14 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
 
-	iterator, err = client.QueryInfluxQL(context.Background(), database, "SHOW MEASUREMENTS")
+	iterator, err = client.Query(context.Background(), "SHOW NAMESPACES")
+	require.NoError(t, err)
+	assert.NotNil(t, iterator.Raw())
+
+	options := influxdb3.QueryOptions{
+		QueryType: influxdb3.InfluxQL,
+	}
+	iterator, err = client.QueryWithOptions(context.Background(), &options, "SHOW MEASUREMENTS")
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }
