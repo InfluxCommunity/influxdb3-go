@@ -38,7 +38,7 @@ func TestQueryDatabaseNotSet(t *testing.T) {
 		Host: "http://localhost:8086",
 	})
 	require.NoError(t, err)
-	iterator, err := c.QueryWithOptions(context.Background(), nil, "SHOW NAMESPACES")
+	iterator, err := c.Query(context.Background(), "SHOW NAMESPACES")
 	assert.Nil(t, iterator)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "database not specified")
