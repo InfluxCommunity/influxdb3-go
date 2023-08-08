@@ -49,7 +49,7 @@ func TestQueryWithOptionsNotSet(t *testing.T) {
 	p.AddTag("host", "local")
 	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
-		Host: "http://localhost:8086",
+		Host:     "http://localhost:8086",
 		Database: "my-database",
 	})
 	require.NoError(t, err)

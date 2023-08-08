@@ -350,7 +350,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
@@ -389,11 +389,11 @@ func TestWritePointsWithOptions(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	options := WriteOptions{
-		Database: "x-db",
+		Database:  "x-db",
 		Precision: lineprotocol.Millisecond,
 	}
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
@@ -432,7 +432,7 @@ func TestWriteData(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -474,12 +474,12 @@ func TestWriteDataWithOptions(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:         ts.URL,
 		Organization: "my-org",
-		Database: "my-database",
+		Database:     "my-database",
 	})
 	options := WriteOptions{
-		Database: "x-db",
+		Database:  "x-db",
 		Precision: lineprotocol.Second,
 	}
 	require.NoError(t, err)
@@ -518,7 +518,7 @@ func TestGzip(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -557,7 +557,7 @@ func TestCustomHeaders(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 		Headers: http.Header{
 			"X-device": []string{"ab-01"},
@@ -574,7 +574,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
@@ -610,7 +610,7 @@ func TestHttpError(t *testing.T) {
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
-		Host: ts.URL,
+		Host:     ts.URL,
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -637,7 +637,7 @@ func TestWriteWithOptionsNotSet(t *testing.T) {
 	p.AddTag("host", "local")
 	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
-		Host: "http://localhost:8086",
+		Host:     "http://localhost:8086",
 		Database: "my-database",
 	})
 	require.NoError(t, err)

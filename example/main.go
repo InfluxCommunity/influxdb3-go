@@ -17,8 +17,8 @@ func main() {
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:  url,
-		Token: token,
+		Host:     url,
+		Token:    token,
 		Database: database,
 	})
 
