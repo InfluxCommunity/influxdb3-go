@@ -31,9 +31,6 @@ import (
 )
 
 func TestQueryDatabaseNotSet(t *testing.T) {
-	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host: "http://localhost:8086",
 	})
@@ -45,9 +42,6 @@ func TestQueryDatabaseNotSet(t *testing.T) {
 }
 
 func TestQueryWithOptionsNotSet(t *testing.T) {
-	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host:     "http://localhost:8086",
 		Database: "my-database",

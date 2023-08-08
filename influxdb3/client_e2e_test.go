@@ -112,15 +112,74 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
+}
 
-	iterator, err = client.Query(context.Background(), "SHOW NAMESPACES")
+func TestQueryDatabaseDoesNotExist(t *testing.T) {
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: "does not exist",
+	})
+
+	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES")
+	assert.Nil(t, iterator)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "bucket \"does not exist\" not found")
+}
+
+func TestQuerySchema(t *testing.T) {
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+
+	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES")
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
+}
+
+func TestQueryWithOptions(t *testing.T) {
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: "does not exist",
+	})
+	options := influxdb3.QueryOptions{
+		Database: database,
+	}
+
+	iterator, err := client.QueryWithOptions(context.Background(), &options, "SHOW NAMESPACES")
+	require.NoError(t, err)
+	assert.NotNil(t, iterator.Raw())
+}
+
+func TestQuerySchemaInfluxQL(t *testing.T) {
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
 
 	options := influxdb3.QueryOptions{
 		QueryType: influxdb3.InfluxQL,
 	}
-	iterator, err = client.QueryWithOptions(context.Background(), &options, "SHOW MEASUREMENTS")
+	iterator, err := client.QueryWithOptions(context.Background(), &options, "SHOW MEASUREMENTS")
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }

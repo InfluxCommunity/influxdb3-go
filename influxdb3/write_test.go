@@ -306,7 +306,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 		assert.EqualValues(t, correctPath, r.URL.String())
 		w.WriteHeader(204)
 	}))
-
+	defer ts.Close()
 	options := DefaultWriteOptions
 	options.Precision = lineprotocol.Millisecond
 	c, err := New(ClientConfig{
