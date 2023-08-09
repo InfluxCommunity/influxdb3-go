@@ -83,7 +83,6 @@ func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error
 //   - ctx: The context.Context to use for the request.
 //   - options: Query options (query type, optional database).
 //   - query: The query string to execute.
-//   - params: Additional query parameters.
 //
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
