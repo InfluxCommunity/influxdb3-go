@@ -70,13 +70,12 @@ func (c *Client) initializeQueryClient() error {
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - query: The InfluxQL query string to execute.
-//   - queryParams: Additional query parameters.
 //
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, query string, queryParams ...string) (*QueryIterator, error) {
-	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query, queryParams...)
+func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error) {
+	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query)
 }
 
 // Query data from InfluxDB IOx with query options.
@@ -89,7 +88,7 @@ func (c *Client) Query(ctx context.Context, query string, queryParams ...string)
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
-func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string, params ...string) (*QueryIterator, error) {
+func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (*QueryIterator, error) {
 	if options == nil {
 		return nil, fmt.Errorf("options not set")
 	}
@@ -107,7 +106,6 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 	queryType = options.QueryType
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
-	ctx = metadata.AppendToOutgoingContext(ctx, params...)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
