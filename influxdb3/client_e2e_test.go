@@ -30,17 +30,14 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWriteAndQueryExample(t *testing.T) {
-	testId := time.Now().UnixNano()
-
-	const avg1 = 23.2
-	const max1 = 45.0
-	const avg2 = 25.8
-	const max2 = 46.0
+	now := time.Now().UTC()
+	testId := now.UnixNano()
 
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
@@ -51,62 +48,87 @@ func TestWriteAndQueryExample(t *testing.T) {
 		Token:    token,
 		Database: database,
 	})
-
 	require.NoError(t, err)
 	defer client.Close()
 
+	tableName := "weather"
+	tagKey := "location"
+	tagValue := "sun-valley-1"
+
 	// Write test
 
-	p := influxdb3.NewPointWithMeasurement("stat").
-		AddTag("unit", "temperature").
-		AddField("avg", avg1).
-		AddField("max", max1).
+	p := influxdb3.NewPointWithMeasurement(tableName).
+		AddTag(tagKey, tagValue).
+		AddField("temp", 15.5).
+		AddField("index", 80).
+		AddField("uindex", uint64(800)).
+		AddField("valid", true).
 		AddField("testId", testId).
-		SetTimestamp(time.Now())
+		AddField("text", "a1").
+		SetTimestamp(now)
 	err = client.WritePoints(context.Background(), p)
 	require.NoError(t, err)
 
 	sensorData := struct {
 		Table  string    `lp:"measurement"`
-		Unit   string    `lp:"tag,unit"`
-		Avg    float64   `lp:"field,avg"`
-		Max    float64   `lp:"field,max"`
+		Loc    string    `lp:"tag,location"`
+		Temp   float64   `lp:"field,temp"`
+		Index  int64     `lp:"field,index"`
+		UIndex uint64    `lp:"field,uindex"`
+		Valid  bool      `lp:"field,valid"`
 		TestId int64     `lp:"field,testId"`
+		Text   string    `lp:"field,text"`
 		Time   time.Time `lp:"timestamp"`
-	}{"stat", "temperature", avg2, max2, testId, time.Now()}
+	}{tableName, tagValue, 24.5, -15, uint64(150), false, testId, "b1", now.Add(1 * time.Second)}
 	err = client.WriteData(context.Background(), sensorData)
 	require.NoError(t, err)
 
-	// Query test
+	// SQL query test
 
 	query := fmt.Sprintf(`
 		SELECT *
-		FROM "stat"
+		FROM "%s"
 		WHERE
 		time >= now() - interval '10 minute'
 		AND
+		"%s" = '%s'
+		AND
 		"testId" = %d
 		ORDER BY time
-	`, testId)
+	`, tableName, tagKey, tagValue, testId)
 
 	// retry query few times until data updates
 	sleepTime := 2 * time.Second
-
 	time.Sleep(sleepTime)
 	iterator, err := client.Query(context.Background(), query)
 	require.NoError(t, err)
+	require.NotNil(t, iterator)
+
+	// row #1
 
 	hasValue := iterator.Next()
 	assert.True(t, hasValue)
 	value := iterator.Value()
-	assert.Equal(t, value["avg"], avg1)
-	assert.Equal(t, value["max"], max1)
+	assert.Equal(t, tagValue, value[tagKey])
+	assert.Equal(t, 15.5, value["temp"])
+	assert.Equal(t, int64(80), value["index"])
+	assert.Equal(t, uint64(800), value["uindex"])
+	assert.Equal(t, true, value["valid"])
+	assert.Equal(t, "a1", value["text"])
+	assert.Equal(t, now, value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+
+	// row #2
 
 	hasValue = iterator.Next()
 	assert.True(t, hasValue)
 	value = iterator.Value()
-	assert.Equal(t, value["avg"], avg2)
-	assert.Equal(t, value["max"], max2)
+	assert.Equal(t, tagValue, value[tagKey])
+	assert.Equal(t, 24.5, value["temp"])
+	assert.Equal(t, int64(-15), value["index"])
+	assert.Equal(t, uint64(150), value["uindex"])
+	assert.Equal(t, false, value["valid"])
+	assert.Equal(t, "b1", value["text"])
+	assert.Equal(t, now.Add(1*time.Second), value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
 
 	assert.False(t, iterator.Done())
 
