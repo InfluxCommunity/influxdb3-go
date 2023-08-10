@@ -105,6 +105,7 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 	queryType = options.QueryType
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
+	ctx = metadata.AppendToOutgoingContext(ctx, "database", database)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
