@@ -1,8 +1,26 @@
-// Copyright 2021 InfluxData, Inc. All rights reserved.
-// Use of this source code is governed by MIT
-// license that can be found in the LICENSE file.
+/*
+ The MIT License
 
-package influx
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+*/
+
+package influxdb3
 
 import (
 	"context"
@@ -18,30 +36,31 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	_, err := New(Configs{})
+	_, err := New(ClientConfig{})
 	require.Error(t, err)
 	assert.Equal(t, "empty server URL", err.Error())
 
-	_, err = New(Configs{HostURL: "http@localhost:8086"})
+	_, err = New(ClientConfig{Host: "http@localhost:8086"})
 	require.Error(t, err)
 	assert.Equal(t, "parsing host URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
 
-	c, err := New(Configs{HostURL: "http://localhost:8086"})
+	c, err := New(ClientConfig{Host: "http://localhost:8086"})
 	require.NoError(t, err)
-	assert.Equal(t, "http://localhost:8086", c.configs.HostURL)
+	assert.Equal(t, "http://localhost:8086", c.config.Host)
 	assert.Equal(t, "http://localhost:8086/api/v2/", c.apiURL.String())
 	assert.Equal(t, "", c.authorization)
 
-	_, err = New(Configs{HostURL: "localhost\n"})
+	_, err = New(ClientConfig{Host: "localhost\n"})
 	if assert.Error(t, err) {
 		expectedMessage := "parsing host URL:"
 		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
 	}
 
-	c, err = New(Configs{HostURL: "http://localhost:8086", AuthToken: "my-token"})
+	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Database: "my-database"})
 	require.NoError(t, err)
 	assert.Equal(t, "Token my-token", c.authorization)
-	assert.EqualValues(t, DefaultWriteParams, c.configs.WriteParams)
+	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
+	assert.Equal(t, "my-database", c.config.Database)
 }
 
 func TestURLs(t *testing.T) {
@@ -58,9 +77,9 @@ func TestURLs(t *testing.T) {
 	}
 	for _, turl := range urls {
 		t.Run(turl.HostURL, func(t *testing.T) {
-			c, err := New(Configs{HostURL: turl.HostURL})
+			c, err := New(ClientConfig{Host: turl.HostURL})
 			require.NoError(t, err)
-			assert.Equal(t, turl.HostURL, c.configs.HostURL)
+			assert.Equal(t, turl.HostURL, c.config.Host)
 			assert.Equal(t, turl.serverAPIURL, c.apiURL.String())
 		})
 	}
@@ -74,7 +93,7 @@ func TestMakeAPICall(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -97,7 +116,7 @@ func TestResolveErrorMessage(t *testing.T) {
 		_, _ = w.Write([]byte(`{"code":"invalid","message":"` + errMsg + `"}`))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -121,7 +140,7 @@ func TestResolveErrorHTML(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -146,7 +165,7 @@ func TestResolveErrorRetryAfter(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -171,7 +190,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"`))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -195,7 +214,7 @@ func TestResolveErrorV1(t *testing.T) {
 		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"}`))
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -216,7 +235,7 @@ func TestResolveErrorNoError(t *testing.T) {
 		w.WriteHeader(500)
 	}))
 	defer ts.Close()
-	client, err := New(Configs{HostURL: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)

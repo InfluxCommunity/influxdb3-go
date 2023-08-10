@@ -1,8 +1,26 @@
-// Copyright 2020-2021 InfluxData, Inc. All rights reserved.
-// Use of this source code is governed by MIT
-// license that can be found in the LICENSE file.
+/*
+ The MIT License
 
-package influx
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+*/
+
+package influxdb3
 
 import (
 	"fmt"
@@ -36,6 +54,7 @@ type Point struct {
 //
 // Parameters:
 //   - measurement: The measurement name for the Point.
+//
 // Returns:
 //   - The created Point.
 func NewPointWithMeasurement(measurement string) *Point {
@@ -51,6 +70,7 @@ func NewPointWithMeasurement(measurement string) *Point {
 //   - tags: The tags for the Point.
 //   - fields: The fields for the Point.
 //   - ts: The timestamp for the Point.
+//
 // Returns:
 //   - The created Point.
 func NewPoint(measurement string, tags map[string]string, fields map[string]interface{}, ts time.Time) *Point {
@@ -100,6 +120,7 @@ func (m *Point) SortFields() *Point {
 // Parameters:
 //   - k: The key of the tag.
 //   - v: The value of the tag.
+//
 // Returns:
 //   - The updated Point with the tag added.
 func (m *Point) AddTag(k, v string) *Point {
@@ -118,6 +139,7 @@ func (m *Point) AddTag(k, v string) *Point {
 // Parameters:
 //   - k: The key of the field.
 //   - v: The value of the field.
+//
 // Returns:
 //   - The updated Point with the field added.
 func (m *Point) AddField(k string, v interface{}) *Point {
@@ -138,6 +160,7 @@ func (m *Point) AddField(k string, v interface{}) *Point {
 // Parameters:
 //   - k: The key of the field.
 //   - v: The value of the field.
+//
 // Returns:
 //   - The updated Point with the field added.
 func (m *Point) SetTimestamp(t time.Time) *Point {
@@ -149,6 +172,7 @@ func (m *Point) SetTimestamp(t time.Time) *Point {
 //
 // Parameters:
 //   - precision: The precision to use for timestamp encoding in line protocol format.
+//
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
