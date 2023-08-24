@@ -36,7 +36,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow/flight"
+	"github.com/apache/arrow/go/v13/arrow/flight"
 )
 
 // Client implements an InfluxDB client.
