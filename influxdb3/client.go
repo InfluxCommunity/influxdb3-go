@@ -66,7 +66,7 @@ type httpParams struct {
 
 // New creates new Client with given config, where `Host` and `Token` are mandatory.
 func New(config ClientConfig) (*Client, error) {
-	// Validate config
+	// Validate the config
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -111,10 +111,31 @@ func New(config ClientConfig) (*Client, error) {
 }
 
 // NewFromConnectionString creates new Client from the specified connection string.
-// Supported parameters are: `token` (required), `organization`, `database`, `precision`, `gzipThreshold`.
+// Example: `https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database`.
+// Supported query parameters:
+//   - `token` (required)
+//   - `organization`
+//   - `database`
+//   - `precision`
+//   - `gzipThreshold`
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
+	if err != nil {
+		return nil, err
+	}
+	return New(cfg)
+}
+
+// NewFromEnv creates new Client instance from environment variables.
+// Supported variables:
+//   - `INFLUX_HOST` (required)
+//   - `INFLUX_TOKEN` (required)
+//   - `INFLUX_ORG`
+//   - `INFLUX_DATABASE`
+func NewFromEnv() (*Client, error) {
+	cfg := ClientConfig{}
+	err := cfg.env()
 	if err != nil {
 		return nil, err
 	}

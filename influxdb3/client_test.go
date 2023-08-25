@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -42,27 +43,32 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "empty host", err.Error())
 
 	c, err := New(ClientConfig{Host: "http://localhost:8086"})
-	require.Error(t, err)
+	require.Nil(t, c)
+	assert.Error(t, err)
 	assert.ErrorContains(t, err, "no token specified")
 
-	_, err = New(ClientConfig{Host: "localhost\n", Token: "my-token"})
+	c, err = New(ClientConfig{Host: "localhost\n", Token: "my-token"})
+	require.Nil(t, c)
 	if assert.Error(t, err) {
 		expectedMessage := "parsing host URL:"
 		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
 	}
 
-	_, err = New(ClientConfig{Host: "http@localhost:8086", Token: "my-token"})
-	require.Error(t, err)
+	c, err = New(ClientConfig{Host: "http@localhost:8086", Token: "my-token"})
+	require.Nil(t, c)
+	assert.Error(t, err)
 	assert.Equal(t, "parsing host URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
 
 	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token"})
 	require.NoError(t, err)
+	assert.NotNil(t, c)
 	assert.Equal(t, "http://localhost:8086", c.config.Host)
 	assert.Equal(t, "http://localhost:8086/api/v2/", c.apiURL.String())
 	assert.Equal(t, "Token my-token", c.authorization)
 
 	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Organization: "my-org", Database: "my-database"})
 	require.NoError(t, err)
+	assert.NotNil(t, c)
 	assert.Equal(t, "Token my-token", c.authorization)
 	assert.Equal(t, "my-database", c.config.Database)
 	assert.Equal(t, "my-org", c.config.Organization)
@@ -91,7 +97,7 @@ func TestURLs(t *testing.T) {
 	}
 }
 
-func TestConnectionString(t *testing.T) {
+func TestNewFromConnectionString(t *testing.T) {
 	testCases := []struct {
 		name string
 		cs   string
@@ -155,6 +161,87 @@ func TestConnectionString(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			c, err := NewFromConnectionString(tc.cs)
+			if tc.err != "" {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.err)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, c)
+				assert.Equal(t, tc.cfg.Host, c.config.Host)
+				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
+				assert.Equal(t, tc.cfg.Database, c.config.Database)
+				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+			}
+		})
+	}
+}
+
+func TestNewFromEnv(t *testing.T) {
+	testCases := []struct {
+		name string
+		vars map[string]string
+		cfg  *ClientConfig
+		err  string
+	}{
+		{
+			name: "no host",
+			vars: map[string]string {
+			},
+			err:  "empty host",
+		},
+		{
+			name: "no token",
+			vars: map[string]string {
+				"INFLUX_HOST": "http://host:8086",
+			},
+			err:  "no token specified",
+		},
+		{
+			name: "minimal",
+			vars: map[string]string {
+				"INFLUX_HOST": "http://host:8086",
+				"INFLUX_TOKEN": "abc",
+			},
+			cfg: &ClientConfig{
+				Host: "http://host:8086",
+				Token: "abc",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "simple",
+			vars: map[string]string {
+				"INFLUX_HOST": "http://host:8086",
+				"INFLUX_TOKEN": "abc",
+				"INFLUX_ORG": "my-org",
+				"INFLUX_DATABASE": "my-db",
+			},
+			cfg: &ClientConfig{
+				Host: "http://host:8086",
+				Token: "abc",
+				Organization: "my-org",
+				Database: "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+	}
+	clearEnv := func() {
+		os.Setenv(envInfluxHost, "")
+		os.Setenv(envInfluxToken, "")
+		os.Setenv(envInfluxOrg, "")
+		os.Setenv(envInfluxDatabase, "")
+	}
+	setEnv := func(vars map[string]string) {
+		for k, v := range vars {
+			os.Setenv(k, v)
+		}
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearEnv()
+			setEnv(tc.vars)
+			c, err := NewFromEnv()
 			if tc.err != "" {
 				assert.Error(t, err)
 				assert.ErrorContains(t, err, tc.err)
