@@ -122,7 +122,7 @@ func TestNewFromConnectionString(t *testing.T) {
 		{
 			name: "only token",
 			cs:   "https://host:8086?token=abc",
-			cfg:  &ClientConfig{
+			cfg: &ClientConfig{
 				Host:         "https://host:8086",
 				Token:        "abc",
 				WriteOptions: &DefaultWriteOptions,
@@ -130,23 +130,23 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "basic",
-			cs: "https://host:8086?token=abc&organization=my-org&database=my-db",
+			cs:   "https://host:8086?token=abc&organization=my-org&database=my-db",
 			cfg: &ClientConfig{
-				Host: "https://host:8086",
-				Token: "abc",
+				Host:         "https://host:8086",
+				Token:        "abc",
 				Organization: "my-org",
-				Database: "my-db",
+				Database:     "my-db",
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},
 		{
 			name: "with write options",
-			cs: "https://host:8086?token=abc&organization=my-org&database=my-db&precision=ms",
+			cs:   "https://host:8086?token=abc&organization=my-org&database=my-db&precision=ms",
 			cfg: &ClientConfig{
-				Host: "https://host:8086",
-				Token: "abc",
+				Host:         "https://host:8086",
+				Token:        "abc",
 				Organization: "my-org",
-				Database: "my-db",
+				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					Precision: lineprotocol.Millisecond,
 				},
@@ -154,8 +154,8 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "invalid gzip threshold",
-			cs: "https://host:8086?token=abc&gzipThreshold=a0",
-			err: "invalid syntax",
+			cs:   "https://host:8086?token=abc&gzipThreshold=a0",
+			err:  "invalid syntax",
 		},
 	}
 	for _, tc := range testCases {
@@ -186,42 +186,41 @@ func TestNewFromEnv(t *testing.T) {
 	}{
 		{
 			name: "no host",
-			vars: map[string]string {
-			},
+			vars: map[string]string{},
 			err:  "empty host",
 		},
 		{
 			name: "no token",
-			vars: map[string]string {
+			vars: map[string]string{
 				"INFLUX_HOST": "http://host:8086",
 			},
-			err:  "no token specified",
+			err: "no token specified",
 		},
 		{
 			name: "minimal",
-			vars: map[string]string {
-				"INFLUX_HOST": "http://host:8086",
+			vars: map[string]string{
+				"INFLUX_HOST":  "http://host:8086",
 				"INFLUX_TOKEN": "abc",
 			},
 			cfg: &ClientConfig{
-				Host: "http://host:8086",
-				Token: "abc",
+				Host:         "http://host:8086",
+				Token:        "abc",
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},
 		{
 			name: "simple",
-			vars: map[string]string {
-				"INFLUX_HOST": "http://host:8086",
-				"INFLUX_TOKEN": "abc",
-				"INFLUX_ORG": "my-org",
+			vars: map[string]string{
+				"INFLUX_HOST":     "http://host:8086",
+				"INFLUX_TOKEN":    "abc",
+				"INFLUX_ORG":      "my-org",
 				"INFLUX_DATABASE": "my-db",
 			},
 			cfg: &ClientConfig{
-				Host: "http://host:8086",
-				Token: "abc",
+				Host:         "http://host:8086",
+				Token:        "abc",
 				Organization: "my-org",
-				Database: "my-db",
+				Database:     "my-db",
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},

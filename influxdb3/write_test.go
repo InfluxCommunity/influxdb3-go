@@ -639,8 +639,8 @@ func TestWriteDatabaseNotSet(t *testing.T) {
 	p.AddTag("host", "local")
 	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
-		Host: "http://localhost:8086",
-		Token:    "my-token",
+		Host:  "http://localhost:8086",
+		Token: "my-token",
 	})
 	require.NoError(t, err)
 	err = c.WritePoints(context.Background(), p)

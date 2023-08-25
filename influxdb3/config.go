@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	envInfluxHost = "INFLUX_HOST"
-	envInfluxToken = "INFLUX_TOKEN"
-	envInfluxOrg = "INFLUX_ORG"
+	envInfluxHost     = "INFLUX_HOST"
+	envInfluxToken    = "INFLUX_TOKEN"
+	envInfluxOrg      = "INFLUX_ORG"
 	envInfluxDatabase = "INFLUX_DATABASE"
 )
 
@@ -102,17 +102,21 @@ func (c *ClientConfig) parse(connectionString string) error {
 	u.RawQuery = ""
 	c.Host = u.String()
 
-	token, ok := values["token"]; if ok {
+	token, ok := values["token"]
+	if ok {
 		c.Token = token[0]
 	}
-	org, ok := values["organization"]; if ok {
+	org, ok := values["organization"]
+	if ok {
 		c.Organization = org[0]
 	}
-	database, ok := values["database"]; if ok {
+	database, ok := values["database"]
+	if ok {
 		c.Database = database[0]
 	}
 	var writeOptions *WriteOptions
-	precision, ok := values["precision"]; if ok {
+	precision, ok := values["precision"]
+	if ok {
 		if writeOptions == nil {
 			writeOptions = &WriteOptions{}
 		}
@@ -129,7 +133,8 @@ func (c *ClientConfig) parse(connectionString string) error {
 			return fmt.Errorf("unsupported precision %s", precision[0])
 		}
 	}
-	gzipThreshold, ok := values["gzipThreshold"]; if ok {
+	gzipThreshold, ok := values["gzipThreshold"]
+	if ok {
 		if writeOptions == nil {
 			writeOptions = &WriteOptions{}
 		}
