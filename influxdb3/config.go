@@ -23,6 +23,7 @@
 package influxdb3
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -59,4 +60,16 @@ type ClientConfig struct {
 
 	// Default HTTP headers to be included in requests
 	Headers http.Header
+}
+
+// validate validates the config.
+func (c *ClientConfig) validate() error {
+	if c.Host == "" {
+		return errors.New("empty host")
+	}
+	if c.Token == "" {
+		return errors.New("no token specified")
+	}
+
+	return nil
 }

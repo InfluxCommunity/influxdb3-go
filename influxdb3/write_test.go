@@ -234,7 +234,10 @@ func TestEncode(t *testing.T) {
 	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
 
-			client, err := New(ClientConfig{Host: "http://localhost:8086"})
+			client, err := New(ClientConfig{
+				Host:  "http://localhost:8086",
+				Token: "my-token",
+			})
 			require.NoError(t, err)
 			b, err := encode(ts.s, client.config.WriteOptions)
 			if ts.error == "" {
@@ -311,6 +314,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	options.Precision = lineprotocol.Millisecond
 	c, err := New(ClientConfig{
 		Host:         ts.URL + "/path/",
+		Token:        "my-token",
 		Organization: "my-org",
 		Database:     "my-database",
 		WriteOptions: &options,
@@ -351,8 +355,10 @@ func TestWritePointsAndBytes(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
+	require.NoError(t, err)
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
@@ -390,12 +396,14 @@ func TestWritePointsWithOptions(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	options := WriteOptions{
 		Database:  "x-db",
 		Precision: lineprotocol.Millisecond,
 	}
+	require.NoError(t, err)
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
 	assert.NoError(t, err)
 }
@@ -433,6 +441,7 @@ func TestWriteData(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -475,6 +484,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:         ts.URL,
+		Token:        "my-token",
 		Organization: "my-org",
 		Database:     "my-database",
 	})
@@ -519,6 +529,7 @@ func TestGzip(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -558,6 +569,7 @@ func TestCustomHeaders(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 		Headers: http.Header{
 			"X-device": []string{"ab-01"},
@@ -575,8 +587,10 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
+	require.NoError(t, err)
 	c.config.WriteOptions.Precision = lineprotocol.Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
@@ -611,6 +625,7 @@ func TestHttpError(t *testing.T) {
 	defer ts.Close()
 	c, err := New(ClientConfig{
 		Host:     ts.URL,
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	require.NoError(t, err)
@@ -625,6 +640,7 @@ func TestWriteDatabaseNotSet(t *testing.T) {
 	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host: "http://localhost:8086",
+		Token:    "my-token",
 	})
 	require.NoError(t, err)
 	err = c.WritePoints(context.Background(), p)
@@ -638,6 +654,7 @@ func TestWriteWithOptionsNotSet(t *testing.T) {
 	p.AddField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host:     "http://localhost:8086",
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	require.NoError(t, err)
