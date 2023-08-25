@@ -110,6 +110,17 @@ func New(config ClientConfig) (*Client, error) {
 	return c, nil
 }
 
+// NewFromConnectionString creates new Client from the specified connection string.
+// Supported parameters are: `token` (required), `organization`, `database`, `precision`, `gzipThreshold`.
+func NewFromConnectionString(connectionString string) (*Client, error) {
+	cfg := ClientConfig{}
+	err := cfg.parse(connectionString)
+	if err != nil {
+		return nil, err
+	}
+	return New(cfg)
+}
+
 // makeAPICall issues an HTTP request to InfluxDB host API url according to parameters.
 // Additionally, sets Authorization header and User-Agent.
 // It returns http.Response or error. Error can be a *hostError if host responded with error.

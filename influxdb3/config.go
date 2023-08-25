@@ -24,7 +24,11 @@ package influxdb3
 
 import (
 	"errors"
+	"fmt"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 // ClientConfig holds the parameters for creating a new client.
@@ -69,6 +73,66 @@ func (c *ClientConfig) validate() error {
 	}
 	if c.Token == "" {
 		return errors.New("no token specified")
+	}
+
+	return nil
+}
+
+// parse initializes the client config from provided connection string.
+func (c *ClientConfig) parse(connectionString string) error {
+	u, err := url.Parse(connectionString)
+	if err != nil {
+		return err
+	}
+
+	if !(u.Scheme == "http" || u.Scheme == "https") {
+		return errors.New("only http or https is supported")
+	}
+
+	values := u.Query()
+
+	u.RawQuery = ""
+	c.Host = u.String()
+
+	token, ok := values["token"]; if ok {
+		c.Token = token[0]
+	}
+	org, ok := values["organization"]; if ok {
+		c.Organization = org[0]
+	}
+	database, ok := values["database"]; if ok {
+		c.Database = database[0]
+	}
+	var writeOptions *WriteOptions
+	precision, ok := values["precision"]; if ok {
+		if writeOptions == nil {
+			writeOptions = &WriteOptions{}
+		}
+		switch precision[0] {
+		case "ns":
+			writeOptions.Precision = lineprotocol.Nanosecond
+		case "us":
+			writeOptions.Precision = lineprotocol.Microsecond
+		case "ms":
+			writeOptions.Precision = lineprotocol.Millisecond
+		case "s":
+			writeOptions.Precision = lineprotocol.Second
+		default:
+			return fmt.Errorf("unsupported precision %s", precision[0])
+		}
+	}
+	gzipThreshold, ok := values["gzipThreshold"]; if ok {
+		if writeOptions == nil {
+			writeOptions = &WriteOptions{}
+		}
+		writeOptions.GzipThreshold, err = strconv.Atoi(gzipThreshold[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	if writeOptions != nil {
+		c.WriteOptions = writeOptions
 	}
 
 	return nil

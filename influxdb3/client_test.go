@@ -25,6 +25,7 @@ package influxdb3
 import (
 	"context"
 	"fmt"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -86,6 +87,86 @@ func TestURLs(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, turl.HostURL, c.config.Host)
 			assert.Equal(t, turl.serverAPIURL, c.apiURL.String())
+		})
+	}
+}
+
+func TestConnectionString(t *testing.T) {
+	testCases := []struct {
+		name string
+		cs   string
+		cfg  *ClientConfig
+		err  string
+	}{
+		{
+			name: "invalid URL",
+			cs:   "|http::8086?token=abc?",
+			err:  "cannot contain colon",
+		},
+		{
+			name: "unsupported scheme",
+			cs:   "host:8086",
+			err:  "only http or https is supported",
+		},
+		{
+			name: "no token",
+			cs:   "https://host:8086",
+			err:  "no token specified",
+		},
+		{
+			name: "only token",
+			cs:   "https://host:8086?token=abc",
+			cfg:  &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "basic",
+			cs: "https://host:8086?token=abc&organization=my-org&database=my-db",
+			cfg: &ClientConfig{
+				Host: "https://host:8086",
+				Token: "abc",
+				Organization: "my-org",
+				Database: "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with write options",
+			cs: "https://host:8086?token=abc&organization=my-org&database=my-db&precision=ms",
+			cfg: &ClientConfig{
+				Host: "https://host:8086",
+				Token: "abc",
+				Organization: "my-org",
+				Database: "my-db",
+				WriteOptions: &WriteOptions{
+					Precision: lineprotocol.Millisecond,
+				},
+			},
+		},
+		{
+			name: "invalid gzip threshold",
+			cs: "https://host:8086?token=abc&gzipThreshold=a0",
+			err: "invalid syntax",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := NewFromConnectionString(tc.cs)
+			if tc.err != "" {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.err)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, c)
+				assert.Equal(t, tc.cfg.Host, c.config.Host)
+				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
+				assert.Equal(t, tc.cfg.Database, c.config.Database)
+				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+			}
 		})
 	}
 }
