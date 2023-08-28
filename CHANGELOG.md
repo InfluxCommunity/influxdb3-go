@@ -1,5 +1,10 @@
 ## 0.3.0 [unreleased]
 
+### Features
+
+1. [#36](https://github.com/InfluxCommunity/influxdb3-go/pull/36): Add client creation from connection string
+and environment variables.
+
 ## 0.2.0 [2023-08-11]
 
 ### Features
