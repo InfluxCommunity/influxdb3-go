@@ -130,7 +130,7 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "basic",
-			cs:   "https://host:8086?token=abc&organization=my-org&database=my-db",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db",
 			cfg: &ClientConfig{
 				Host:         "https://host:8086",
 				Token:        "abc",
@@ -141,7 +141,7 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "with write options",
-			cs:   "https://host:8086?token=abc&organization=my-org&database=my-db&precision=ms",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=ms",
 			cfg: &ClientConfig{
 				Host:         "https://host:8086",
 				Token:        "abc",

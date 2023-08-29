@@ -106,7 +106,7 @@ func (c *ClientConfig) parse(connectionString string) error {
 	if ok {
 		c.Token = token[0]
 	}
-	org, ok := values["organization"]
+	org, ok := values["org"]
 	if ok {
 		c.Organization = org[0]
 	}

@@ -115,7 +115,7 @@ func New(config ClientConfig) (*Client, error) {
 //   - connectionString: connection string in URL format.
 // Supported query parameters:
 //   - token (required)
-//   - organization
+//   - org
 //   - database
 //   - precision
 //   - gzipThreshold
