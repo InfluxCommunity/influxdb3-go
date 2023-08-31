@@ -246,6 +246,24 @@ func TestNewFromEnv(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "invalid precision",
+			vars: map[string]string{
+				"INFLUX_HOST":      "http://host:8086",
+				"INFLUX_TOKEN":     "abc",
+				"INFLUX_PRECISION": "xs",
+			},
+			err: "unsupported precision",
+		},
+		{
+			name: "invalid gzip threshold",
+			vars: map[string]string{
+				"INFLUX_HOST":           "http://host:8086",
+				"INFLUX_TOKEN":          "abc",
+				"INFLUX_GZIP_THRESHOLD": "a0",
+			},
+			err: "invalid syntax",
+		},
 	}
 	clearEnv := func() {
 		os.Unsetenv(envInfluxHost)
