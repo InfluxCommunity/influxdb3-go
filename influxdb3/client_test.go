@@ -148,7 +148,8 @@ func TestNewFromConnectionString(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision: lineprotocol.Millisecond,
+					Precision:     lineprotocol.Millisecond,
+					GzipThreshold: 1000, // default
 				},
 			},
 		},
@@ -224,12 +225,35 @@ func TestNewFromEnv(t *testing.T) {
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},
+		{
+			name: "with write options",
+			vars: map[string]string{
+				"INFLUX_HOST":           "http://host:8086",
+				"INFLUX_TOKEN":          "abc",
+				"INFLUX_ORG":            "my-org",
+				"INFLUX_DATABASE":       "my-db",
+				"INFLUX_PRECISION":      "ms",
+				"INFLUX_GZIP_THRESHOLD": "64",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     lineprotocol.Millisecond,
+					GzipThreshold: 64,
+				},
+			},
+		},
 	}
 	clearEnv := func() {
-		os.Setenv(envInfluxHost, "")
-		os.Setenv(envInfluxToken, "")
-		os.Setenv(envInfluxOrg, "")
-		os.Setenv(envInfluxDatabase, "")
+		os.Unsetenv(envInfluxHost)
+		os.Unsetenv(envInfluxToken)
+		os.Unsetenv(envInfluxOrg)
+		os.Unsetenv(envInfluxDatabase)
+		os.Unsetenv(envInfluxPrecision)
+		os.Unsetenv(envInfluxGzipThreshold)
 	}
 	setEnv := func(vars map[string]string) {
 		for k, v := range vars {

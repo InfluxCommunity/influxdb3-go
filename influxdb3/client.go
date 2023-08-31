@@ -113,12 +113,14 @@ func New(config ClientConfig) (*Client, error) {
 // NewFromConnectionString creates new Client from the specified connection string.
 // Parameters:
 //   - connectionString: connection string in URL format.
+//
 // Supported query parameters:
 //   - token (required)
 //   - org
 //   - database
 //   - precision
 //   - gzipThreshold
+//
 // Example: https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
@@ -135,6 +137,8 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 //   - INFLUX_TOKEN (required)
 //   - INFLUX_ORG
 //   - INFLUX_DATABASE
+//   - INFLUX_PRECISION
+//   - INFLUX_GZIP_THRESHOLD
 func NewFromEnv() (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.env()

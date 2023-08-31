@@ -33,10 +33,12 @@ import (
 )
 
 const (
-	envInfluxHost     = "INFLUX_HOST"
-	envInfluxToken    = "INFLUX_TOKEN"
-	envInfluxOrg      = "INFLUX_ORG"
-	envInfluxDatabase = "INFLUX_DATABASE"
+	envInfluxHost          = "INFLUX_HOST"
+	envInfluxToken         = "INFLUX_TOKEN"
+	envInfluxOrg           = "INFLUX_ORG"
+	envInfluxDatabase      = "INFLUX_DATABASE"
+	envInfluxPrecision     = "INFLUX_PRECISION"
+	envInfluxGzipThreshold = "INFLUX_GZIP_THRESHOLD"
 )
 
 // ClientConfig holds the parameters for creating a new client.
@@ -102,50 +104,24 @@ func (c *ClientConfig) parse(connectionString string) error {
 	u.RawQuery = ""
 	c.Host = u.String()
 
-	token, ok := values["token"]
-	if ok {
+	if token, ok := values["token"]; ok {
 		c.Token = token[0]
 	}
-	org, ok := values["org"]
-	if ok {
+	if org, ok := values["org"]; ok {
 		c.Organization = org[0]
 	}
-	database, ok := values["database"]
-	if ok {
+	if database, ok := values["database"]; ok {
 		c.Database = database[0]
 	}
-	var writeOptions *WriteOptions
-	precision, ok := values["precision"]
-	if ok {
-		if writeOptions == nil {
-			writeOptions = &WriteOptions{}
-		}
-		switch precision[0] {
-		case "ns":
-			writeOptions.Precision = lineprotocol.Nanosecond
-		case "us":
-			writeOptions.Precision = lineprotocol.Microsecond
-		case "ms":
-			writeOptions.Precision = lineprotocol.Millisecond
-		case "s":
-			writeOptions.Precision = lineprotocol.Second
-		default:
-			return fmt.Errorf("unsupported precision %s", precision[0])
-		}
-	}
-	gzipThreshold, ok := values["gzipThreshold"]
-	if ok {
-		if writeOptions == nil {
-			writeOptions = &WriteOptions{}
-		}
-		writeOptions.GzipThreshold, err = strconv.Atoi(gzipThreshold[0])
-		if err != nil {
+	if precision, ok := values["precision"]; ok {
+		if err := c.parsePrecision(precision[0]); err != nil {
 			return err
 		}
 	}
-
-	if writeOptions != nil {
-		c.WriteOptions = writeOptions
+	if gzipThreshold, ok := values["gzipThreshold"]; ok {
+		if err := c.parseGzipThreshold(gzipThreshold[0]); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -153,10 +129,68 @@ func (c *ClientConfig) parse(connectionString string) error {
 
 // env initializes the client config from environment variables.
 func (c *ClientConfig) env() error {
-	c.Host = os.Getenv(envInfluxHost)
-	c.Token = os.Getenv(envInfluxToken)
-	c.Organization = os.Getenv(envInfluxOrg)
-	c.Database = os.Getenv(envInfluxDatabase)
+	if host, ok := os.LookupEnv(envInfluxHost); ok {
+		c.Host = host
+	}
+	if token, ok := os.LookupEnv(envInfluxToken); ok {
+		c.Token = token
+	}
+	if org, ok := os.LookupEnv(envInfluxOrg); ok {
+		c.Organization = org
+	}
+	if database, ok := os.LookupEnv(envInfluxDatabase); ok {
+		c.Database = database
+	}
+	if precision, ok := os.LookupEnv(envInfluxPrecision); ok {
+		if err := c.parsePrecision(precision); err != nil {
+			return err
+		}
+	}
+	if gzipThreshold, ok := os.LookupEnv(envInfluxGzipThreshold); ok {
+		if err := c.parseGzipThreshold(gzipThreshold); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// parsePrecision parses and sets precision
+func (c *ClientConfig) parsePrecision(precision string) error {
+	if c.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.WriteOptions = &options
+	}
+
+	switch precision {
+	case "ns":
+		c.WriteOptions.Precision = lineprotocol.Nanosecond
+	case "us":
+		c.WriteOptions.Precision = lineprotocol.Microsecond
+	case "ms":
+		c.WriteOptions.Precision = lineprotocol.Millisecond
+	case "s":
+		c.WriteOptions.Precision = lineprotocol.Second
+	default:
+		return fmt.Errorf("unsupported precision '%s'", precision)
+	}
+
+	return nil
+}
+
+// parseGzipThreshold parses and sets gzip threshold
+func (c *ClientConfig) parseGzipThreshold(threshold string) error {
+	if c.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.WriteOptions = &options
+	}
+
+	value, err := strconv.Atoi(threshold)
+	if err != nil {
+		return err
+	}
+
+	c.WriteOptions.GzipThreshold = value
 
 	return nil
 }
