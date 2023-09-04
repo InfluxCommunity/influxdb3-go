@@ -115,11 +115,11 @@ func New(config ClientConfig) (*Client, error) {
 //   - connectionString: connection string in URL format.
 //
 // Supported query parameters:
-//   - token (required)
-//   - org
-//   - database
-//   - precision
-//   - gzipThreshold
+//   - token - authentication token (required)
+//   - org - organization name
+//   - database - database (bucket) name
+//   - precision - timestamp precision when writing data
+//   - gzipThreshold - payload size threshold for gzipping data
 //
 // Example: https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database
 func NewFromConnectionString(connectionString string) (*Client, error) {
@@ -133,12 +133,12 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 
 // NewFromEnv creates new Client instance from environment variables.
 // Supported variables:
-//   - INFLUX_HOST (required)
-//   - INFLUX_TOKEN (required)
-//   - INFLUX_ORG
-//   - INFLUX_DATABASE
-//   - INFLUX_PRECISION
-//   - INFLUX_GZIP_THRESHOLD
+//   - INFLUX_HOST - cloud/server URL (required)
+//   - INFLUX_TOKEN - authentication token (required)
+//   - INFLUX_ORG - organization name
+//   - INFLUX_DATABASE - database (bucket) name
+//   - INFLUX_PRECISION - timestamp precision when writing data
+//   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
 func NewFromEnv() (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.env()
