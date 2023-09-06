@@ -73,6 +73,13 @@ func (i *QueryIterator) Next() bool {
 			return false
 		}
 		i.record = i.reader.Record()
+		for i.record.NumRows() == 0 {
+			if !i.reader.Next() {
+				i.done = true
+				return false
+			}
+			i.record = i.reader.Record()
+		}
 		i.indexInRecord = 0
 	}
 
