@@ -67,19 +67,12 @@ func (i *QueryIterator) Next() bool {
 	}
 	i.indexInRecord++
 	i.i++
-	if i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
+	for i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
 		if !i.reader.Next() {
 			i.done = true
 			return false
 		}
 		i.record = i.reader.Record()
-		for i.record.NumRows() == 0 {
-			if !i.reader.Next() {
-				i.done = true
-				return false
-			}
-			i.record = i.reader.Record()
-		}
 		i.indexInRecord = 0
 	}
 
