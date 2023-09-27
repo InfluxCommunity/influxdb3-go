@@ -25,9 +25,11 @@ package influxdb3
 import (
 	"context"
 	"fmt"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -38,29 +40,39 @@ import (
 func TestNew(t *testing.T) {
 	_, err := New(ClientConfig{})
 	require.Error(t, err)
-	assert.Equal(t, "empty server URL", err.Error())
-
-	_, err = New(ClientConfig{Host: "http@localhost:8086"})
-	require.Error(t, err)
-	assert.Equal(t, "parsing host URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
+	assert.Equal(t, "empty host", err.Error())
 
 	c, err := New(ClientConfig{Host: "http://localhost:8086"})
-	require.NoError(t, err)
-	assert.Equal(t, "http://localhost:8086", c.config.Host)
-	assert.Equal(t, "http://localhost:8086/api/v2/", c.apiURL.String())
-	assert.Equal(t, "", c.authorization)
+	require.Nil(t, c)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "no token specified")
 
-	_, err = New(ClientConfig{Host: "localhost\n"})
+	c, err = New(ClientConfig{Host: "localhost\n", Token: "my-token"})
+	require.Nil(t, c)
 	if assert.Error(t, err) {
 		expectedMessage := "parsing host URL:"
 		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
 	}
 
-	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Database: "my-database"})
+	c, err = New(ClientConfig{Host: "http@localhost:8086", Token: "my-token"})
+	require.Nil(t, c)
+	assert.Error(t, err)
+	assert.Equal(t, "parsing host URL: parse \"http@localhost:8086/\": first path segment in URL cannot contain colon", err.Error())
+
+	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token"})
 	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "http://localhost:8086", c.config.Host)
+	assert.Equal(t, "http://localhost:8086/api/v2/", c.apiURL.String())
 	assert.Equal(t, "Token my-token", c.authorization)
-	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
+
+	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Organization: "my-org", Database: "my-database"})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "Token my-token", c.authorization)
 	assert.Equal(t, "my-database", c.config.Database)
+	assert.Equal(t, "my-org", c.config.Organization)
+	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
 }
 
 func TestURLs(t *testing.T) {
@@ -77,10 +89,212 @@ func TestURLs(t *testing.T) {
 	}
 	for _, turl := range urls {
 		t.Run(turl.HostURL, func(t *testing.T) {
-			c, err := New(ClientConfig{Host: turl.HostURL})
+			c, err := New(ClientConfig{Host: turl.HostURL, Token: "my-token"})
 			require.NoError(t, err)
 			assert.Equal(t, turl.HostURL, c.config.Host)
 			assert.Equal(t, turl.serverAPIURL, c.apiURL.String())
+		})
+	}
+}
+
+func TestNewFromConnectionString(t *testing.T) {
+	testCases := []struct {
+		name string
+		cs   string
+		cfg  *ClientConfig
+		err  string
+	}{
+		{
+			name: "invalid URL",
+			cs:   "|http::8086?token=abc?",
+			err:  "cannot contain colon",
+		},
+		{
+			name: "unsupported scheme",
+			cs:   "host:8086",
+			err:  "only http or https is supported",
+		},
+		{
+			name: "no token",
+			cs:   "https://host:8086",
+			err:  "no token specified",
+		},
+		{
+			name: "only token",
+			cs:   "https://host:8086?token=abc",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "basic",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with write options",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=ms",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     lineprotocol.Millisecond,
+					GzipThreshold: 1000, // default
+				},
+			},
+		},
+		{
+			name: "invalid gzip threshold",
+			cs:   "https://host:8086?token=abc&gzipThreshold=a0",
+			err:  "invalid syntax",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := NewFromConnectionString(tc.cs)
+			if tc.err != "" {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.err)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, c)
+				assert.Equal(t, tc.cfg.Host, c.config.Host)
+				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
+				assert.Equal(t, tc.cfg.Database, c.config.Database)
+				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+			}
+		})
+	}
+}
+
+func TestNewFromEnv(t *testing.T) {
+	testCases := []struct {
+		name string
+		vars map[string]string
+		cfg  *ClientConfig
+		err  string
+	}{
+		{
+			name: "no host",
+			vars: map[string]string{},
+			err:  "empty host",
+		},
+		{
+			name: "no token",
+			vars: map[string]string{
+				"INFLUX_HOST": "http://host:8086",
+			},
+			err: "no token specified",
+		},
+		{
+			name: "minimal",
+			vars: map[string]string{
+				"INFLUX_HOST":  "http://host:8086",
+				"INFLUX_TOKEN": "abc",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "simple",
+			vars: map[string]string{
+				"INFLUX_HOST":     "http://host:8086",
+				"INFLUX_TOKEN":    "abc",
+				"INFLUX_ORG":      "my-org",
+				"INFLUX_DATABASE": "my-db",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with write options",
+			vars: map[string]string{
+				"INFLUX_HOST":           "http://host:8086",
+				"INFLUX_TOKEN":          "abc",
+				"INFLUX_ORG":            "my-org",
+				"INFLUX_DATABASE":       "my-db",
+				"INFLUX_PRECISION":      "ms",
+				"INFLUX_GZIP_THRESHOLD": "64",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     lineprotocol.Millisecond,
+					GzipThreshold: 64,
+				},
+			},
+		},
+		{
+			name: "invalid precision",
+			vars: map[string]string{
+				"INFLUX_HOST":      "http://host:8086",
+				"INFLUX_TOKEN":     "abc",
+				"INFLUX_PRECISION": "xs",
+			},
+			err: "unsupported precision",
+		},
+		{
+			name: "invalid gzip threshold",
+			vars: map[string]string{
+				"INFLUX_HOST":           "http://host:8086",
+				"INFLUX_TOKEN":          "abc",
+				"INFLUX_GZIP_THRESHOLD": "a0",
+			},
+			err: "invalid syntax",
+		},
+	}
+	clearEnv := func() {
+		os.Unsetenv(envInfluxHost)
+		os.Unsetenv(envInfluxToken)
+		os.Unsetenv(envInfluxOrg)
+		os.Unsetenv(envInfluxDatabase)
+		os.Unsetenv(envInfluxPrecision)
+		os.Unsetenv(envInfluxGzipThreshold)
+	}
+	setEnv := func(vars map[string]string) {
+		for k, v := range vars {
+			os.Setenv(k, v)
+		}
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearEnv()
+			setEnv(tc.vars)
+			c, err := NewFromEnv()
+			if tc.err != "" {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.err)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, c)
+				assert.Equal(t, tc.cfg.Host, c.config.Host)
+				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
+				assert.Equal(t, tc.cfg.Database, c.config.Database)
+				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+			}
 		})
 	}
 }
@@ -93,7 +307,7 @@ func TestMakeAPICall(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -116,7 +330,7 @@ func TestResolveErrorMessage(t *testing.T) {
 		_, _ = w.Write([]byte(`{"code":"invalid","message":"` + errMsg + `"}`))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -140,7 +354,7 @@ func TestResolveErrorHTML(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -165,7 +379,7 @@ func TestResolveErrorRetryAfter(t *testing.T) {
 		_, _ = w.Write([]byte(html))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -190,7 +404,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"`))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -214,7 +428,7 @@ func TestResolveErrorV1(t *testing.T) {
 		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"}`))
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -235,7 +449,7 @@ func TestResolveErrorNoError(t *testing.T) {
 		w.WriteHeader(500)
 	}))
 	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL})
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
@@ -304,8 +518,8 @@ func TestFixUrl(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("fix url: %s", tc.input),
 			func(t *testing.T) {
-				url, safe := ReplaceURLProtocolWithPort(tc.input)
-				assert.Equal(t, tc.expected, url)
+				u, safe := ReplaceURLProtocolWithPort(tc.input)
+				assert.Equal(t, tc.expected, u)
 				if safe == nil || tc.expectedSafe == nil {
 					assert.Equal(t, tc.expectedSafe, safe)
 				} else {

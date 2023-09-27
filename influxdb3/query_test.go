@@ -32,7 +32,8 @@ import (
 
 func TestQueryDatabaseNotSet(t *testing.T) {
 	c, err := New(ClientConfig{
-		Host: "http://localhost:8086",
+		Host:  "http://localhost:8086",
+		Token: "my-token",
 	})
 	require.NoError(t, err)
 	iterator, err := c.Query(context.Background(), "SHOW NAMESPACES")
@@ -44,6 +45,7 @@ func TestQueryDatabaseNotSet(t *testing.T) {
 func TestQueryWithOptionsNotSet(t *testing.T) {
 	c, err := New(ClientConfig{
 		Host:     "http://localhost:8086",
+		Token:    "my-token",
 		Database: "my-database",
 	})
 	require.NoError(t, err)

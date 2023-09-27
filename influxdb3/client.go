@@ -26,7 +26,6 @@ package influxdb3
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -65,46 +64,88 @@ type httpParams struct {
 	body io.Reader
 }
 
-// New creates new Client with given Params, where ServerURL and AuthToken are mandatory.
+// New creates new Client with given config, where `Host` and `Token` are mandatory.
 func New(config ClientConfig) (*Client, error) {
-	c := &Client{config: config}
-	if config.Host == "" {
-		return nil, errors.New("empty server URL")
-	}
-	if c.config.Token != "" {
-		c.authorization = "Token " + c.config.Token
-	}
-	if c.config.HTTPClient == nil {
-		c.config.HTTPClient = http.DefaultClient
+	// Validate the config
+	err := config.validate()
+	if err != nil {
+		return nil, err
 	}
 
+	// Create client instance
+	c := &Client{config: config}
+
+	// Prepare host API URL
 	hostAddress := config.Host
 	if !strings.HasSuffix(hostAddress, "/") {
 		// For subsequent path parts concatenation, url has to end with '/'
 		hostAddress = config.Host + "/"
 	}
-
-	var err error
-	// Prepare host API URL
 	c.apiURL, err = url.Parse(hostAddress)
 	if err != nil {
 		return nil, fmt.Errorf("parsing host URL: %w", err)
 	}
-
 	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
 
-	// Default params if nothing set
+	// Prepare auth header value
+	c.authorization = "Token " + c.config.Token
+
+	// Prepare HTTP client
+	if c.config.HTTPClient == nil {
+		c.config.HTTPClient = http.DefaultClient
+	}
+
+	// Use default write option if not set
 	if config.WriteOptions == nil {
 		options := DefaultWriteOptions
 		c.config.WriteOptions = &options
 	}
 
+	// Init FlightSQL client
 	err = c.initializeQueryClient()
 	if err != nil {
 		return nil, fmt.Errorf("flight client: %w", err)
 	}
 
 	return c, nil
+}
+
+// NewFromConnectionString creates new Client from the specified connection string.
+// Parameters:
+//   - connectionString: connection string in URL format.
+//
+// Supported query parameters:
+//   - token - authentication token (required)
+//   - org - organization name
+//   - database - database (bucket) name
+//   - precision - timestamp precision when writing data
+//   - gzipThreshold - payload size threshold for gzipping data
+//
+// Example: https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database
+func NewFromConnectionString(connectionString string) (*Client, error) {
+	cfg := ClientConfig{}
+	err := cfg.parse(connectionString)
+	if err != nil {
+		return nil, err
+	}
+	return New(cfg)
+}
+
+// NewFromEnv creates new Client instance from environment variables.
+// Supported variables:
+//   - INFLUX_HOST - cloud/server URL (required)
+//   - INFLUX_TOKEN - authentication token (required)
+//   - INFLUX_ORG - organization name
+//   - INFLUX_DATABASE - database (bucket) name
+//   - INFLUX_PRECISION - timestamp precision when writing data
+//   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
+func NewFromEnv() (*Client, error) {
+	cfg := ClientConfig{}
+	err := cfg.env()
+	if err != nil {
+		return nil, err
+	}
+	return New(cfg)
 }
 
 // makeAPICall issues an HTTP request to InfluxDB host API url according to parameters.
