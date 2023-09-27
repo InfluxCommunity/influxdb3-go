@@ -67,7 +67,7 @@ func (i *QueryIterator) Next() bool {
 	}
 	i.indexInRecord++
 	i.i++
-	if i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
+	for i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
 		if !i.reader.Next() {
 			i.done = true
 			return false
