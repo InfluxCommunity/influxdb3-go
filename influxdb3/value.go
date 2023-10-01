@@ -39,7 +39,6 @@ type NativeType interface {
 }
 
 // [Float] is IEEE-754 64-bit floating-point numbers. Default numerical type. InfluxDB supports scientific notation in float field values.
-// Non-finite floating-point field values (+/- infinity and NaN from IEEE 754) are not currently supported.
 //
 // [Float]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#float
 type Float interface {
@@ -88,6 +87,7 @@ func NewValueFromNative[N NativeType](v N) lineprotocol.Value {
 }
 
 // NewValueFromFloat is a convenient function for creating a [lineprotocol.Value] from Float.
+// Non-finite floating-point field values (+/- infinity and NaN from IEEE 754) are not currently supported.
 //
 // Parameters:
 //   - v: The value of the Float value.
@@ -131,6 +131,7 @@ func NewValueFromUInt[U UInteger](v U) lineprotocol.Value {
 }
 
 // NewValueFromString is a convenient function for creating a [lineprotocol.Value] from String.
+// Non-UTF-8 string field values are not currently supported.
 //
 // Parameters:
 //   - v: The value of the String value.
@@ -148,13 +149,6 @@ func NewValueFromString[S String](v S) lineprotocol.Value {
 }
 
 // NewValueFromUInt is a convenient function for creating a [lineprotocol.Value] from [fmt.Stringer].
-//
-// Examples:
-//
-//	func example() {
-//		p := NewPoint("measurement", map[string]string{}, map[string]interface{}{}, time.Now())
-//		p.AddFieldFromValue("supports time.Duration", NewValueFromStringer(4*time.Hour))
-//	}
 //
 // Parameters:
 //   - v: The value of the UInteger value.

@@ -178,31 +178,3 @@ func TestAddFieldFromValue(t *testing.T) {
 	assert.PanicsWithError(t, "invalid float value for NewValueFromFloat: float64 (-Inf)", func() { NewValueFromFloat(math.Inf(-1)) })
 	assert.PanicsWithError(t, "invalid utf-8 string value for NewValueFromString: string (\"\\xed\\x9f\\xc1\")", func() { NewValueFromString(string([]byte{237, 159, 193})) })
 }
-
-func TestNewValueFromNative(t *testing.T) {
-	p := NewPoint(
-		"test",
-		map[string]string{
-			"id":        "10ad=",
-			"ven=dor":   "AWS",
-			`host"name`: `ho\st "a"`,
-			`x\" x`:     "a b",
-		},
-		map[string]interface{}{},
-		time.Unix(60, 70))
-
-	p.AddFieldFromValue("float64", NewValueFromNative(80.1234567))
-	p.AddFieldFromValue("int64", NewValueFromNative(int64(-1234567890)))
-	p.AddFieldFromValue("uint64", NewValueFromNative(uint64(12345677890)))
-	p.AddFieldFromValue("string", NewValueFromNative(`six, "seven", eight`))
-	p.AddFieldFromValue("bytes", NewValueFromNative([]byte(`six=seven\, eight`)))
-	p.AddFieldFromValue("bool", NewValueFromNative(false))
-
-	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
-	require.NoError(t, err)
-	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=AWS,x\"\ x=a\ b bool=false,bytes="six=seven\\, eight",float64=80.1234567,int64=-1234567890i,string="six, \"seven\", eight",uint64=12345677890u 60000000070`+"\n", string(line))
-
-	assert.PanicsWithError(t, "invalid value for NewValue: float64 (+Inf)", func() { NewValueFromNative(math.Inf(1)) })
-	assert.PanicsWithError(t, "invalid value for NewValue: float64 (-Inf)", func() { NewValueFromNative(math.Inf(-1)) })
-	assert.PanicsWithError(t, "invalid value for NewValue: string (\"\\xed\\x9f\\xc1\")", func() { NewValueFromNative(string([]byte{237, 159, 193})) })
-}

@@ -155,7 +155,7 @@ func (m *Point) AddField(k string, v interface{}) *Point {
 	return m
 }
 
-// AddFieldFromValue adds a [github.com/influxdata/line-protocol/v2/lineprotocol.Value] to the Point.
+// AddFieldFromValue adds a [lineprotocol.Value] to the Point.
 //
 // Parameters:
 //   - k: The key of the field.
@@ -163,6 +163,8 @@ func (m *Point) AddField(k string, v interface{}) *Point {
 //
 // Returns:
 //   - The updated Point with the field added.
+//
+// [lineprotocol.Value]: https://pkg.go.dev/github.com/influxdata/line-protocol/v2/lineprotocol#Value
 func (m *Point) AddFieldFromValue(k string, v lineprotocol.Value) *Point {
 	for i, field := range m.Fields {
 		if k == field.Key {
