@@ -41,6 +41,13 @@ type st struct {
 	b bool
 }
 
+type tfloat64u float64
+type tint64u int64
+type tuint64u uint64
+type tstringu string
+type tbytesu []byte
+type tboolu bool
+
 func (s st) String() string {
 	return fmt.Sprintf("%.2f d %v", s.d, s.b)
 }
@@ -128,4 +135,74 @@ func TestPoint(t *testing.T) {
 	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line))
+}
+
+func TestAddFieldFromValue(t *testing.T) {
+	p := NewPoint(
+		"test",
+		map[string]string{
+			"id":        "10ad=",
+			"ven=dor":   "AWS",
+			`host"name`: `ho\st "a"`,
+			`x\" x`:     "a b",
+		},
+		map[string]interface{}{},
+		time.Unix(60, 70))
+
+	p.AddFieldFromValue("float64", NewValueFromFloat(tfloat64u(80.1234567)))
+	p.AddFieldFromValue("float32", NewValueFromFloat(float32(80.0)))
+	p.AddFieldFromValue("int", NewValueFromInt(-1234567890))
+	p.AddFieldFromValue("int8", NewValueFromInt(int8(-34)))
+	p.AddFieldFromValue("int16", NewValueFromInt(int16(-3456)))
+	p.AddFieldFromValue("int32", NewValueFromInt(int32(-34567)))
+	p.AddFieldFromValue("int64", NewValueFromInt(tint64u(-1234567890)))
+	p.AddFieldFromValue("uint", NewValueFromUInt(uint(12345677890)))
+	p.AddFieldFromValue("uint8", NewValueFromUInt(uint8(34)))
+	p.AddFieldFromValue("uint16", NewValueFromUInt(uint16(3456)))
+	p.AddFieldFromValue("uint32", NewValueFromUInt(uint32(34578)))
+	p.AddFieldFromValue("uint 64", NewValueFromUInt(tuint64u(41234567890)))
+	p.AddFieldFromValue("bo\\ol", NewValueFromBoolean(tboolu(false)))
+	p.AddFieldFromValue(`"string"`, NewValueFromString(tstringu(`six, "seven", eight`)))
+	p.AddFieldFromValue("stri=ng", NewValueFromString(tbytesu([]byte(`six=seven\, eight`))))
+	p.AddFieldFromValue("time", NewValueFromTime(time.Date(2020, time.March, 20, 10, 30, 23, 123456789, time.UTC)))
+	p.AddFieldFromValue("duration", NewValueFromStringer(4*time.Hour+24*time.Minute+3*time.Second))
+
+	// Test duplicate tag and duplicate field
+	p.AddTag("ven=dor", "GCP").AddField("uint32", uint32(345780))
+
+	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line))
+
+	assert.PanicsWithError(t, "invalid float value for NewValueFromFloat: float64 (+Inf)", func() { NewValueFromFloat(math.Inf(1)) })
+	assert.PanicsWithError(t, "invalid float value for NewValueFromFloat: float64 (-Inf)", func() { NewValueFromFloat(math.Inf(-1)) })
+	assert.PanicsWithError(t, "invalid utf-8 string value for NewValueFromString: string (\"\\xed\\x9f\\xc1\")", func() { NewValueFromString(string([]byte{237, 159, 193})) })
+}
+
+func TestNewValueFromNative(t *testing.T) {
+	p := NewPoint(
+		"test",
+		map[string]string{
+			"id":        "10ad=",
+			"ven=dor":   "AWS",
+			`host"name`: `ho\st "a"`,
+			`x\" x`:     "a b",
+		},
+		map[string]interface{}{},
+		time.Unix(60, 70))
+
+	p.AddFieldFromValue("float64", NewValueFromNative(80.1234567))
+	p.AddFieldFromValue("int64", NewValueFromNative(int64(-1234567890)))
+	p.AddFieldFromValue("uint64", NewValueFromNative(uint64(12345677890)))
+	p.AddFieldFromValue("string", NewValueFromNative(`six, "seven", eight`))
+	p.AddFieldFromValue("bytes", NewValueFromNative([]byte(`six=seven\, eight`)))
+	p.AddFieldFromValue("bool", NewValueFromNative(false))
+
+	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=AWS,x\"\ x=a\ b bool=false,bytes="six=seven\\, eight",float64=80.1234567,int64=-1234567890i,string="six, \"seven\", eight",uint64=12345677890u 60000000070`+"\n", string(line))
+
+	assert.PanicsWithError(t, "invalid value for NewValue: float64 (+Inf)", func() { NewValueFromNative(math.Inf(1)) })
+	assert.PanicsWithError(t, "invalid value for NewValue: float64 (-Inf)", func() { NewValueFromNative(math.Inf(-1)) })
+	assert.PanicsWithError(t, "invalid value for NewValue: string (\"\\xed\\x9f\\xc1\")", func() { NewValueFromNative(string([]byte{237, 159, 193})) })
 }
