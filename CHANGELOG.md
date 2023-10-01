@@ -1,5 +1,9 @@
 ## 0.4.0 [unreleased]
 
+### Features
+
+1. [#42](https://github.com/InfluxCommunity/influxdb3-go/pull/42): Add type-safe conversion for line-protocol
+
 ## 0.3.0 [2023-10-02]
 
 ### Features
