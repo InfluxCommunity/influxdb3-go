@@ -2,14 +2,14 @@
 
 ## 0.3.0 [2023-10-02]
 
-### Bug Fixes
-
-1. [#37](https://github.com/InfluxCommunity/influxdb3-go/pull/37): `runtime error` for iterating Arrow Record without rows
-
 ### Features
 
 1. [#36](https://github.com/InfluxCommunity/influxdb3-go/pull/36): Add client creation from connection string
 and environment variables.
+
+### Bug Fixes
+
+1. [#37](https://github.com/InfluxCommunity/influxdb3-go/pull/37): `runtime error` for iterating Arrow Record without rows
 
 ## 0.2.0 [2023-08-11]
 
