@@ -32,8 +32,6 @@ import (
 // NativeType are unions of type sets that can converted to [lineprotocol.NewValue].
 //
 // [lineprotocol.NewValue]: https://pkg.go.dev/github.com/influxdata/line-protocol/v2/lineprotocol#NewValue
-//
-// [line-protocol]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#field-set
 type NativeType interface {
 	float64 | int64 | uint64 | string | []byte | bool
 }
@@ -148,10 +146,10 @@ func NewValueFromString[S String](v S) lineprotocol.Value {
 	return data
 }
 
-// NewValueFromUInt is a convenient function for creating a [lineprotocol.Value] from [fmt.Stringer].
+// NewValueFromStringer is a convenient function for creating a [lineprotocol.Value] from [fmt.Stringer].
 //
 // Parameters:
-//   - v: The value of the UInteger value.
+//   - v: The value of the [fmt.Stringer] value.
 //
 // Returns:
 //   - The created [lineprotocol.Value].
@@ -174,7 +172,7 @@ func NewValueFromBoolean[B Boolean](v B) lineprotocol.Value {
 	return lineprotocol.BoolValue(bool(v))
 }
 
-// NewValueFromBoolean is a convenient function for creating a [lineprotocol.Value] from [time.Time].
+// NewValueFromTime is a convenient function for creating a [lineprotocol.Value] from [time.Time].
 //
 // Parameters:
 //   - v: The value of the [time.Time] value.
