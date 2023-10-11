@@ -22,8 +22,10 @@
 
 package influxdb3
 
+// QueryType is the type of query to execute
 type QueryType int
 
+// QueryType constants
 const (
 	FlightSQL QueryType = iota
 	InfluxQL

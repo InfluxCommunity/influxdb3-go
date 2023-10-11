@@ -149,7 +149,7 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 
 // WriteData encodes fields of custom points into line protocol
 // and writes line protocol record(s) to the server into the given database.
-// Each custom point must be annotated with 'lp' prefix and values measurement, tag, field, or timestamp.
+// Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
 // The points are written synchronously.
 //
@@ -177,9 +177,9 @@ func (c *Client) WriteData(ctx context.Context, points ...interface{}) error {
 	return c.WriteDataWithOptions(ctx, c.config.WriteOptions, points...)
 }
 
-// WriteData encodes fields of custom points into line protocol
+// WriteDataWithOptions encodes fields of custom points into line protocol
 // and writes line protocol record(s) to the server into the given database.
-// Each custom point must be annotated with 'lp' prefix and values measurement, tag, field, or timestamp.
+// Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
 // The points are written synchronously.
 //
@@ -229,7 +229,12 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	}
 	fields := reflect.VisibleFields(t)
 
-	var point Point
+	var point = &Point{
+		Values: &PointValues{
+			Tags:   make(map[string]string),
+			Fields: make(map[string]interface{}),
+		},
+	}
 
 	for _, f := range fields {
 		name := f.Name
@@ -247,28 +252,28 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 			}
 			switch typ {
 			case "measurement":
-				if point.Measurement != "" {
+				if point.GetMeasurement() != "" {
 					return nil, fmt.Errorf("multiple measurement fields")
 				}
-				point.Measurement = v.FieldByIndex(f.Index).String()
+				point.SetMeasurement(v.FieldByIndex(f.Index).String())
 			case "tag":
-				point.AddTag(name, v.FieldByIndex(f.Index).String())
+				point.SetTag(name, v.FieldByIndex(f.Index).String())
 			case "field":
-				point.AddField(name, v.FieldByIndex(f.Index).Interface())
+				point.SetField(name, v.FieldByIndex(f.Index).Interface())
 			case "timestamp":
 				if f.Type != timeType {
 					return nil, fmt.Errorf("cannot use field '%s' as a timestamp", f.Name)
 				}
-				point.Timestamp = v.FieldByIndex(f.Index).Interface().(time.Time)
+				point.SetTimestamp(v.FieldByIndex(f.Index).Interface().(time.Time))
 			default:
 				return nil, fmt.Errorf("invalid tag %s", typ)
 			}
 		}
 	}
-	if point.Measurement == "" {
+	if point.GetMeasurement() == "" {
 		return nil, fmt.Errorf("no struct field with tag 'measurement'")
 	}
-	if len(point.Fields) == 0 {
+	if !point.HasFields() {
 		return nil, fmt.Errorf("no struct field with tag 'field'")
 	}
 	return point.MarshalBinary(options.Precision)

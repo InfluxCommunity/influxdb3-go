@@ -58,13 +58,13 @@ func TestWriteAndQueryExample(t *testing.T) {
 	// Write test
 
 	p := influxdb3.NewPointWithMeasurement(tableName).
-		AddTag(tagKey, tagValue).
-		AddField("temp", 15.5).
-		AddField("index", 80).
-		AddField("uindex", uint64(800)).
-		AddField("valid", true).
-		AddField("testId", testId).
-		AddField("text", "a1").
+		SetTag(tagKey, tagValue).
+		SetField("temp", 15.5).
+		SetField("index", 80).
+		SetField("uindex", uint64(800)).
+		SetField("valid", true).
+		SetField("testId", testId).
+		SetField("text", "a1").
 		SetTimestamp(now)
 	err = client.WritePoints(context.Background(), p)
 	require.NoError(t, err)
