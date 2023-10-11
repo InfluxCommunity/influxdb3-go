@@ -95,9 +95,10 @@ func (i *QueryIterator) Next() bool {
 	return true
 }
 
-func (i *QueryIterator) ValueAsPoint() *Point {
+// AsPoints return data from InfluxDB IOx into PointValues structure.
+func (i *QueryIterator) AsPoints() *PointValues {
 	readerSchema := i.reader.Schema()
-	p := NewPointWithMeasurement("__empty__")
+	p := NewPointValues("")
 
 	for ci, col := range i.record.Columns() {
 		schema := readerSchema.Field(ci)
@@ -113,7 +114,7 @@ func (i *QueryIterator) ValueAsPoint() *Point {
 		metadataType, hasmetadataType := schema.Metadata.GetValue("iox::column::type")
 
 		if stringValue, isString := value.(string); ((name == "measurement") || (name == "iox::measurement")) && isString {
-			p.Measurement = stringValue
+			p.SetMeasurement(stringValue)
 			continue
 		}
 
@@ -121,7 +122,7 @@ func (i *QueryIterator) ValueAsPoint() *Point {
 			if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && name == "time" {
 				p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
 			} else {
-				p.AddField(name, value)
+				p.SetField(name, value)
 			}
 			continue
 		}
@@ -134,9 +135,9 @@ func (i *QueryIterator) ValueAsPoint() *Point {
 		// }
 
 		if valueType == "field" {
-			p.AddField(name, value)
+			p.SetField(name, value)
 		} else if stringValue, isString := value.(string); isString && valueType == "tag" {
-			p.AddTag(name, stringValue)
+			p.SetField(name, stringValue)
 		} else if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && valueType == "timestamp" {
 			p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
 		}
