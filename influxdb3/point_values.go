@@ -55,9 +55,9 @@ func (pv *PointValues) SetMeasurement(measurementName string) *PointValues {
 	return pv
 }
 
-// SetTimestampWithEpoch sets the timestamp using an int64 which represents start of epoch in seconds and returns the modified PointDataValues
+// SetTimestampWithEpoch sets the timestamp using an int64 which represents start of epoch in nanoseconds and returns the modified PointDataValues
 func (pv *PointValues) SetTimestampWithEpoch(timestamp int64) *PointValues {
-	pv.Timestamp = time.Unix(timestamp, 0)
+	pv.Timestamp = time.Unix(0, timestamp)
 	return pv
 }
 
