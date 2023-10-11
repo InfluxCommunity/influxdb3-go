@@ -111,14 +111,14 @@ func (i *QueryIterator) AsPoints() *PointValues {
 			continue
 		}
 
-		metadataType, hasmetadataType := schema.Metadata.GetValue("iox::column::type")
+		metadataType, hasMetadataType := schema.Metadata.GetValue("iox::column::type")
 
 		if stringValue, isString := value.(string); ((name == "measurement") || (name == "iox::measurement")) && isString {
 			p.SetMeasurement(stringValue)
 			continue
 		}
 
-		if !hasmetadataType {
+		if !hasMetadataType {
 			if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && name == "time" {
 				p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
 			} else {
@@ -129,15 +129,11 @@ func (i *QueryIterator) AsPoints() *PointValues {
 
 		parts := strings.Split(metadataType, "::")
 		_, _, valueType := parts[0], parts[1], parts[2]
-		// fieldType := ""
-		// if len(parts) >= 4 {
-		// 	fieldType = parts[3];
-		// }
 
 		if valueType == "field" {
 			p.SetField(name, value)
 		} else if stringValue, isString := value.(string); isString && valueType == "tag" {
-			p.SetField(name, stringValue)
+			p.SetTag(name, stringValue)
 		} else if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && valueType == "timestamp" {
 			p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
 		}
