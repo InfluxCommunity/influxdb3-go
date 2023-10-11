@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 func main() {
@@ -96,15 +95,6 @@ func main() {
 
 		fmt.Printf("avg is %f\n", value["avg"])
 		fmt.Printf("max is %f\n", value["max"])
-
-		point := iterator.ValueAsPoint();
-		lp, err := point.MarshalBinary(lineprotocol.Millisecond);
-
-		if (err != nil) {
-			panic((err))
-		}
-
-		fmt.Print(string(lp))
 	}
 
 }
