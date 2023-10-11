@@ -257,14 +257,14 @@ func genPoints(t *testing.T, count int) []*Point {
 	gen := rand.New(rand.NewSource(321))
 	for i := range ps {
 		p := NewPointWithMeasurement("host")
-		p.AddTag("rack", fmt.Sprintf("rack_%2d", i%10))
-		p.AddTag("name", fmt.Sprintf("machine_%2d", i))
-		p.AddField("temperature", gen.Float64()*80.0)
-		p.AddField("disk_free", gen.Float64()*1000.0)
-		p.AddField("disk_total", (i/10+1)*1000000)
-		p.AddField("mem_total", (i/100+1)*10000000)
-		p.AddField("mem_free", gen.Uint64())
-		p.Timestamp = ts
+		p.SetTag("rack", fmt.Sprintf("rack_%2d", i%10))
+		p.SetTag("name", fmt.Sprintf("machine_%2d", i))
+		p.SetField("temperature", gen.Float64()*80.0)
+		p.SetField("disk_free", gen.Float64()*1000.0)
+		p.SetField("disk_total", (i/10+1)*1000000)
+		p.SetField("mem_total", (i/100+1)*10000000)
+		p.SetField("mem_free", gen.Uint64())
+		p.SetTimestamp(ts)
 		ps[i] = p
 		ts = ts.Add(time.Millisecond)
 	}
@@ -553,8 +553,8 @@ func TestGzip(t *testing.T) {
 
 func TestCustomHeaders(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
+	p.SetTag("host", "local")
+	p.SetField("usage_user", 16.75)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
 			return
@@ -596,12 +596,12 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	require.NoError(t, err)
 
 	p := NewPointWithMeasurement("host")
-	p.AddTag("rack", fmt.Sprintf("rack_%2d", 7))
-	p.AddTag("name", fmt.Sprintf("machine_%2d", 2))
+	p.SetTag("rack", fmt.Sprintf("rack_%2d", 7))
+	p.SetTag("name", fmt.Sprintf("machine_%2d", 2))
 	// invalid field
-	p.AddField("", 80.0)
+	p.SetField("", 80.0)
 
-	p.Timestamp = time.Now()
+	p.SetTimestamp(time.Now())
 
 	err = c.WritePoints(context.Background(), p)
 	assert.Error(t, err)
@@ -614,8 +614,8 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 
 func TestHttpError(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
+	p.SetTag("host", "local")
+	p.SetField("usage_user", 16.75)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
 			return
@@ -636,8 +636,8 @@ func TestHttpError(t *testing.T) {
 
 func TestWriteDatabaseNotSet(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
+	p.SetTag("host", "local")
+	p.SetField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host:  "http://localhost:8086",
 		Token: "my-token",
@@ -650,8 +650,8 @@ func TestWriteDatabaseNotSet(t *testing.T) {
 
 func TestWriteWithOptionsNotSet(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
-	p.AddTag("host", "local")
-	p.AddField("usage_user", 16.75)
+	p.SetTag("host", "local")
+	p.SetField("usage_user", 16.75)
 	c, err := New(ClientConfig{
 		Host:     "http://localhost:8086",
 		Token:    "my-token",

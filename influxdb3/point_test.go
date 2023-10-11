@@ -123,7 +123,7 @@ func TestPoint(t *testing.T) {
 		},
 		time.Unix(60, 70))
 	// Test duplicate tag and duplicate field
-	p.AddTag("ven=dor", "GCP").AddField("uint32", uint32(345780))
+	p.SetTag("ven=dor", "GCP").SetField("uint32", uint32(345780))
 
 	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
 	require.NoError(t, err)
