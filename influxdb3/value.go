@@ -36,35 +36,35 @@ type NativeType interface {
 	float64 | int64 | uint64 | string | []byte | bool
 }
 
-// [Float] is IEEE-754 64-bit floating-point numbers. Default numerical type. InfluxDB supports scientific notation in float field values.
+// Float [Float] is IEEE-754 64-bit floating-point numbers. Default numerical type. InfluxDB supports scientific notation in float field values.
 //
 // [Float]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#float
 type Float interface {
 	~float32 | ~float64
 }
 
-// [Integer] is signed 64-bit integers.
+// Integer [Integer] is signed 64-bit integers.
 //
 // [Integer]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#integer
 type Integer interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
-// [UInteger] is unsigned 64-bit integers.
+// UInteger [UInteger] is unsigned 64-bit integers.
 //
 // [UInteger]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#uinteger
 type UInteger interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
 
-// [String] is plain text string. Length limit 64KB.
+// String [String] is plain text string. Length limit 64KB.
 //
 // [String]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#string
 type String interface {
 	~string | ~[]byte
 }
 
-// [Boolean] is true or false values.
+// Boolean [Boolean] is true or false values.
 //
 // [Boolean]: https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/#boolean
 type Boolean interface {
