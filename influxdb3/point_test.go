@@ -185,3 +185,9 @@ func TestCopy(t *testing.T) {
 
 	assert.EqualValues(t, point, pointCopy)
 }
+
+func TestPoint_SetTimestamp(t *testing.T) {
+	p := NewPoint("test", nil, nil, time.Unix(60, 70))
+	p.SetTimestamp(time.Unix(60, 80))
+	assert.Equal(t, time.Unix(60, 80), p.Values.Timestamp)
+}
