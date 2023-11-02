@@ -129,3 +129,31 @@ func TestPoint(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line))
 }
+
+func TestPointTags(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag2": "b",
+	}, nil, time.Unix(60, 70))
+	assert.EqualValues(t, []string{"tag1", "tag2"}, p.GetTagNames())
+	p.RemoveTag("tag1")
+	assert.EqualValues(t, []string{"tag2"}, p.GetTagNames())
+}
+
+func TestFieldValues(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+	}, nil, time.Unix(60, 70))
+
+	p.SetDoubleField("double", 1.2).
+		SetIntegerField("int", int64(1)).
+		SetUIntegerField("uint", uint64(42)).
+		SetStringField("string", "a").
+		SetBooleanField("bool", true)
+
+	assert.Equal(t, 1.2, *p.GetDoubleField("double"))
+	assert.Equal(t, int64(1), *p.GetIntegerField("int"))
+	assert.Equal(t, uint64(42), *p.GetUIntegerField("uint"))
+	assert.Equal(t, "a", *p.GetStringField("string"))
+	assert.Equal(t, true, *p.GetBooleanField("bool"))
+}

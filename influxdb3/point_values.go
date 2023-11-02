@@ -140,6 +140,21 @@ func (pv *PointValues) SetIntegerField(name string, value int64) *PointValues {
 	return pv
 }
 
+// GetUIntegerField gets the uint field value associated with the specified name.
+// If the field is not present, returns nil.
+func (pv *PointValues) GetUIntegerField(name string) *uint64 {
+	value, ok := pv.Fields[name]
+	if !ok {
+		return nil // field not found
+	}
+
+	if uintValue, ok := value.(uint64); ok {
+		return &uintValue
+	}
+
+	return nil // field is not an int
+}
+
 // SetUIntegerField adds or replaces an unsigned integer field.
 func (pv *PointValues) SetUIntegerField(name string, value uint64) *PointValues {
 	pv.Fields[name] = value

@@ -151,6 +151,12 @@ func (p *Point) SetIntegerField(name string, value int64) *Point {
 	return p
 }
 
+// GetUIntegerField gets the uinteger field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetUIntegerField(name string) *uint64 {
+	return p.Values.GetUIntegerField(name)
+}
+
 // SetUIntegerField adds or replaces an unsigned integer field.
 func (p *Point) SetUIntegerField(name string, value uint64) *Point {
 	p.Values.SetUIntegerField(name, value)
