@@ -134,6 +134,18 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
+
+	iterator, err = client.Query(context.Background(), query)
+	hasValue = iterator.Next()
+	assert.True(t, hasValue)
+	points := iterator.AsPoints()
+	assert.Equal(t, uint64(800), points.Fields["uindex"])
+
+	hasValue = iterator.Next()
+	assert.True(t, hasValue)
+
+	newPoint, _ := points.AsPointWithMeasurement("to_write")
+	assert.True(t, newPoint != nil)
 }
 
 func TestQueryDatabaseDoesNotExist(t *testing.T) {
