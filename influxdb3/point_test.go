@@ -137,7 +137,22 @@ func TestPointTags(t *testing.T) {
 	}, nil, time.Unix(60, 70))
 	assert.EqualValues(t, []string{"tag1", "tag2"}, p.GetTagNames())
 	p.RemoveTag("tag1")
+	tag, _ := p.GetTag("tag2")
+	assert.Equal(t, "b", tag)
 	assert.EqualValues(t, []string{"tag2"}, p.GetTagNames())
+	p.SetTag("empty_value", "")
+	assert.Equal(t, []string{"tag2"}, p.GetTagNames())
+}
+
+func TestPointFields(t *testing.T) {
+	p := NewPoint("test", nil, map[string]interface{}{
+		"field1": 10,
+		"field2": true,
+	}, time.Unix(60, 70))
+	assert.EqualValues(t, []string{"field1", "field2"}, p.GetFieldNames())
+	p.RemoveField("field1")
+	assert.Equal(t, true, p.GetField("field2"))
+	assert.EqualValues(t, []string{"field2"}, p.GetFieldNames())
 }
 
 func TestFieldValues(t *testing.T) {
@@ -156,4 +171,17 @@ func TestFieldValues(t *testing.T) {
 	assert.Equal(t, uint64(42), *p.GetUIntegerField("uint"))
 	assert.Equal(t, "a", *p.GetStringField("string"))
 	assert.Equal(t, true, *p.GetBooleanField("bool"))
+}
+
+func TestCopy(t *testing.T) {
+	point := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag2": "b",
+	}, map[string]interface{}{
+		"field1": 10,
+		"field2": true,
+	}, time.Unix(60, 70))
+	pointCopy := point.Copy()
+
+	assert.EqualValues(t, point, pointCopy)
 }
