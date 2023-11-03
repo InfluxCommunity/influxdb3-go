@@ -1,3 +1,5 @@
+## [unreleased]
+
 ## 0.4.0 [2023-11-03]
 
 ### Features
