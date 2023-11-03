@@ -78,7 +78,7 @@ func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error
 	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query)
 }
 
-// Query data from InfluxDB IOx with query options.
+// QueryWithOptions Query data from InfluxDB IOx with query options.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - options: Query options (query type, optional database).
@@ -113,12 +113,12 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 		"query_type": strings.ToLower(queryType.String()),
 	}
 
-	ticketJson, err := json.Marshal(ticketData)
+	ticketJSON, err := json.Marshal(ticketData)
 	if err != nil {
 		return nil, fmt.Errorf("serialize: %s", err)
 	}
 
-	ticket := &flight.Ticket{Ticket: ticketJson}
+	ticket := &flight.Ticket{Ticket: ticketJSON}
 	stream, err := (*c.queryClient).DoGet(ctx, ticket)
 	if err != nil {
 		return nil, fmt.Errorf("flight do get: %s", err)

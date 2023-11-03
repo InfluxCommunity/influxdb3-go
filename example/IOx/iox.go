@@ -45,9 +45,9 @@ func main() {
 	}
 	// Create point using fluent style
 	p = influxdb3.NewPointWithMeasurement("stat").
-		AddTag("unit", "temperature").
-		AddField("avg", 23.2).
-		AddField("max", 45.0).
+		SetTag("unit", "temperature").
+		SetField("avg", 23.2).
+		SetField("max", 45.0).
 		SetTimestamp(time.Now())
 	// write point synchronously
 	err = client.WritePoints(context.Background(), p)

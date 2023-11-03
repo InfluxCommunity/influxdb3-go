@@ -23,6 +23,7 @@
 package influxdb3
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -30,37 +31,14 @@ import (
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
-// Tag holds the keys and values for a bunch of Tag k/v pairs.
-type Tag struct {
-	Key   string
-	Value string
-}
-
-// Field holds the keys and values for a bunch of Metric Field k/v pairs where Value can be a uint64, int64, int, float32, float64, string, or bool.
-type Field struct {
-	Key   string
-	Value lineprotocol.Value
-}
-
-// Point is represents InfluxDB time series point, holding tags and fields
+// Point represents InfluxDB time series point, holding tags and fields
 type Point struct {
-	Measurement string
-	Tags        []Tag
-	Fields      []Field
-	Timestamp   time.Time
+	Values *PointValues
 }
 
-// NewPointWithMeasurement is a convenient function for creating a Point with the given measurement name for later adding data.
-//
-// Parameters:
-//   - measurement: The measurement name for the Point.
-//
-// Returns:
-//   - The created Point.
-func NewPointWithMeasurement(measurement string) *Point {
-	return &Point{
-		Measurement: measurement,
-	}
+// NewPointWithPointValues returns a new Point with given PointValues.
+func NewPointWithPointValues(values *PointValues) *Point {
+	return &Point{Values: values}
 }
 
 // NewPoint is a convenient function for creating a Point with the given measurement name, tags, fields, and timestamp.
@@ -74,98 +52,173 @@ func NewPointWithMeasurement(measurement string) *Point {
 // Returns:
 //   - The created Point.
 func NewPoint(measurement string, tags map[string]string, fields map[string]interface{}, ts time.Time) *Point {
-	m := &Point{
-		Measurement: measurement,
-		Timestamp:   ts,
-	}
+	m := NewPointWithMeasurement(measurement)
 	if len(tags) > 0 {
-		m.Tags = make([]Tag, 0, len(tags))
 		for k, v := range tags {
-			m.AddTag(k, v)
+			m.SetTag(k, v)
 		}
-		m.SortTags()
 	}
 	if len(fields) > 0 {
-		m.Fields = make([]Field, 0, len(fields))
 		for k, v := range fields {
-			m.AddField(k, v)
-		}
-		m.SortFields()
-	}
-	return m
-}
-
-// SortTags orders the tags of a Point alphanumerically by key.
-// This function is a helper to keep the tags sorted when creating a Point manually.
-//
-// Returns:
-//   - The updated Point with sorted tags.
-func (m *Point) SortTags() *Point {
-	sort.Slice(m.Tags, func(i, j int) bool { return m.Tags[i].Key < m.Tags[j].Key })
-	return m
-}
-
-// SortFields orders the fields of a Point alphanumerically by key.
-// This function is a helper to keep the fields sorted when creating a Point manually.
-//
-// Returns:
-//   - The updated Point with sorted fields.
-func (m *Point) SortFields() *Point {
-	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Key < m.Fields[j].Key })
-	return m
-}
-
-// AddTag adds a tag to the Point.
-//
-// Parameters:
-//   - k: The key of the tag.
-//   - v: The value of the tag.
-//
-// Returns:
-//   - The updated Point with the tag added.
-func (m *Point) AddTag(k, v string) *Point {
-	for i, tag := range m.Tags {
-		if k == tag.Key {
-			m.Tags[i].Value = v
-			return m
+			m.SetField(k, v)
 		}
 	}
-	m.Tags = append(m.Tags, Tag{Key: k, Value: v})
+	m.SetTimestamp(ts)
 	return m
 }
 
-// AddField adds a field to the Point.
-//
-// Parameters:
-//   - k: The key of the field.
-//   - v: The value of the field.
-//
-// Returns:
-//   - The updated Point with the field added.
-func (m *Point) AddField(k string, v interface{}) *Point {
-	val, _ := lineprotocol.NewValue(convertField(v))
-	for i, field := range m.Fields {
-		if k == field.Key {
-			m.Fields[i].Value = val
-			return m
-		}
+// NewPointWithMeasurement creates a new PointData with specified measurement name.
+func NewPointWithMeasurement(name string) *Point {
+	return NewPointWithPointValues(NewPointValues(name))
+}
+
+// FromValues creates a new PointData with given Values.
+func FromValues(values *PointValues) (*Point, error) {
+	if values.GetMeasurement() == "" {
+		return nil, errors.New("missing measurement")
 	}
-
-	m.Fields = append(m.Fields, Field{Key: k, Value: val})
-	return m
+	return NewPointWithPointValues(values), nil
 }
 
-// AddField adds a field to the Point.
-//
-// Parameters:
-//   - k: The key of the field.
-//   - v: The value of the field.
-//
-// Returns:
-//   - The updated Point with the field added.
-func (m *Point) SetTimestamp(t time.Time) *Point {
-	m.Timestamp = t
-	return m
+// GetMeasurement returns the measurement name
+func (p *Point) GetMeasurement() string {
+	return p.Values.GetMeasurement()
+}
+
+// SetMeasurement sets the measurement name and returns the modified PointValues
+func (p *Point) SetMeasurement(measurementName string) *Point {
+	if measurementName != "" {
+		p.Values.SetMeasurement(measurementName)
+	}
+	return p
+}
+
+// SetTimestampWithEpoch sets the timestamp using an int64 which represents start of epoch in nanoseconds and returns the modified PointDataValues
+func (p *Point) SetTimestampWithEpoch(timestamp int64) *Point {
+	p.Values.SetTimestampWithEpoch(timestamp)
+	return p
+}
+
+// SetTimestamp sets the timestamp using a time.Time and returns the modified PointValues
+func (p *Point) SetTimestamp(timestamp time.Time) *Point {
+	p.Values.SetTimestamp(timestamp)
+	return p
+}
+
+// SetTag sets a tag value and returns the modified PointValues
+func (p *Point) SetTag(name string, value string) *Point {
+	p.Values.SetTag(name, value)
+	return p
+}
+
+// GetTag retrieves a tag value
+func (p *Point) GetTag(name string) (string, bool) {
+	return p.Values.GetTag(name)
+}
+
+// RemoveTag Removes a tag with the specified name if it exists; otherwise, it does nothing.
+func (p *Point) RemoveTag(name string) *Point {
+	p.Values.RemoveTag(name)
+	return p
+}
+
+// GetTagNames retrieves all tag names
+func (p *Point) GetTagNames() []string {
+	return p.Values.GetTagNames()
+}
+
+// GetDoubleField gets the double field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetDoubleField(name string) *float64 {
+	return p.Values.GetDoubleField(name)
+}
+
+// SetDoubleField adds or replaces a double field.
+func (p *Point) SetDoubleField(name string, value float64) *Point {
+	p.Values.SetDoubleField(name, value)
+	return p
+}
+
+// GetIntegerField gets the integer field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetIntegerField(name string) *int64 {
+	return p.Values.GetIntegerField(name)
+}
+
+// SetIntegerField adds or replaces an integer field.
+func (p *Point) SetIntegerField(name string, value int64) *Point {
+	p.Values.SetIntegerField(name, value)
+	return p
+}
+
+// GetUIntegerField gets the uinteger field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetUIntegerField(name string) *uint64 {
+	return p.Values.GetUIntegerField(name)
+}
+
+// SetUIntegerField adds or replaces an unsigned integer field.
+func (p *Point) SetUIntegerField(name string, value uint64) *Point {
+	p.Values.SetUIntegerField(name, value)
+	return p
+}
+
+// GetStringField gets the string field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetStringField(name string) *string {
+	return p.Values.GetStringField(name)
+}
+
+// SetStringField adds or replaces a string field.
+func (p *Point) SetStringField(name string, value string) *Point {
+	p.Values.SetStringField(name, value)
+	return p
+}
+
+// GetBooleanField gets the bool field value associated with the specified name.
+// If the field is not present, returns nil.
+func (p *Point) GetBooleanField(name string) *bool {
+	return p.Values.GetBooleanField(name)
+}
+
+// SetBooleanField adds or replaces a bool field.
+func (p *Point) SetBooleanField(name string, value bool) *Point {
+	p.Values.SetBooleanField(name, value)
+	return p
+}
+
+// GetField gets field of given name. Can be nil if field doesn't exist.
+func (p *Point) GetField(name string) interface{} {
+	return p.Values.GetField(name)
+}
+
+// SetField adds or replaces a field with an interface{} value.
+func (p *Point) SetField(name string, value interface{}) *Point {
+	p.Values.SetField(name, value)
+	return p
+}
+
+// RemoveField removes a field with the specified name if it exists; otherwise, it does nothing.
+func (p *Point) RemoveField(name string) *Point {
+	p.Values.RemoveField(name)
+	return p
+}
+
+// GetFieldNames gets an array of field names associated with this object.
+func (p *Point) GetFieldNames() []string {
+	return p.Values.GetFieldNames()
+}
+
+// HasFields checks if the point contains any fields.
+func (p *Point) HasFields() bool {
+	return p.Values.HasFields()
+}
+
+// Copy returns a copy of the Point.
+func (p *Point) Copy() *Point {
+	return &Point{
+		Values: p.Values.Copy(),
+	}
 }
 
 // MarshalBinary converts the Point to its binary representation in line protocol format.
@@ -176,19 +229,38 @@ func (m *Point) SetTimestamp(t time.Time) *Point {
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
-func (m *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) {
+func (p *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) {
 	var enc lineprotocol.Encoder
 	enc.SetPrecision(precision)
-	enc.StartLine(m.Measurement)
-	m.SortTags()
-	for _, t := range m.Tags {
-		enc.AddTag(t.Key, t.Value)
+	enc.StartLine(p.Values.MeasurementName)
+
+	// sort Tags
+	tagKeys := make([]string, 0, len(p.Values.Tags))
+	for k := range p.Values.Tags {
+		tagKeys = append(tagKeys, k)
 	}
-	m.SortFields()
-	for _, f := range m.Fields {
-		enc.AddField(f.Key, f.Value)
+	sort.Strings(tagKeys)
+	for _, tagKey := range tagKeys {
+		enc.AddTag(tagKey, p.Values.Tags[tagKey])
 	}
-	enc.EndLine(m.Timestamp)
+
+	// sort Fields
+	fieldKeys := make([]string, 0, len(p.Values.Fields))
+	for k := range p.Values.Fields {
+		fieldKeys = append(fieldKeys, k)
+	}
+	sort.Strings(fieldKeys)
+	for _, fieldKey := range fieldKeys {
+		fieldValue := p.Values.Fields[fieldKey]
+		value, b := lineprotocol.NewValue(convertField(fieldValue))
+		if b {
+			enc.AddField(fieldKey, value)
+		} else {
+			return nil, fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
+		}
+	}
+
+	enc.EndLine(p.Values.Timestamp)
 	if err := enc.Err(); err != nil {
 		return nil, fmt.Errorf("encoding error: %v", err)
 	}

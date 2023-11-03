@@ -58,13 +58,13 @@ func TestWriteAndQueryExample(t *testing.T) {
 	// Write test
 
 	p := influxdb3.NewPointWithMeasurement(tableName).
-		AddTag(tagKey, tagValue).
-		AddField("temp", 15.5).
-		AddField("index", 80).
-		AddField("uindex", uint64(800)).
-		AddField("valid", true).
-		AddField("testId", testId).
-		AddField("text", "a1").
+		SetTag(tagKey, tagValue).
+		SetField("temp", 15.5).
+		SetField("index", 80).
+		SetField("uindex", uint64(800)).
+		SetField("valid", true).
+		SetField("testId", testId).
+		SetField("text", "a1").
 		SetTimestamp(now)
 	err = client.WritePoints(context.Background(), p)
 	require.NoError(t, err)
@@ -134,6 +134,18 @@ func TestWriteAndQueryExample(t *testing.T) {
 
 	assert.False(t, iterator.Next())
 	assert.True(t, iterator.Done())
+
+	iterator, err = client.Query(context.Background(), query)
+	hasValue = iterator.Next()
+	assert.True(t, hasValue)
+	points := iterator.AsPoints()
+	assert.Equal(t, uint64(800), points.Fields["uindex"])
+
+	hasValue = iterator.Next()
+	assert.True(t, hasValue)
+
+	newPoint, _ := points.AsPointWithMeasurement("to_write")
+	assert.True(t, newPoint != nil)
 }
 
 func TestQueryDatabaseDoesNotExist(t *testing.T) {

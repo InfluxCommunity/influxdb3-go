@@ -1,5 +1,13 @@
 ## 0.4.0 [unreleased]
 
+### Features
+
+1. [#45](https://github.com/InfluxCommunity/influxdb3-go/pull/45): Add structured query support
+
+### Docs
+
+1. [#45](https://github.com/InfluxCommunity/influxdb3-go/pull/45): Add downsampling example
+
 ## 0.3.0 [2023-10-02]
 
 ### Features

@@ -123,9 +123,73 @@ func TestPoint(t *testing.T) {
 		},
 		time.Unix(60, 70))
 	// Test duplicate tag and duplicate field
-	p.AddTag("ven=dor", "GCP").AddField("uint32", uint32(345780))
+	p.SetTag("ven=dor", "GCP").SetField("uint32", uint32(345780))
 
 	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line))
+}
+
+func TestPointTags(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag2": "b",
+	}, nil, time.Unix(60, 70))
+	assert.EqualValues(t, []string{"tag1", "tag2"}, p.GetTagNames())
+	p.RemoveTag("tag1")
+	tag, _ := p.GetTag("tag2")
+	assert.Equal(t, "b", tag)
+	assert.EqualValues(t, []string{"tag2"}, p.GetTagNames())
+	p.SetTag("empty_value", "")
+	assert.Equal(t, []string{"tag2"}, p.GetTagNames())
+}
+
+func TestPointFields(t *testing.T) {
+	p := NewPoint("test", nil, map[string]interface{}{
+		"field1": 10,
+		"field2": true,
+	}, time.Unix(60, 70))
+	assert.EqualValues(t, []string{"field1", "field2"}, p.GetFieldNames())
+	p.RemoveField("field1")
+	assert.Equal(t, true, p.GetField("field2"))
+	assert.EqualValues(t, []string{"field2"}, p.GetFieldNames())
+}
+
+func TestFieldValues(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+	}, nil, time.Unix(60, 70))
+
+	p.SetDoubleField("double", 1.2).
+		SetIntegerField("int", int64(1)).
+		SetUIntegerField("uint", uint64(42)).
+		SetStringField("string", "a").
+		SetBooleanField("bool", true)
+
+	assert.Equal(t, 1.2, *p.GetDoubleField("double"))
+	assert.Equal(t, int64(1), *p.GetIntegerField("int"))
+	assert.Equal(t, uint64(42), *p.GetUIntegerField("uint"))
+	assert.Equal(t, "a", *p.GetStringField("string"))
+	assert.Equal(t, true, *p.GetBooleanField("bool"))
+}
+
+func TestCopy(t *testing.T) {
+	point := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag2": "b",
+	}, map[string]interface{}{
+		"field1": 10,
+		"field2": true,
+	}, time.Unix(60, 70))
+	pointCopy := point.Copy()
+
+	assert.EqualValues(t, point, pointCopy)
+}
+
+func TestPoint_SetTimestamp(t *testing.T) {
+	p := NewPoint("test", nil, nil, time.Unix(60, 70))
+	p.SetTimestamp(time.Unix(60, 80))
+	assert.Equal(t, time.Unix(60, 80), p.Values.Timestamp)
+	p.SetTimestampWithEpoch(99)
+	assert.Equal(t, time.Unix(0, 99), p.Values.Timestamp)
 }

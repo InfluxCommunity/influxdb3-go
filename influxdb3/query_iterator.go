@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -94,6 +95,53 @@ func (i *QueryIterator) Next() bool {
 	return true
 }
 
+// AsPoints return data from InfluxDB IOx into PointValues structure.
+func (i *QueryIterator) AsPoints() *PointValues {
+	readerSchema := i.reader.Schema()
+	p := NewPointValues("")
+
+	for ci, col := range i.record.Columns() {
+		schema := readerSchema.Field(ci)
+		name := schema.Name
+		value, err := getArrowValue(col, i.indexInRecord)
+		if err != nil {
+			panic(err)
+		}
+		if value == nil {
+			continue
+		}
+
+		metadataType, hasMetadataType := schema.Metadata.GetValue("iox::column::type")
+
+		if stringValue, isString := value.(string); ((name == "measurement") || (name == "iox::measurement")) && isString {
+			p.SetMeasurement(stringValue)
+			continue
+		}
+
+		if !hasMetadataType {
+			if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && name == "time" {
+				p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
+			} else {
+				p.SetField(name, value)
+			}
+			continue
+		}
+
+		parts := strings.Split(metadataType, "::")
+		_, _, valueType := parts[0], parts[1], parts[2]
+
+		if valueType == "field" {
+			p.SetField(name, value)
+		} else if stringValue, isString := value.(string); isString && valueType == "tag" {
+			p.SetTag(name, stringValue)
+		} else if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && valueType == "timestamp" {
+			p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
+		}
+	}
+
+	return p
+}
+
 // Value returns the current value from the flight reader as a map object.
 // The map contains the fields and tags as key-value pairs.
 //
@@ -130,6 +178,9 @@ func (i *QueryIterator) Raw() *flight.Reader {
 }
 
 func getArrowValue(arrayNoType arrow.Array, i int) (interface{}, error) {
+	if arrayNoType.IsNull(i) {
+		return nil, nil
+	}
 	switch arrayNoType.DataType().ID() {
 	case arrow.NULL:
 		return nil, nil
