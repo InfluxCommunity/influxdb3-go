@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -135,7 +136,9 @@ func TestPointTags(t *testing.T) {
 		"tag1": "a",
 		"tag2": "b",
 	}, nil, time.Unix(60, 70))
-	assert.EqualValues(t, []string{"tag1", "tag2"}, p.GetTagNames())
+	tagnames := (p.GetTagNames())
+	sort.Strings(tagnames)
+	assert.EqualValues(t, []string{"tag1", "tag2"}, tagnames)
 	p.RemoveTag("tag1")
 	tag, _ := p.GetTag("tag2")
 	assert.Equal(t, "b", tag)
@@ -149,7 +152,9 @@ func TestPointFields(t *testing.T) {
 		"field1": 10,
 		"field2": true,
 	}, time.Unix(60, 70))
-	assert.EqualValues(t, []string{"field1", "field2"}, p.GetFieldNames())
+	fieldNames := p.GetFieldNames()
+	sort.Strings(fieldNames)
+	assert.EqualValues(t, []string{"field1", "field2"}, fieldNames)
 	p.RemoveField("field1")
 	assert.Equal(t, true, p.GetField("field2"))
 	assert.EqualValues(t, []string{"field2"}, p.GetFieldNames())
