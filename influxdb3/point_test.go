@@ -147,6 +147,37 @@ func TestPointTags(t *testing.T) {
 	assert.Equal(t, []string{"tag2"}, p.GetTagNames())
 }
 
+func TestPointDefaultTags(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag3": "c",
+	}, map[string]interface{}{
+		"float64":  80.1234567,
+	}, time.Unix(60, 70))
+	defaultTags := map[string]string{
+		"tag2": "b",
+		"tag3": "f",
+	}
+
+	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
+
+	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
+
+	p.RemoveTag("tag3")
+
+	line, err = p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a float64=80.1234567 60000000070`+"\n", string(line))
+
+	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
+}
+
 func TestPointFields(t *testing.T) {
 	p := NewPoint("test", nil, map[string]interface{}{
 		"field1": 10,

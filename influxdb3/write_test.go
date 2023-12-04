@@ -468,7 +468,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 		now,
 		"Room temp",
 	}
-	lp := fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
+	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
 	correctPath := "/api/v2/write?bucket=x-db&org=my-org&precision=s"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
@@ -491,6 +491,9 @@ func TestWriteDataWithOptions(t *testing.T) {
 	options := WriteOptions{
 		Database:  "x-db",
 		Precision: lineprotocol.Second,
+		defaultTags: map[string]string{ 
+			"defaultTag": "default",
+		},
 	}
 	require.NoError(t, err)
 	err = c.WriteDataWithOptions(context.Background(), &options, s)

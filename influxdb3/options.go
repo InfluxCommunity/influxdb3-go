@@ -44,6 +44,9 @@ type WriteOptions struct {
 	// Default `lineprotocol.Nanosecond`
 	Precision lineprotocol.Precision
 
+	// Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
+	defaultTags map[string]string
+
 	// Write body larger than the threshold is gzipped. 0 to don't gzip at all
 	GzipThreshold int
 }
