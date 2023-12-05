@@ -1,5 +1,9 @@
 ## 0.5.0 [unreleased]
 
+### Features
+
+1. [#45](https://github.com/InfluxCommunity/influxdb3-go/pull/50): Add option to add default tags
+
 ## 0.4.0 [2023-11-03]
 
 ### Features
