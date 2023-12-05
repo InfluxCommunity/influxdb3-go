@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -135,7 +136,9 @@ func TestPointTags(t *testing.T) {
 		"tag1": "a",
 		"tag2": "b",
 	}, nil, time.Unix(60, 70))
-	assert.EqualValues(t, []string{"tag1", "tag2"}, p.GetTagNames())
+	tagnames := (p.GetTagNames())
+	sort.Strings(tagnames)
+	assert.EqualValues(t, []string{"tag1", "tag2"}, tagnames)
 	p.RemoveTag("tag1")
 	tag, _ := p.GetTag("tag2")
 	assert.Equal(t, "b", tag)
@@ -144,12 +147,45 @@ func TestPointTags(t *testing.T) {
 	assert.Equal(t, []string{"tag2"}, p.GetTagNames())
 }
 
+func TestPointDefaultTags(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag3": "c",
+	}, map[string]interface{}{
+		"float64":  80.1234567,
+	}, time.Unix(60, 70))
+	defaultTags := map[string]string{
+		"tag2": "b",
+		"tag3": "f",
+	}
+
+	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
+
+	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
+
+	p.RemoveTag("tag3")
+
+	line, err = p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a float64=80.1234567 60000000070`+"\n", string(line))
+
+	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	require.NoError(t, err)
+	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
+}
+
 func TestPointFields(t *testing.T) {
 	p := NewPoint("test", nil, map[string]interface{}{
 		"field1": 10,
 		"field2": true,
 	}, time.Unix(60, 70))
-	assert.EqualValues(t, []string{"field1", "field2"}, p.GetFieldNames())
+	fieldNames := p.GetFieldNames()
+	sort.Strings(fieldNames)
+	assert.EqualValues(t, []string{"field1", "field2"}, fieldNames)
 	p.RemoveField("field1")
 	assert.Equal(t, true, p.GetField("field2"))
 	assert.EqualValues(t, []string{"field2"}, p.GetFieldNames())

@@ -67,8 +67,15 @@ func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptio
 	} else {
 		precision = c.config.WriteOptions.Precision
 	}
+	var defaultTags map[string]string;
+	if options != nil && options.defaultTags != nil {
+		defaultTags = options.defaultTags;
+	} else {
+		defaultTags = c.config.WriteOptions.defaultTags;
+	}
+
 	for _, p := range points {
-		bts, err := p.MarshalBinary(precision)
+		bts, err := p.MarshalBinaryWithDefaultTags(precision, defaultTags)
 		if err != nil {
 			return err
 		}
@@ -276,5 +283,5 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	if !point.HasFields() {
 		return nil, fmt.Errorf("no struct field with tag 'field'")
 	}
-	return point.MarshalBinary(options.Precision)
+	return point.MarshalBinaryWithDefaultTags(options.Precision, options.defaultTags)
 }
