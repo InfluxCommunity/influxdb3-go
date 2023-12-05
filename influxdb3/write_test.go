@@ -270,10 +270,14 @@ func genPoints(t *testing.T, count int) []*Point {
 	}
 	return ps
 }
-func points2bytes(t *testing.T, points []*Point) []byte {
+func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]string) []byte {
 	var bytes []byte
+	var defaultTagsOrNil map[string]string
+	if len(defaultTags) > 0 {
+		defaultTagsOrNil = defaultTags[0]
+	}
 	for _, p := range points {
-		bs, err := p.MarshalBinary(lineprotocol.Millisecond)
+		bs, err := p.MarshalBinaryWithDefaultTags(lineprotocol.Millisecond, defaultTagsOrNil)
 		require.NoError(t, err)
 		bytes = append(bytes, bs...)
 	}
@@ -379,7 +383,11 @@ func TestWritePointsAndBytes(t *testing.T) {
 
 func TestWritePointsWithOptions(t *testing.T) {
 	points := genPoints(t, 1)
-	lp := points2bytes(t, points)
+	defaultTags := map[string]string{ 
+		"defaultTag": "default",
+		"rack": "main",
+	}
+	lp := points2bytes(t, points, defaultTags)
 	correctPath := "/api/v2/write?bucket=x-db&org=&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
@@ -402,6 +410,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 	options := WriteOptions{
 		Database:  "x-db",
 		Precision: lineprotocol.Millisecond,
+		defaultTags: defaultTags,
 	}
 	require.NoError(t, err)
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
