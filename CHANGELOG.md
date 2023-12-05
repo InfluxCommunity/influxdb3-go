@@ -2,7 +2,7 @@
 
 ### Features
 
-1. [#45](https://github.com/InfluxCommunity/influxdb3-go/pull/50): Add option to add default tags
+1. [#45](https://github.com/InfluxCommunity/influxdb3-go/pull/50): Default Tags for Writes
 
 ## 0.4.0 [2023-11-03]
 
