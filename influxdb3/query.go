@@ -75,7 +75,7 @@ func (c *Client) initializeQueryClient() error {
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
 func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error) {
-	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query)
+	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query, nil)
 }
 
 // QueryWithOptions Query data from InfluxDB IOx with query options.
@@ -87,7 +87,7 @@ func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
-func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (*QueryIterator, error) {
+func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string, params map[string]interface{}) (*QueryIterator, error) {
 	if options == nil {
 		return nil, fmt.Errorf("options not set")
 	}
@@ -112,7 +112,9 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 		"sql_query":  query,
 		"query_type": strings.ToLower(queryType.String()),
 	}
-
+    if params != nil {
+        ticketData["params"] = params;
+    }
 	ticketJSON, err := json.Marshal(ticketData)
 	if err != nil {
 		return nil, fmt.Errorf("serialize: %s", err)
