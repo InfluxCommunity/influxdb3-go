@@ -12,9 +12,9 @@ import (
 
 func main() {
 	// Use env variables to initialize client
-	url := os.Getenv("INFLUXDB_URL")
-	token := os.Getenv("INFLUXDB_TOKEN")
-	database := os.Getenv("INFLUXDB_DATABASE")
+	url := os.Getenv("INFLUX_URL")
+	token := os.Getenv("INFLUX_TOKEN")
+	database := os.Getenv("INFLUX_DATABASE")
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influxdb3.New(influxdb3.ClientConfig{

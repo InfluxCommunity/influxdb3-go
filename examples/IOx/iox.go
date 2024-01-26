@@ -12,9 +12,9 @@ import (
 
 func main() {
 	// Use env variables to initialize client
-	url := os.Getenv("INFLUXDB_URL")
-	token := os.Getenv("INFLUXDB_TOKEN")
-	database := os.Getenv("INFLUXDB_DATABASE")
+	url := os.Getenv("INFLUX_URL")
+	token := os.Getenv("INFLUX_TOKEN")
+	database := os.Getenv("INFLUX_DATABASE")
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influxdb3.New(influxdb3.ClientConfig{
@@ -78,7 +78,7 @@ func main() {
 	}
 
 	// Or write directly line protocol
-	line := fmt.Sprintf("stat,location=Berlin temperature=%f,humidity=%f", 20.1, 55)
+	line := fmt.Sprintf("stat,location=Berlin temperature=%f,humidity=%di", 20.1, 55)
 	err = client.Write(context.Background(), []byte(line))
 	if err != nil {
 		panic(err)
