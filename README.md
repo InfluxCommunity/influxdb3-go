@@ -42,6 +42,7 @@ go get github.com/InfluxCommunity/influxdb3-go
 ## Usage
 
 Client can be instantiated using
+
 * `influxb3.ClientConfig`
 * environment variables
 * connection string
