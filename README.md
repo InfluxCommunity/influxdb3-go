@@ -50,9 +50,9 @@ Client can be instantiated using
 
 Set environment variables:
 
-- `INFLUX_URL` region of your influxdb cloud e.g. *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
-- `INFLUX_TOKEN` read/write token generated in cloud
-- `INFLUX_DATABASE` name of database e.g .*`my-database`*
+* `INFLUX_URL` region of your influxdb cloud e.g. *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
+* `INFLUX_TOKEN` read/write token generated in cloud
+* `INFLUX_DATABASE` name of database e.g .*`my-database`*
 
 <details>
   <summary>linux/macos</summary>
@@ -117,16 +117,16 @@ The `client` can also write points
 
 ```go
 p1 := influxdb3.Point{
-	influxdb3.NewPoint("stat",
-		map[string]string{
-		    "location": "Paris",
-		},
-		map[string]any{
-		    "temperature": 24.5,
-			"humidity":    40,
-		},
-		time.Now(),
-	),
+    influxdb3.NewPoint("stat",
+        map[string]string{
+            "location": "Paris",
+        },
+        map[string]any{
+            "temperature": 24.5,
+            "humidity":    40,
+        },
+        time.Now(),
+    ),
 }
 points := []*influxdb3.Point{p1}
 err = client.WritePoints(context.Background(), points)
