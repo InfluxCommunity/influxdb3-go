@@ -26,6 +26,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -66,16 +67,36 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
-// Query data from InfluxDB IOx with FlightSQL.
+// QueryParameters is a type for query parameters.
+type QueryParameters = map[string]any
+
+// Query queries data from InfluxDB IOx.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
-//   - query: The InfluxQL query string to execute.
+//   - query: The query string to execute.
+//   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
 //   - A custom iterator (*QueryIterator).
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error) {
-	return c.QueryWithOptions(ctx, &DefaultQueryOptions, query)
+func (c *Client) Query(ctx context.Context, query string, options ...QueryOption) (*QueryIterator, error) {
+	return c.query(ctx, query, nil, newQueryOptions(&DefaultQueryOptions, options))
+}
+
+// QueryWithParameters queries data from InfluxDB IOx with parameterized query.
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - query: The query string to execute.
+//   - parameters: The query parameters.
+//   - options: The optional query options. See QueryOption for available options.
+//
+// Returns:
+//   - A custom iterator (*QueryIterator).
+//   - An error, if any.
+func (c *Client) QueryWithParameters(ctx context.Context, query string, parameters QueryParameters,
+	options ...QueryOption) (*QueryIterator, error) {
+
+	return c.query(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
 // QueryWithOptions Query data from InfluxDB IOx with query options.
@@ -87,21 +108,28 @@ func (c *Client) Query(ctx context.Context, query string) (*QueryIterator, error
 // Returns:
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
+//
+// Deprecated: use Query with QueryOption options.
 func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (*QueryIterator, error) {
 	if options == nil {
-		return nil, fmt.Errorf("options not set")
+		return nil, errors.New("options not set")
 	}
 
+	return c.query(ctx, query, nil, options)
+}
+
+func (c *Client) query(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*QueryIterator, error) {
 	var database string
-	var queryType QueryType
 	if options.Database != "" {
 		database = options.Database
 	} else {
 		database = c.config.Database
 	}
 	if database == "" {
-		return nil, fmt.Errorf("database not specified")
+		return nil, errors.New("database not specified")
 	}
+
+	var queryType QueryType
 	queryType = options.QueryType
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
@@ -111,6 +139,10 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 		"database":   database,
 		"sql_query":  query,
 		"query_type": strings.ToLower(queryType.String()),
+	}
+
+	if len(parameters) > 0 {
+		ticketData["params"] = parameters
 	}
 
 	ticketJSON, err := json.Marshal(ticketData)

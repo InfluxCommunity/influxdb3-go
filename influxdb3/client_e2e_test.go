@@ -66,7 +66,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		SetField("testId", testId).
 		SetField("text", "a1").
 		SetTimestamp(now)
-	err = client.WritePoints(context.Background(), p)
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
 	require.NoError(t, err)
 
 	sensorData := struct {
@@ -80,7 +80,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 		Text   string    `lp:"field,text"`
 		Time   time.Time `lp:"timestamp"`
 	}{tableName, tagValue, 24.5, -15, uint64(150), false, testId, "b1", now.Add(1 * time.Second)}
-	err = client.WriteData(context.Background(), sensorData)
+	err = client.WriteData(context.Background(), []any{sensorData})
 	require.NoError(t, err)
 
 	// SQL query test
@@ -148,6 +148,74 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.True(t, newPoint != nil)
 }
 
+func TestQueryWithParameters(t *testing.T) {
+	now := time.Now().UTC()
+	testId := now.UnixNano()
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+	defer client.Close()
+
+	p := influxdb3.NewPointWithMeasurement("weather").
+		SetTag("location", "sun-valley-1").
+		SetField("temp", 15.5).
+		SetField("index", 80).
+		SetField("uindex", uint64(800)).
+		SetField("valid", true).
+		SetField("testId", testId).
+		SetField("text", "a1").
+		SetTimestamp(now)
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
+	require.NoError(t, err)
+
+	query := `
+		SELECT *
+		FROM weather
+		WHERE
+		time >= now() - interval '10 minute'
+		AND
+		location = $location
+		AND
+		"testId" = $testId
+		ORDER BY time
+	`
+	parameters := influxdb3.QueryParameters{
+		"location": "sun-valley-1",
+		"testId":   testId,
+	}
+
+	sleepTime := 5 * time.Second
+	time.Sleep(sleepTime)
+
+	iterator, err := client.QueryWithParameters(context.Background(), query, parameters)
+	require.NoError(t, err)
+	require.NotNil(t, iterator)
+
+	hasValue := iterator.Next()
+	assert.True(t, hasValue)
+
+	value := iterator.Value()
+	assert.Equal(t, "location", value["sun-valley-1"])
+	assert.Equal(t, 15.5, value["temp"])
+	assert.Equal(t, int64(80), value["index"])
+	assert.Equal(t, uint64(800), value["uindex"])
+	assert.Equal(t, true, value["valid"])
+	assert.Equal(t, "a1", value["text"])
+	assert.Equal(t, now, value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+
+	assert.False(t, iterator.Done())
+	assert.False(t, iterator.Next())
+	assert.True(t, iterator.Done())
+}
+
 func TestQueryDatabaseDoesNotExist(t *testing.T) {
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
@@ -180,7 +248,7 @@ func TestQuerySchema(t *testing.T) {
 	assert.NotNil(t, iterator.Raw())
 }
 
-func TestQueryWithOptions(t *testing.T) {
+func TestQuerySchemaWithOptions(t *testing.T) {
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -190,11 +258,8 @@ func TestQueryWithOptions(t *testing.T) {
 		Token:    token,
 		Database: "does not exist",
 	})
-	options := influxdb3.QueryOptions{
-		Database: database,
-	}
 
-	iterator, err := client.QueryWithOptions(context.Background(), &options, "SHOW NAMESPACES")
+	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES", influxdb3.WithDatabase(database))
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }
@@ -210,10 +275,7 @@ func TestQuerySchemaInfluxQL(t *testing.T) {
 		Database: database,
 	})
 
-	options := influxdb3.QueryOptions{
-		QueryType: influxdb3.InfluxQL,
-	}
-	iterator, err := client.QueryWithOptions(context.Background(), &options, "SHOW MEASUREMENTS")
+	iterator, err := client.Query(context.Background(), "SHOW MEASUREMENTS", influxdb3.WithQueryType(influxdb3.InfluxQL))
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }
