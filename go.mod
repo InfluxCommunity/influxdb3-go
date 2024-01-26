@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/apache/arrow/go/v14 v14.0.2
+	github.com/google/go-cmp v0.6.0
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.62.0
