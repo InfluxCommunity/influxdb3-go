@@ -3,26 +3,29 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/apache/arrow/go/v14/arrow"
+	"os"
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/apache/arrow/go/v14/arrow"
 )
 
 func main() {
-	url := "https://us-east-1-1.aws.cloud2.influxdata.com"
-	token := "my-token"
-	database := "my-database"
+	// Use env variables to initialize client
+	url := os.Getenv("INFLUXDB_URL")
+	token := os.Getenv("INFLUXDB_TOKEN")
+	database := os.Getenv("INFLUXDB_DATABASE")
 
+	// Create a new client using an InfluxDB server base URL and an authentication token
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
 		Token:    token,
 		Database: database,
 	})
-
 	if err != nil {
 		panic(err)
 	}
+
 	// Close client at the end and escalate error if present
 	defer func(client *influxdb3.Client) {
 		err := client.Close()
@@ -34,28 +37,31 @@ func main() {
 	//
 	// Write data
 	//
-	err = client.WritePoints(context.Background(), influxdb3.NewPointWithMeasurement("stat").
-		SetTag("unit", "temperature").
-		SetDoubleField("avg", 23.2).
-		SetDoubleField("max", 45.0))
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{
+		influxdb3.NewPointWithMeasurement("stat").
+			SetTag("location", "Paris").
+			SetDoubleField("temperature", 23.2),
+	})
 	if err != nil {
 		panic(err)
 	}
 	time.Sleep(1 * time.Second)
 
-	err = client.WritePoints(context.Background(), influxdb3.NewPointWithMeasurement("stat").
-		SetTag("unit", "temperature").
-		SetDoubleField("avg", 28.0).
-		SetDoubleField("max", 40.3))
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{
+		influxdb3.NewPointWithMeasurement("stat").
+			SetTag("location", "Paris").
+			SetDoubleField("temperature", 24.1),
+	})
 	if err != nil {
 		panic(err)
 	}
 	time.Sleep(1 * time.Second)
 
-	err = client.WritePoints(context.Background(), influxdb3.NewPointWithMeasurement("stat").
-		SetTag("unit", "temperature").
-		SetDoubleField("avg", 23.2).
-		SetDoubleField("max", 45.0))
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{
+		influxdb3.NewPointWithMeasurement("stat").
+			SetTag("location", "Paris").
+			SetDoubleField("temperature", 23.9),
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -66,14 +72,15 @@ func main() {
 	//
 	query := `
     SELECT
-		date_bin('5 minutes', "time") as window_start,
-		AVG("avg") as avg,
-		MAX("max") as max
-	FROM "stat"
+		DATE_BIN(INTERVAL '5 minutes', time) as window_start,
+        location,
+		AVG(temperature) as avg,
+		MAX(temperature) as max
+	FROM stat
 	WHERE
-	  "time" >= now() - interval '1 hour'
-  	GROUP BY window_start
-	ORDER BY window_start ASC;
+	  time >= now() - interval '1 hour'
+	GROUP BY window_start, location
+	ORDER BY location, window_start
   `
 
 	//
@@ -86,11 +93,11 @@ func main() {
 
 	for iterator.Next() {
 		row := iterator.AsPoints()
-		timestamp := int64(row.GetField("window_start").(arrow.Timestamp))
-
+		timestamp := (row.GetField("window_start").(arrow.Timestamp)).ToTime(arrow.Nanosecond)
+		location := row.GetStringField("location")
 		avgValue := row.GetDoubleField("avg")
 		maxValue := row.GetDoubleField("max")
-		fmt.Printf("%s: avg is %.2f, max is %.2f\n", time.Unix(0, timestamp), *avgValue, *maxValue)
+		fmt.Printf("%s %s temperature: avg %.2f, max %.2f\n", timestamp.Format(time.RFC822), *location, *avgValue, *maxValue)
 
 		//
 		// write back downsampled date to 'stat_downsampled' measurement
@@ -102,12 +109,11 @@ func main() {
 
 		downsampledPoint = downsampledPoint.
 			RemoveField("window_start").
-			SetTimestampWithEpoch(timestamp)
+			SetTimestampWithEpoch(timestamp.UnixNano())
 
-		err = client.WritePoints(context.Background(), downsampledPoint)
+		err = client.WritePoints(context.Background(), []*influxdb3.Point{downsampledPoint})
 		if err != nil {
 			panic(err)
 		}
 	}
-
 }
