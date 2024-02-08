@@ -383,9 +383,9 @@ func TestWritePointsAndBytes(t *testing.T) {
 
 func TestWritePointsWithOptions(t *testing.T) {
 	points := genPoints(t, 1)
-	defaultTags := map[string]string{ 
+	defaultTags := map[string]string{
 		"defaultTag": "default",
-		"rack": "main",
+		"rack":       "main",
 	}
 	lp := points2bytes(t, points, defaultTags)
 	correctPath := "/api/v2/write?bucket=x-db&org=&precision=ms"
@@ -408,9 +408,9 @@ func TestWritePointsWithOptions(t *testing.T) {
 		Database: "my-database",
 	})
 	options := WriteOptions{
-		Database:  "x-db",
-		Precision: lineprotocol.Millisecond,
-		defaultTags: defaultTags,
+		Database:    "x-db",
+		Precision:   lineprotocol.Millisecond,
+		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
@@ -500,7 +500,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 	options := WriteOptions{
 		Database:  "x-db",
 		Precision: lineprotocol.Second,
-		defaultTags: map[string]string{ 
+		DefaultTags: map[string]string{
 			"defaultTag": "default",
 		},
 	}
