@@ -1,5 +1,9 @@
 ## 0.6.0 [unreleased]
 
+### Bug Fixes
+
+1. [#59](https://github.com/InfluxCommunity/influxdb3-go/pull/59): Export Default Tags from package
+
 ## 0.5.0 [2023-12-05]
 
 ### Features

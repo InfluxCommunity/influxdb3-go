@@ -233,12 +233,11 @@ func (p *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) 
 	return p.MarshalBinaryWithDefaultTags(precision, nil)
 }
 
-
 // MarshalBinaryWithDefaultTags converts the Point to its binary representation in line protocol format with default tags.
 //
 // Parameters:
 //   - precision: The precision to use for timestamp encoding in line protocol format.
-//   - defaultTags: Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
+//   - DefaultTags: Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
 //
 // Returns:
 //   - The binary representation of the Point in line protocol format.
@@ -249,7 +248,7 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	enc.StartLine(p.Values.MeasurementName)
 
 	// sort Tags
-	tagKeys := make([]string, 0, len(p.Values.Tags) + len(defaultTags))
+	tagKeys := make([]string, 0, len(p.Values.Tags)+len(defaultTags))
 	for k := range p.Values.Tags {
 		tagKeys = append(tagKeys, k)
 	}
@@ -265,9 +264,9 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	}
 	for _, tagKey := range tagKeys {
 		if lastKey == tagKey {
-			continue;
+			continue
 		}
-		lastKey = tagKey;
+		lastKey = tagKey
 
 		if value, ok := p.Values.Tags[tagKey]; ok {
 			enc.AddTag(tagKey, value)

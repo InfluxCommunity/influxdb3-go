@@ -45,7 +45,7 @@ type WriteOptions struct {
 	Precision lineprotocol.Precision
 
 	// Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
-	// 
+	//
 	// Example using WritePointsWithOptions:
 	//  c, _ := New(ClientConfig{
 	//  	Host:         "host",
@@ -55,7 +55,7 @@ type WriteOptions struct {
 	//  })
 	//
 	//  options := WriteOptions{
-	//  	defaultTags: map[string]string{ 
+	//  	DefaultTags: map[string]string{
 	//  		"rack": "main",
 	//  	},
 	//  	Precision: lineprotocol.Millisecond,
@@ -74,7 +74,7 @@ type WriteOptions struct {
 	//  	Organization: "my-org",
 	//  	Database:     "my-database",
 	//  	WriteOptions: &WriteOptions{
-	//  		defaultTags: map[string]string{ 
+	//  		DefaultTags: map[string]string{
 	//  			"rack": "main",
 	//  		},
 	//  		Precision: lineprotocol.Millisecond,
@@ -86,7 +86,7 @@ type WriteOptions struct {
 	//
 	//  // Writes with rack=main tag
 	//  c.WritePoints(context.Background(), p)
-	defaultTags map[string]string
+	DefaultTags map[string]string
 
 	// Write body larger than the threshold is gzipped. 0 to don't gzip at all
 	GzipThreshold int
