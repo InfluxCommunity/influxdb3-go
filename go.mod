@@ -6,7 +6,7 @@ require (
 	github.com/apache/arrow/go/v13 v13.0.0
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/stretchr/testify v1.8.4
-	google.golang.org/grpc v1.61.0
+	google.golang.org/grpc v1.61.1
 )
 
 require (
