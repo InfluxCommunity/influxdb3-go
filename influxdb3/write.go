@@ -224,6 +224,85 @@ func (c *Client) WriteDataWithOptions(ctx context.Context, options *WriteOptions
 	return c.WriteWithOptions(ctx, options, buff)
 }
 
+// WriteBatchDataWithOptions writes batch data from an array of interfaces 
+//
+// TODO comment me - placeholder for linter
+//
+func (c *Client) WriteBatchDataWithOptions(ctx context.Context,
+	options *WriteOptions,
+	ifaces interface{}) error {
+
+	t := reflect.TypeOf(ifaces)
+	va := reflect.ValueOf(ifaces)
+
+	/* DEBUG BLOCK
+	   arr := make([]any, 0)
+
+	   fmt.Printf("DEBUG typeof ifaces: %+v\n", reflect.TypeOf(ifaces))
+	   fmt.Printf("DEBUG kind of ifaces: %+v\n", t.Kind())
+	   fmt.Printf("DEBUG is array %t\n", t.Kind() == reflect.Array || t.Kind() == reflect.Slice)
+	   fmt.Printf("DEBUG CanConvert([]array) %t\n", va.CanConvert(reflect.TypeOf(arr))) */
+
+	if !(t.Kind() == reflect.Array || t.Kind() == reflect.Slice) {
+		return fmt.Errorf("The type %s is unsupported.  "+
+			"This method handles only slices and arrays of annotated structures.\n", t.Kind())
+	}
+
+	/*  DEBUG BLOCK
+
+	    elemK := va.Index(0).Kind()
+	    elemV := va.Index(0)
+	    elemT := va.Index(0).Type()
+	    if elemK == reflect.Ptr {
+	        fmt.Printf("DEBUG got pointer\n")
+	        elemV = elemV.Elem()
+	        elemT = elemT.Elem()
+	    }
+
+	    fmt.Printf("DEBUG elemK: %+v\n", elemK)
+	    fmt.Printf("DEBUG elemV: %+v\n", elemV)
+	    fmt.Printf("DEBUG elemT: %+v\n", elemT)
+	    fmt.Printf("DEBUG fields elemT: %+v\n", reflect.VisibleFields(elemT))
+
+	    fields := reflect.VisibleFields(elemT)
+
+	    for _, f := range fields {
+
+	        fmt.Printf("   DEBUG has field %s with tag %+v\n", f.Name, f.Tag)
+	    }
+
+	*/
+
+	if va.Len() < 1 {
+		return nil
+	}
+	/* DEBUG BLOCK */
+	for i := 0; i < va.Len(); i++ {
+		fmt.Printf("DEBUG [%d] type: %s, kind: %s, %+v\n", i,
+			va.Index(i).Type(),
+			va.Index(i).Kind(),
+			va.Index(i))
+	}
+
+	/* */
+	var buff []byte
+
+	for i := 0; i < va.Len(); i++ {
+		fmt.Printf("DEBUG encoding iface[%d]: %+v\n", i, va.Index(i))
+		byts, err := encode(va.Index(i).Interface(), options)
+		if err != nil {
+			return fmt.Errorf("error encoding point: %w", err)
+			//panic(fmt.Sprintf("error encoding point: %s", err.Error()))
+		}
+		fmt.Printf("DEBUG appending byts: %+v\n", byts)
+		buff = append(buff, byts...)
+	}
+	fmt.Printf("DEBUG ctx: %+v\n", ctx)
+	fmt.Printf("DEBUG buff: %+v\n", buff)
+	//return nil
+	return c.WriteWithOptions(ctx, options, buff) // -- todo uncomment after basic tests in place
+}
+
 func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	if err := checkContainerType(x, false, "point"); err != nil {
 		return nil, err

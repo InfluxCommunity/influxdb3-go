@@ -27,6 +27,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -673,4 +674,117 @@ func TestWriteWithOptionsNotSet(t *testing.T) {
 	err = c.WritePointsWithOptions(context.Background(), nil, p)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "options not set")
+}
+
+type Widget struct {
+	Class  string  `lp:"measurement"`
+	Model  string  `lp:"tag,model"`
+	Name   string  `lp:"field,name"`
+	Charge float64 `lp:"field,charge"`
+	Quanta int     `lp:"field,quanta"`
+	//    Time   time.Time `lp:"timestamp"`
+}
+
+func TestClient_WriteBatchDataPtrWithOptionsPtr(t *testing.T) {
+	widgets := []*Widget{
+		&Widget{
+			"widget",
+			"A",
+			"able",
+			math.E,
+			3,
+			//          time.Now(),
+		},
+		&Widget{
+			"widget",
+			"A",
+			"baker",
+			math.Pi * -2,
+			1,
+			//        time.Now().Add(-10 * time.Second),
+		},
+		&Widget{
+			"widget",
+			"T",
+			"charlie",
+			math.Pi,
+			1,
+			//         time.Now().Add(-20 * time.Second),
+		},
+	}
+	correctPath := "/api/v2/write?bucket=x-db&org=my-org&precision=s"
+	lp := `widget,defaultTag=default,model=A charge=2.718281828459045,name="able",quanta=3i
+widget,defaultTag=default,model=A charge=-6.283185307179586,name="baker",quanta=1i
+widget,defaultTag=default,model=T charge=3.141592653589793,name="charlie",quanta=1i
+`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, lp, string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:         ts.URL,
+		Token:        "my-token",
+		Organization: "my-org",
+		Database:     "my-database",
+	})
+	options := WriteOptions{
+		Database:  "x-db",
+		Precision: lineprotocol.Second,
+		DefaultTags: map[string]string{
+			"defaultTag": "default",
+		},
+	}
+	require.NoError(t, err)
+	werr := c.WriteBatchDataWithOptions(context.Background(), &options, widgets)
+	if werr != nil {
+		fmt.Printf("Caught werr: %s\n", werr.Error())
+	}
+	//berr := c.WriteBatchDataWithOptions(context.Background(), &options, "A String")
+	//assert.NotNil(t, berr)
+	//fmt.Printf("Got berr: %s\n", berr.Error())
+}
+
+func TestClient_WriteBatchDataWithOptionsBadData(t *testing.T) {
+	options := WriteOptions{
+		Database:  "x-db",
+		Precision: lineprotocol.Second,
+		DefaultTags: map[string]string{
+			"defaultTag": "default",
+		},
+	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		correctPath := "/api/v2/write?bucket=x-db&org=my-org&precision=s"
+		assert.EqualValues(t, correctPath, r.URL.String())
+		//body, err := io.ReadAll(r.Body)
+		//require.NoError(t, err)
+		//assert.Equal(t, lp, string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:         ts.URL,
+		Token:        "my-token",
+		Organization: "my-org",
+		Database:     "my-database",
+	})
+
+	if err != nil {
+		assert.Failf(t, "Failed to get client: %s\n", err.Error())
+	}
+
+	berr := c.WriteBatchDataWithOptions(context.Background(), &options, "A String")
+	assert.NotNil(t, berr)
+	fmt.Printf("Got berr: %s\n", berr.Error())
 }
