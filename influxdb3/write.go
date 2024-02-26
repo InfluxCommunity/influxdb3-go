@@ -224,10 +224,62 @@ func (c *Client) WriteDataWithOptions(ctx context.Context, options *WriteOptions
 	return c.WriteWithOptions(ctx, options, buff)
 }
 
-// WriteBatchDataWithOptions writes batch data from an array of interfaces
+// WriteBatchData - for an array or slice of interfaces of the same type,
+// encodes fields of each item and writes them as a single batch into the
+// database.  As with interfaces in WriteDataMethod(), properties to be
+// written to the database must be annotated with the 'lp' prefix and
+// values, i.e. measurement, tag, field or timestamp.
 //
-// TODO comment me - placeholder for linter
+// Example interface:
 //
+//	type TemperatureSensor struct {
+//	    Measurement  string    `lp:"measurement"`
+//	    Sensor       string    `lp:"tag,sensor"`
+//	    ID           string    `lp:"tag,device_id"`
+//	    Temp         float64   `lp:"field,temperature"`
+//	    Hum          int       `lp:"field,humidity"`
+//	    Time         time.Time `lp:"timestamp"`
+//	    Description  string    `lp:"-"`
+//	}
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - points: The custom points to encode and write.
+//
+// Returns:
+//   - An error, if any.
+func (c *Client) WriteBatchData(ctx context.Context,
+	ifaces interface{}) error {
+
+	return c.WriteBatchDataWithOptions(ctx, c.config.WriteOptions, ifaces)
+
+}
+
+// WriteBatchDataWithOptions - for an array or slice of interfaces of the
+// same type, encodes fields of each item and writes them as a single batch
+// into the database.  As with interfaces in WriteDataMethod(), properties
+// to be written to the database must be annotated with the 'lp' prefix and
+// values, i.e. measurement, tag, field or timestamp.
+//
+// Example interface:
+//
+//	type TemperatureSensor struct {
+//	    Measurement  string    `lp:"measurement"`
+//	    Sensor       string    `lp:"tag,sensor"`
+//	    ID           string    `lp:"tag,device_id"`
+//	    Temp         float64   `lp:"field,temperature"`
+//	    Hum          int       `lp:"field,humidity"`
+//	    Time         time.Time `lp:"timestamp"`
+//	    Description  string    `lp:"-"`
+//	}
+//
+// Parameters:
+//   - ctx: The context.Context to use for the request.
+//   - points: The custom points to encode and write.
+//   - options: Write options.
+//
+// Returns:
+//   - An error, if any.
 func (c *Client) WriteBatchDataWithOptions(ctx context.Context,
 	options *WriteOptions,
 	ifaces interface{}) error {
