@@ -62,7 +62,7 @@ func (c *Client) WritePoints(ctx context.Context, points []*Point, options ...Wr
 // Returns:
 //   - An error, if any.
 //
-// Deprecated: use WritePoints with WriteOption options.
+// Deprecated: use WritePoints with variadic WriteOption options.
 func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptions, points ...*Point) error {
 	if options == nil {
 		return errors.New("options not set")

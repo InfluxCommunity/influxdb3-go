@@ -109,7 +109,7 @@ func (c *Client) QueryWithParameters(ctx context.Context, query string, paramete
 //   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
 //   - An error, if any.
 //
-// Deprecated: use Query with QueryOption options.
+// Deprecated: use Query with variadic QueryOption options.
 func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (*QueryIterator, error) {
 	if options == nil {
 		return nil, errors.New("options not set")
