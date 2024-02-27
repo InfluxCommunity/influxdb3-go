@@ -33,7 +33,7 @@ which allows you to execute SQL queries against InfluxDB IOx.
 
 ## Installation
 
-Add the latest version of the client package to your project dependencies (`go.mod`):
+Add the latest version of the client package to your project dependencies:
 
 ```sh
 go get github.com/InfluxCommunity/influxdb3-go
@@ -41,19 +41,27 @@ go get github.com/InfluxCommunity/influxdb3-go
 
 ## Usage
 
-set environment variables:
+Client can be instantiated using
 
-- `INFLUXDB_URL` region of your influxdb cloud e.g. *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
-- `INFLUXDB_TOKEN` read/write token generated in cloud
-- `INFLUXDB_DATABASE` name of database e.g .*`my-database`*
+* `influxb3.ClientConfig`
+* environment variables
+* connection string
+
+### Environment variables
+
+Set environment variables:
+
+* `INFLUX_URL` region of your influxdb cloud e.g. *`https://us-east-1-1.aws.cloud2.influxdata.com/`*
+* `INFLUX_TOKEN` read/write token generated in cloud
+* `INFLUX_DATABASE` name of database e.g .*`my-database`*
 
 <details>
   <summary>linux/macos</summary>
 
 ```sh
-export INFLUXDB_URL="<url>"
-export INFLUXDB_DATABASE="<database>"
-export INFLUXDB_TOKEN="<token>"
+export INFLUX_URL="<url>"
+export INFLUX_TOKEN="<token>"
+export INFLUX_DATABASE="<database>"
 ```
 
 </details>
@@ -62,9 +70,9 @@ export INFLUXDB_TOKEN="<token>"
   <summary>windows</summary>
 
 ```powershell
-setx INFLUXDB_URL "<url>"
-setx INFLUXDB_DATABASE "<database>"
-setx INFLUXDB_TOKEN "<token>"
+setx INFLUX_URL "<url>"
+setx INFLUX_TOKEN "<token>"
+setx INFLUX_DATABASE "<database>"
 ```
 
 </details>
@@ -82,49 +90,86 @@ import (
 )
 ```
 
-Create `influxdb3.Client` with `New` function. Make sure to `Close` client after with `defer` keyword.
+Create `influxdb3.Client` with `New` function. Make sure to `Close` the client at the end.
 
 ```go
-url := os.Getenv("INFLUXDB_URL")
-token := os.Getenv("INFLUXDB_TOKEN")
-database := os.Getenv("INFLUXDB_DATABASE")
+// Create a new client using INFLUX_* environment variables
+client, err := influxdb3.New()
 
-// Create a new client using an InfluxDB server base URL and an authentication token
-client, err := influxdb3.New(influxdb3.ClientConfig{
-    Host: url,
-    Token: token,
-    Database: database,
-})
-// Close client at the end and escalate error if present
-defer func (client *influxdb3.Client)  {
+// Close client at the end and escalate an error if occurs
+defer func ()  {
     err := client.Close()
     if err != nil {
         panic(err)
     }
-}(client)
+}()
 ```
 
-The `client` can be now used to insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/).
+### Write data
+
+The `client` can insert data using [line-protocol](https://docs.influxdata.com/influxdb/cloud-serverless/reference/syntax/line-protocol/):
 
 ```go
-line := "stat,unit=temperature avg=23.5,max=45.0"
+line := "stat,location=Paris temperature=23.5,humidity=45i"
 err = client.Write(context.Background(), []byte(line))
 ```
 
-Fetch data using FlightSQL query and print result.
+The `client` can also write points
+
+```go
+p1 := influxdb3.Point{
+    influxdb3.NewPoint("stat",
+        map[string]string{
+            "location": "Paris",
+        },
+        map[string]any{
+            "temperature": 24.5,
+            "humidity":    40,
+        },
+        time.Now(),
+    ),
+}
+points := []*influxdb3.Point{p1}
+err = client.WritePoints(context.Background(), points)
+```
+
+and/or annotated structs
+
+```go
+s1 := struct {
+    Measurement string    `lp:"measurement"`
+    Sensor      string    `lp:"tag,location"`
+    Temp        float64   `lp:"field,temperature"`
+    Hum         int       `lp:"field,humidity"`
+    Time        time.Time `lp:"timestamp"`
+    Description string    `lp:"-"`
+}{
+    "stat",
+    "Paris",
+    23.5,
+    55,
+    time.Now(),
+    "Paris weather conditions",
+}
+data := []any{s1}
+err = client.WriteData(context.Background(), data)
+```
+
+### Query
+
+Use FlightSQL to query and print result.
 
 ```go
 query := `
-        SELECT *
-        FROM "stat"
-        WHERE
+    SELECT *
+    FROM stat
+    WHERE
         time >= now() - interval '5 minute'
         AND
-        "unit" IN ('temperature')
-`;
+        location IN ('Paris')
+`
 
 iterator, err := client.Query(context.Background(), query)
-
 if err != nil {
     panic(err)
 }
@@ -132,14 +177,34 @@ if err != nil {
 for iterator.Next() {
     value := iterator.Value()
 
-    fmt.Printf("avg is %f\n", value["avg"])
-    fmt.Printf("max is %f\n", value["max"])
+    fmt.Printf("temperature in Paris is %f\n", value["temperature"])
+    fmt.Printf("humidity in Paris is %d%%\n", value["humidity"])
 }
 ```
 
-## Example
+Queries can be parameterized:
 
-Prepare environment like in [Usage](#usage) and run `go run ./example/main.go`.
+```go
+query := `
+    SELECT *
+    FROM stat
+    WHERE
+        time >= now() - interval '5 minute'
+        AND
+        location = $location
+`
+parameters := influxdb3.QueryParameters{
+    "location": "Paris",
+}
+
+iterator, err := client.QueryWithParameters(context.Background(), query, parameters)
+
+// process result
+```
+
+## Examples
+
+Prepare environment like in [Usage](#usage) and check ['examples'](./examples/README.md) folder.
 
 ## Feedback
 

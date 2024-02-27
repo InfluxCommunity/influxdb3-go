@@ -370,7 +370,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, reqs)
 
-	err = c.WritePoints(context.Background(), points...)
+	err = c.WritePoints(context.Background(), points)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, reqs)
 
@@ -381,14 +381,14 @@ func TestWritePointsAndBytes(t *testing.T) {
 	assert.Equal(t, "invalid: error lens are not equal 911244 vs 4", err.Error())
 }
 
-func TestWritePointsWithOptions(t *testing.T) {
+func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 	points := genPoints(t, 1)
 	defaultTags := map[string]string{
 		"defaultTag": "default",
 		"rack":       "main",
 	}
 	lp := points2bytes(t, points, defaultTags)
-	correctPath := "/api/v2/write?bucket=x-db&org=&precision=ms"
+	correctPath := "/api/v2/write?bucket=db-x&org=&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -408,12 +408,46 @@ func TestWritePointsWithOptions(t *testing.T) {
 		Database: "my-database",
 	})
 	options := WriteOptions{
-		Database:    "x-db",
+		Database:    "db-x",
 		Precision:   lineprotocol.Millisecond,
 		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
+	assert.NoError(t, err)
+}
+
+func TestWritePointsWithOptions(t *testing.T) {
+	points := genPoints(t, 1)
+	defaultTags := map[string]string{
+		"defaultTag": "default",
+		"rack":       "main",
+	}
+	lp := points2bytes(t, points, defaultTags)
+	correctPath := "/api/v2/write?bucket=db-x&org=&precision=ms"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+
+		assert.EqualValues(t, correctPath, r.URL.String())
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, string(lp), string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+	err = c.WritePoints(context.Background(), points,
+		WithPrecision(lineprotocol.Millisecond),
+		WithDatabase("db-x"),
+		WithDefaultTags(defaultTags))
 	assert.NoError(t, err)
 }
 
@@ -454,7 +488,60 @@ func TestWriteData(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	err = c.WriteData(context.Background(), s)
+	err = c.WriteData(context.Background(), []any{s})
+	assert.NoError(t, err)
+}
+
+func TestWriteDataWithOptionsDeprecated(t *testing.T) {
+	now := time.Now()
+	s := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Temp        float64   `lp:"field,temperature"`
+		Hum         int       `lp:"field,humidity"`
+		Time        time.Time `lp:"timestamp"`
+		Description string    `lp:"-"`
+	}{
+		"air",
+		"SHT31",
+		"10",
+		23.5,
+		55,
+		now,
+		"Room temp",
+	}
+	defaultTags := map[string]string{
+		"defaultTag": "default",
+		"rack":       "main",
+	}
+	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,rack=main,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
+	correctPath := "/api/v2/write?bucket=db-x&org=my-org&precision=s"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, lp, string(body))
+		w.WriteHeader(204)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:         ts.URL,
+		Token:        "my-token",
+		Organization: "my-org",
+		Database:     "my-database",
+	})
+	options := WriteOptions{
+		Database:    "db-x",
+		Precision:   lineprotocol.Second,
+		DefaultTags: defaultTags,
+	}
+	require.NoError(t, err)
+	err = c.WriteDataWithOptions(context.Background(), &options, s)
 	assert.NoError(t, err)
 }
 
@@ -477,8 +564,12 @@ func TestWriteDataWithOptions(t *testing.T) {
 		now,
 		"Room temp",
 	}
-	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
-	correctPath := "/api/v2/write?bucket=x-db&org=my-org&precision=s"
+	defaultTags := map[string]string{
+		"defaultTag": "default",
+		"rack":       "main",
+	}
+	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,rack=main,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
+	correctPath := "/api/v2/write?bucket=db-x&org=my-org&precision=s"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -497,15 +588,11 @@ func TestWriteDataWithOptions(t *testing.T) {
 		Organization: "my-org",
 		Database:     "my-database",
 	})
-	options := WriteOptions{
-		Database:  "x-db",
-		Precision: lineprotocol.Second,
-		DefaultTags: map[string]string{
-			"defaultTag": "default",
-		},
-	}
 	require.NoError(t, err)
-	err = c.WriteDataWithOptions(context.Background(), &options, s)
+	err = c.WriteData(context.Background(), []any{s},
+		WithDatabase("db-x"),
+		WithPrecision(lineprotocol.Second),
+		WithDefaultTags(defaultTags))
 	assert.NoError(t, err)
 }
 
@@ -588,7 +675,7 @@ func TestCustomHeaders(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	err = c.WritePoints(context.Background(), p)
+	err = c.WritePoints(context.Background(), []*Point{p})
 	require.NoError(t, err)
 }
 
@@ -615,7 +702,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 
 	p.SetTimestamp(time.Now())
 
-	err = c.WritePoints(context.Background(), p)
+	err = c.WritePoints(context.Background(), []*Point{p})
 	assert.Error(t, err)
 
 	err = c.WriteData(context.Background(), []interface{}{
@@ -641,7 +728,7 @@ func TestHttpError(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	err = c.WritePoints(context.Background(), p)
+	err = c.WritePoints(context.Background(), []*Point{p})
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "error calling")
 }
@@ -655,7 +742,7 @@ func TestWriteDatabaseNotSet(t *testing.T) {
 		Token: "my-token",
 	})
 	require.NoError(t, err)
-	err = c.WritePoints(context.Background(), p)
+	err = c.WritePoints(context.Background(), []*Point{p})
 	assert.Error(t, err)
 	assert.EqualError(t, err, "database not specified")
 }

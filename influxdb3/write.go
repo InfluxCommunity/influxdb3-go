@@ -25,6 +25,7 @@ package influxdb3
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,11 +43,12 @@ import (
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - points: The points to write.
+//   - options: Optional write options. See WriteOption for available options.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) WritePoints(ctx context.Context, points ...*Point) error {
-	return c.WritePointsWithOptions(ctx, c.config.WriteOptions, points...)
+func (c *Client) WritePoints(ctx context.Context, points []*Point, options ...WriteOption) error {
+	return c.writePoints(ctx, points, newWriteOptions(c.config.WriteOptions, options))
 }
 
 // WritePointsWithOptions writes all the given points to the server into the given database.
@@ -59,7 +61,17 @@ func (c *Client) WritePoints(ctx context.Context, points ...*Point) error {
 //
 // Returns:
 //   - An error, if any.
+//
+// Deprecated: use WritePoints with variadic WriteOption options.
 func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptions, points ...*Point) error {
+	if options == nil {
+		return errors.New("options not set")
+	}
+
+	return c.writePoints(ctx, points, options)
+}
+
+func (c *Client) writePoints(ctx context.Context, points []*Point, options *WriteOptions) error {
 	var buff []byte
 	var precision lineprotocol.Precision
 	if options != nil {
@@ -81,7 +93,8 @@ func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptio
 		}
 		buff = append(buff, bts...)
 	}
-	return c.WriteWithOptions(ctx, options, buff)
+
+	return c.write(ctx, buff, options)
 }
 
 // Write writes line protocol record(s) to the server into the given database.
@@ -91,11 +104,12 @@ func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptio
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - buff: The line protocol record(s) to write.
+//   - options: Optional write options. See WriteOption for available options.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) Write(ctx context.Context, buff []byte) error {
-	return c.WriteWithOptions(ctx, c.config.WriteOptions, buff)
+func (c *Client) Write(ctx context.Context, buff []byte, options ...WriteOption) error {
+	return c.write(ctx, buff, newWriteOptions(c.config.WriteOptions, options))
 }
 
 // WriteWithOptions writes line protocol record(s) to the server into the given database.
@@ -109,13 +123,18 @@ func (c *Client) Write(ctx context.Context, buff []byte) error {
 //
 // Returns:
 //   - An error, if any.
+//
+// Deprecated: use WritePoints with WithWriteOptions option
 func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, buff []byte) error {
 	if options == nil {
-		return fmt.Errorf("options not set")
+		return errors.New("options not set")
 	}
+
+	return c.write(ctx, buff, options)
+}
+
+func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) error {
 	var database string
-	var precision lineprotocol.Precision
-	var gzipThreshold int
 	if options.Database != "" {
 		database = options.Database
 	} else {
@@ -124,7 +143,11 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 	if database == "" {
 		return fmt.Errorf("database not specified")
 	}
+
+	var precision lineprotocol.Precision
 	precision = options.Precision
+
+	var gzipThreshold int
 	gzipThreshold = options.GzipThreshold
 
 	var body io.Reader
@@ -177,11 +200,12 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - points: The custom points to encode and write.
+//   - options: Optional write options. See WriteOption for available options.
 //
 // Returns:
 //   - An error, if any.
-func (c *Client) WriteData(ctx context.Context, points ...interface{}) error {
-	return c.WriteDataWithOptions(ctx, c.config.WriteOptions, points...)
+func (c *Client) WriteData(ctx context.Context, points []interface{}, options ...WriteOption) error {
+	return c.writeData(ctx, points, newWriteOptions(c.config.WriteOptions, options))
 }
 
 // WriteDataWithOptions encodes fields of custom points into line protocol
@@ -211,23 +235,34 @@ func (c *Client) WriteData(ctx context.Context, points ...interface{}) error {
 //
 // Returns:
 //   - An error, if any.
+//
+// Deprecated: use Query with WithQueryOptions option
 func (c *Client) WriteDataWithOptions(ctx context.Context, options *WriteOptions, points ...interface{}) error {
+	if options == nil {
+		return errors.New("options not set")
+	}
+
+	return c.writeData(ctx, points, options)
+}
+
+func (c *Client) writeData(ctx context.Context, points []interface{}, options *WriteOptions) error {
 	var buff []byte
 	for _, p := range points {
-		byts, err := encode(p, options)
+		b, err := encode(p, options)
 		if err != nil {
 			return fmt.Errorf("error encoding point: %w", err)
 		}
-		buff = append(buff, byts...)
+		buff = append(buff, b...)
 	}
 
-	return c.WriteWithOptions(ctx, options, buff)
+	return c.write(ctx, buff, options)
 }
 
 func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	if err := checkContainerType(x, false, "point"); err != nil {
 		return nil, err
 	}
+
 	t := reflect.TypeOf(x)
 	v := reflect.ValueOf(x)
 	if t.Kind() == reflect.Ptr {
@@ -251,7 +286,7 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 			}
 			parts := strings.Split(tag, ",")
 			if len(parts) > 2 {
-				return nil, fmt.Errorf("multiple tag attributes are not supported")
+				return nil, errors.New("multiple tag attributes are not supported")
 			}
 			typ := parts[0]
 			if len(parts) == 2 {
@@ -260,7 +295,7 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 			switch typ {
 			case "measurement":
 				if point.GetMeasurement() != "" {
-					return nil, fmt.Errorf("multiple measurement fields")
+					return nil, errors.New("multiple measurement fields")
 				}
 				point.SetMeasurement(v.FieldByIndex(f.Index).String())
 			case "tag":
@@ -278,10 +313,11 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 		}
 	}
 	if point.GetMeasurement() == "" {
-		return nil, fmt.Errorf("no struct field with tag 'measurement'")
+		return nil, errors.New("no struct field with tag 'measurement'")
 	}
 	if !point.HasFields() {
-		return nil, fmt.Errorf("no struct field with tag 'field'")
+		return nil, errors.New("no struct field with tag 'field'")
 	}
+
 	return point.MarshalBinaryWithDefaultTags(options.Precision, options.DefaultTags)
 }
