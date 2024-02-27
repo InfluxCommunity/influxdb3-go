@@ -203,7 +203,7 @@ func TestQueryWithParameters(t *testing.T) {
 	assert.True(t, hasValue)
 
 	value := iterator.Value()
-	assert.Equal(t, "location", value["sun-valley-1"])
+	assert.Equal(t, "sun-valley-1", value["location"])
 	assert.Equal(t, 15.5, value["temp"])
 	assert.Equal(t, int64(80), value["index"])
 	assert.Equal(t, uint64(800), value["uindex"])
