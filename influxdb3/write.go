@@ -124,7 +124,7 @@ func (c *Client) Write(ctx context.Context, buff []byte, options ...WriteOption)
 // Returns:
 //   - An error, if any.
 //
-// Deprecated: use WritePoints with WithWriteOptions option
+// Deprecated: use Write with variadic WriteOption option
 func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, buff []byte) error {
 	if options == nil {
 		return errors.New("options not set")
@@ -236,7 +236,7 @@ func (c *Client) WriteData(ctx context.Context, points []interface{}, options ..
 // Returns:
 //   - An error, if any.
 //
-// Deprecated: use Query with WithQueryOptions option
+// Deprecated: use WriteData with variadic WriteOption option
 func (c *Client) WriteDataWithOptions(ctx context.Context, options *WriteOptions, points ...interface{}) error {
 	if options == nil {
 		return errors.New("options not set")
