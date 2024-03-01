@@ -2,6 +2,10 @@
 
 ## 0.6.0 [2024-03-01]
 
+### Features
+
+1. [#56](https://github.com/InfluxCommunity/influxdb3-go/pull/56): Add support for named query parameters
+
 ### Bug Fixes
 
 1. [#59](https://github.com/InfluxCommunity/influxdb3-go/pull/59): Export Default Tags from package
