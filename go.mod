@@ -1,6 +1,6 @@
 module github.com/InfluxCommunity/influxdb3-go
 
-go 1.20
+go 1.22
 
 require (
 	github.com/apache/arrow/go/v14 v14.0.2
