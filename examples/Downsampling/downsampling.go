@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v15/arrow"
 )
 
 func main() {
