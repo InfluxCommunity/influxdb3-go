@@ -3,7 +3,7 @@ module github.com/InfluxCommunity/influxdb3-go
 go 1.22
 
 require (
-	github.com/apache/arrow/go/v15 v15.0.1
+	github.com/apache/arrow/go/v15 v15.0.2
 	github.com/google/go-cmp v0.6.0
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/stretchr/testify v1.9.0
