@@ -1,5 +1,23 @@
 ## 0.7.0 [unreleased]
 
+### Breaking Changes
+
+- Rename `FlightSQL` constant to `SQL`. You are able to easily migrate by:
+    ```diff
+      - queryOptions := QueryOptions{
+	  -   Database:  "my-db",
+	  -   QueryType: FlightSQL,
+      - }
+      + queryOptions := QueryOptions{
+	  +   Database:  "my-db",
+	  +   QueryType: SQL,
+      + }
+      ```
+  
+### Bug Fixes
+
+1. [#71](https://github.com/InfluxCommunity/influxdb3-go/pull/71): Rename `FlightSQL` constant to `SQL`
+
 ### Others
 
 1. [#68](https://github.com/InfluxCommunity/influxdb3-go/pull/68): Upgrade Go version to 1.22.
