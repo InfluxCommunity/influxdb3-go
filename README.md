@@ -157,7 +157,7 @@ err = client.WriteData(context.Background(), data)
 
 ### Query
 
-Use FlightSQL to query and print result.
+Use SQL to query and print result.
 
 ```go
 query := `

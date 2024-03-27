@@ -84,7 +84,7 @@ func main() {
 		panic(err)
 	}
 
-	// Prepare FlightSQL query
+	// Prepare SQL query
 	query := `
     SELECT *
     FROM stat

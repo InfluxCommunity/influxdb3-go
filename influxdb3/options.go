@@ -94,7 +94,7 @@ type WriteOptions struct {
 
 // DefaultQueryOptions specifies default query options
 var DefaultQueryOptions = QueryOptions{
-	QueryType: FlightSQL,
+	QueryType: SQL,
 }
 
 // DefaultWriteOptions specifies default write options
