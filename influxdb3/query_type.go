@@ -27,7 +27,7 @@ type QueryType int
 
 // QueryType constants
 const (
-	FlightSQL QueryType = iota
+	SQL QueryType = iota
 	InfluxQL
 )
 
