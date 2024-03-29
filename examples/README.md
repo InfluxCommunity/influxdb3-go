@@ -1,4 +1,4 @@
 # Examples
 
-- [IOxExample](IOx/iox.go) - How to use write and query data from InfluxDB IOx
-- [Downsampling](Downsampling/downsampling.go) - How to use queries to structure data for downsampling
+- [IOx](IOx/iox.go) - A complete Go example that writes and queries data stored in InfluxDB v3 (formerly InfluxDB IOx).
+- [Downsampling](Downsampling/downsampling.go) - A complete Go example queries to structure data for downsampling

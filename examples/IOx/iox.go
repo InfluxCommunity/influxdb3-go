@@ -3,20 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/apache/arrow/go/v15/arrow"
 	"os"
 	"time"
 
+	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
 func main() {
-	// Use env variables to initialize client
+	// Retrieve credentials from environment variables.
 	url := os.Getenv("INFLUX_URL")
 	token := os.Getenv("INFLUX_TOKEN")
 	database := os.Getenv("INFLUX_DATABASE")
 
-	// Create a new client using an InfluxDB server base URL and an authentication token
+	// Instantiate a client using your credentials.
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
 		Token:    token,
@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 
-	// Close client at the end and escalate error if present
+	// Close the client when finished and raise any errors.
 	defer func(client *influxdb3.Client) {
 		err := client.Close()
 		if err != nil {
@@ -34,7 +34,7 @@ func main() {
 		}
 	}(client)
 
-	// Create point using full params constructor
+	// Create a Point using the full params constructor.
 	p := influxdb3.NewPoint("stat",
 		map[string]string{"location": "Paris"},
 		map[string]interface{}{
@@ -43,26 +43,26 @@ func main() {
 		},
 		time.Now())
 
-	// write point synchronously
+	// Write the point synchronously.
 	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
 	if err != nil {
 		panic(err)
 	}
 
-	// Create point using fluent style
+	// Create a Point using the fluent interface (method chaining). 
 	p = influxdb3.NewPointWithMeasurement("stat").
 		SetTag("location", "London").
 		SetField("temperature", 17.1).
 		SetField("humidity", 65).
 		SetTimestamp(time.Now())
 
-	// write point synchronously
+	// Write the point synchronously.
 	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
 	if err != nil {
 		panic(err)
 	}
 
-	// Prepare custom type
+	// Construct data as a custom type.
 	sensorData := struct {
 		Table string    `lp:"measurement"`
 		Unit  string    `lp:"tag,location"`
@@ -71,27 +71,27 @@ func main() {
 		Time  time.Time `lp:"timestamp"`
 	}{"stat", "Madrid", 33.8, 35, time.Now()}
 
-	// Write point
+	// Write the data. 
 	err = client.WriteData(context.Background(), []any{sensorData})
 	if err != nil {
 		panic(err)
 	}
 
-	// Or write directly line protocol
+	// Provide data as a line protocol string.
 	line := fmt.Sprintf("stat,location=Berlin temperature=%f,humidity=%di", 20.1, 55)
+
+	// Write the line protocol string.
 	err = client.Write(context.Background(), []byte(line))
 	if err != nil {
 		panic(err)
 	}
 
-	// Prepare FlightSQL query
+	// Prepare an SQL query
 	query := `
     SELECT *
     FROM stat
-    WHERE
-	time >= now() - interval '5 minute'
-    AND
-    location IN ('Paris', 'London', 'Madrid')
+    WHERE time >= now() - interval '5 minutes'
+    AND location IN ('Paris', 'London', 'Madrid')
   `
 
 	// Run the query
