@@ -3,6 +3,7 @@
 ### Others
 
 1. [#68](https://github.com/InfluxCommunity/influxdb3-go/pull/68): Upgrade Go version to 1.22.
+2. [#74](https://github.com/InfluxCommunity/influxdb3-go/pull/74): Added logger.
 
 ## 0.6.0 [2024-03-01]
 
