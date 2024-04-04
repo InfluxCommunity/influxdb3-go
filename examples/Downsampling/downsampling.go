@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
-	// Use env variables to initialize client
+	// Retrieve credentials from environment variables.
 	url := os.Getenv("INFLUX_URL")
 	token := os.Getenv("INFLUX_TOKEN")
 	database := os.Getenv("INFLUX_DATABASE")
 
-	// Create a new client using an InfluxDB server base URL and an authentication token
+	// Instantiate a client using your credentials.
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
 		Token:    token,
@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 
-	// Close client at the end and escalate error if present
+	// Close the client when finished and raise any errors.
 	defer func(client *influxdb3.Client) {
 		err := client.Close()
 		if err != nil {
@@ -35,7 +35,7 @@ func main() {
 	}(client)
 
 	//
-	// Write data
+	// Write data to the 'stat' measurement
 	//
 	err = client.WritePoints(context.Background(), []*influxdb3.Point{
 		influxdb3.NewPointWithMeasurement("stat").
@@ -68,7 +68,7 @@ func main() {
 	time.Sleep(1 * time.Second)
 
 	//
-	// Query Downsampled data
+	// Define a query using aggregate functions and grouping to downsample the data.
 	//
 	query := `
     SELECT
@@ -76,21 +76,23 @@ func main() {
         location,
 		AVG(temperature) as avg,
 		MAX(temperature) as max
-	FROM stat
-	WHERE
-	  time >= now() - interval '1 hour'
-	GROUP BY window_start, location
-	ORDER BY location, window_start
+	  FROM stat
+		WHERE
+			time >= now() - interval '1 hour'
+		GROUP BY window_start, location
+		ORDER BY location, window_start
   `
 
 	//
-	// Execute downsampling query into PointValues
+	// Execute the query and process the data.
 	//
+
 	iterator, err := client.Query(context.Background(), query)
 	if err != nil {
 		panic(err)
 	}
 
+	// Process the data as PointValues that can be used to write downsampled data back to the database.
 	for iterator.Next() {
 		row := iterator.AsPoints()
 		timestamp := (row.GetField("window_start").(arrow.Timestamp)).ToTime(arrow.Nanosecond)
@@ -100,8 +102,10 @@ func main() {
 		fmt.Printf("%s %s temperature: avg %.2f, max %.2f\n", timestamp.Format(time.RFC822), *location, *avgValue, *maxValue)
 
 		//
-		// write back downsampled date to 'stat_downsampled' measurement
+		// Write back downsampled data.
 		//
+
+		// Create a downsampled Point for the 'stat_downsampled' table.
 		downsampledPoint, err := row.AsPointWithMeasurement("stat_downsampled")
 		if err != nil {
 			panic(err)
@@ -110,7 +114,8 @@ func main() {
 		downsampledPoint = downsampledPoint.
 			RemoveField("window_start").
 			SetTimestampWithEpoch(timestamp.UnixNano())
-
+		
+		// Write the downsampled Point to the database.
 		err = client.WritePoints(context.Background(), []*influxdb3.Point{downsampledPoint})
 		if err != nil {
 			panic(err)
