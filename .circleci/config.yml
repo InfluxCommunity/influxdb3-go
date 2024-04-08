@@ -29,7 +29,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            if [ "${CIRCLE_BRANCH}" == pull/* ]; then
+            if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
               GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out ./...
             else
               GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out --tags e2e ./...
