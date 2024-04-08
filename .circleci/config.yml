@@ -28,7 +28,12 @@ jobs:
             go install golang.org/x/lint/golint@latest && golint ./...
       - run:
           name: Run tests
-          command: GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out --tags e2e ./...
+          command: |
+            if [ "${CIRCLE_BRANCH}" == pull/* ];
+              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out ./...
+            else
+              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out --tags e2e ./...
+            fi
       - run:
           name: Coverage Report
           command: |
