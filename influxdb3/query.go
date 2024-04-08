@@ -152,7 +152,6 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 
 	// add system headers
 	ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+c.config.Token)
-	ctx = metadata.AppendToOutgoingContext(ctx, "Database", database)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
