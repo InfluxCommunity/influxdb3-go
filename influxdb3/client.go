@@ -32,11 +32,17 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/apache/arrow/go/v15/arrow/flight"
 )
+
+// system headers
+var systemHeaders = []string{
+	"Authorization",
+}
 
 // Client implements an InfluxDB client.
 type Client struct {
@@ -174,7 +180,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	}
 	req.Header.Set("User-Agent", userAgent)
 	if c.authorization != "" {
-		req.Header.Add("Authorization", c.authorization)
+		req.Header.Set("Authorization", c.authorization)
 	}
 
 	resp, err := c.config.HTTPClient.Do(req)
@@ -240,4 +246,11 @@ func (c *Client) Close() error {
 	c.config.HTTPClient.CloseIdleConnections()
 	err := (*c.queryClient).Close()
 	return err
+}
+
+// isSystemHeader checks if header is used by the InfluxDB and cannot be set by user directly
+func (c *Client) isSystemHeader(key string) bool {
+	return slices.ContainsFunc(systemHeaders, func(s string) bool {
+		return strings.ToLower(s) == strings.ToLower(key)
+	})
 }
