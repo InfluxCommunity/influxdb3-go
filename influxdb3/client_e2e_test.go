@@ -25,6 +25,7 @@ package influxdb3_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -196,6 +197,81 @@ func TestQueryWithParameters(t *testing.T) {
 	time.Sleep(sleepTime)
 
 	iterator, err := client.QueryWithParameters(context.Background(), query, parameters)
+	require.NoError(t, err)
+	require.NotNil(t, iterator)
+
+	hasValue := iterator.Next()
+	assert.True(t, hasValue)
+
+	value := iterator.Value()
+	assert.Equal(t, "sun-valley-1", value["location"])
+	assert.Equal(t, 15.5, value["temp"])
+	assert.Equal(t, int64(80), value["index"])
+	assert.Equal(t, uint64(800), value["uindex"])
+	assert.Equal(t, true, value["valid"])
+	assert.Equal(t, "a1", value["text"])
+	assert.Equal(t, now, value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+
+	assert.False(t, iterator.Done())
+	assert.False(t, iterator.Next())
+	assert.True(t, iterator.Done())
+}
+
+func TestQueryWithCustomHeaders(t *testing.T) {
+	now := time.Now().UTC()
+	testId := now.UnixNano()
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+		Headers:  http.Header{
+			"X-client-config-header": {"client-config-1"},
+			"Authorization": {"Bearer x-client-config-fake-token"},
+		},
+	})
+	require.NoError(t, err)
+	defer client.Close()
+
+	tableName := "weather"
+	tagKey := "location"
+	tagValue := "sun-valley-1"
+
+	p := influxdb3.NewPointWithMeasurement("weather").
+		SetTag("location", "sun-valley-1").
+		SetField("temp", 15.5).
+		SetField("index", 80).
+		SetField("uindex", uint64(800)).
+		SetField("valid", true).
+		SetField("testId", testId).
+		SetField("text", "a1").
+		SetTimestamp(now)
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
+	require.NoError(t, err)
+
+	query := fmt.Sprintf(`
+		SELECT *
+		FROM "%s"
+		WHERE
+		time >= now() - interval '10 minute'
+		AND
+		"%s" = '%s'
+		AND
+		"testId" = %d
+		ORDER BY time
+	`, tableName, tagKey, tagValue, testId)
+
+	sleepTime := 5 * time.Second
+	time.Sleep(sleepTime)
+
+	iterator, err := client.Query(context.Background(), query,
+		influxdb3.WithHeader("X-method-header", "x-method-1"),
+		influxdb3.WithHeader("Authorization", "Bearer method-fake-token"), // system header, should be ignored
+	)
 	require.NoError(t, err)
 	require.NotNil(t, iterator)
 

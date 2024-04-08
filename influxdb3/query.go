@@ -132,8 +132,27 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 	var queryType QueryType
 	queryType = options.QueryType
 
-	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
-	ctx = metadata.AppendToOutgoingContext(ctx, "database", database)
+	// add config headers
+	for k, v := range c.config.Headers {
+		if !c.isSystemHeader(k) {
+			for _, value := range v {
+				ctx = metadata.AppendToOutgoingContext(ctx, k, value)
+			}
+		}
+	}
+
+	// add call options headers
+	for k, v := range options.Headers {
+		if !c.isSystemHeader(k) {
+			for _, value := range v {
+				ctx = metadata.AppendToOutgoingContext(ctx, k, value)
+			}
+		}
+	}
+
+	// add system headers
+	ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+c.config.Token)
+	ctx = metadata.AppendToOutgoingContext(ctx, "Database", database)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
