@@ -28,7 +28,10 @@ import (
 	"testing"
 
 	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
+	"github.com/apache/arrow/go/v15/arrow/ipc"
+	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -91,8 +94,9 @@ func TestQueryWithCustomHeader(t *testing.T) {
 
 	c.setQueryClient(fc)
 
-	_, err = c.Query(context.Background(), "SELECT * FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
-	_ = err // ignore it is EOF
+	iterator, err := c.Query(context.Background(), "SELECT * FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
+	iterator.Raw().Release()
+	require.NoError(t, err, "DoGet success")
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.NotNil(t, middleware.outgoingMD, "outgoing MD is not nil")
 	assert.Contains(t, middleware.outgoingMD, "authorization", "auth header present")
@@ -109,10 +113,22 @@ type flightServer struct {
 }
 
 func (f *flightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
-	records := [0]arrow.Record{} // empty array will cause EOF but we do not need the result anyway, for now
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "intField", Type: arrow.PrimitiveTypes.Int64, Nullable: false},
+		{Name: "stringField", Type: arrow.BinaryTypes.String, Nullable: false},
+		{Name: "floatField", Type: arrow.PrimitiveTypes.Float64, Nullable: true},
+	}, nil)
+	builder := array.NewRecordBuilder(memory.DefaultAllocator, schema)
+	defer builder.Release()
+	builder.Field(0).(*array.Int64Builder).AppendValues([]int64{1, 2, 3, 4, 5}, nil)
+	builder.Field(1).(*array.StringBuilder).AppendValues([]string{"a", "b", "c", "d", "e"}, nil)
+	builder.Field(2).(*array.Float64Builder).AppendValues([]float64{1, 0, 3, 0, 5}, []bool{true, false, true, false, true})
+	rec0 := builder.NewRecord()
+	defer rec0.Release()
+	recs := []arrow.Record{rec0}
 
-	w := flight.NewRecordWriter(fs)
-	for _, r := range records {
+	w := flight.NewRecordWriter(fs, ipc.WithSchema(recs[0].Schema()))
+	for _, r := range recs {
 		w.Write(r)
 	}
 
@@ -125,6 +141,7 @@ type callHeadersMiddleware struct {
 }
 
 func (c *callHeadersMiddleware) StartCall(ctx context.Context) context.Context {
+	c.outgoingMD, c.outgoingMDOk = metadata.FromOutgoingContext(ctx)
 	return ctx
 }
 
@@ -132,5 +149,4 @@ func (c *callHeadersMiddleware) CallCompleted(ctx context.Context, err error) {
 }
 
 func (c *callHeadersMiddleware) HeadersReceived(ctx context.Context, md metadata.MD) {
-	c.outgoingMD, c.outgoingMDOk = metadata.FromOutgoingContext(ctx)
 }
