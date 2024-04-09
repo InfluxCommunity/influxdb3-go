@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
  The MIT License
 
