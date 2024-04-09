@@ -94,8 +94,7 @@ func TestQueryWithCustomHeader(t *testing.T) {
 
 	c.setQueryClient(fc)
 
-	iterator, err := c.Query(context.Background(), "SELECT * FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
-	iterator.Raw().Release()
+	_, err = c.Query(context.Background(), "SELECT * FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
 	require.NoError(t, err, "DoGet success")
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.NotNil(t, middleware.outgoingMD, "outgoing MD is not nil")
