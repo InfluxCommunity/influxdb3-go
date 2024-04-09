@@ -97,9 +97,9 @@ func TestQueryWithCustomHeader(t *testing.T) {
 	assert.NotNil(t, middleware.outgoingMD, "outgoing MD is not nil")
 	assert.Contains(t, middleware.outgoingMD, "authorization", "auth header present")
 	assert.Contains(t, middleware.outgoingMD, "my-config-header", "custom config header present")
-	assert.Equal(t, middleware.outgoingMD["my-config-header"], []string{"hdr-config-1"}, "custom config header value")
+	assert.Equal(t, []string{"hdr-config-1"}, middleware.outgoingMD["my-config-header"], "custom config header value")
 	assert.Contains(t, middleware.outgoingMD, "my-call-header", "custom call header present")
-	assert.Equal(t, middleware.outgoingMD["my-call-header"], []string{"hdr-call-1"}, "custom call header value")
+	assert.Equal(t, []string{"hdr-call-1"}, middleware.outgoingMD["my-call-header"],"custom call header value")
 }
 
 // fake Flight server implementation
