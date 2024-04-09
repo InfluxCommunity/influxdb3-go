@@ -67,6 +67,10 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
+func (c *Client) setQueryClient(flightClient flight.Client) {
+	c.queryClient = &flightClient
+}
+
 // QueryParameters is a type for query parameters.
 type QueryParameters = map[string]any
 
@@ -132,26 +136,19 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 	var queryType QueryType
 	queryType = options.QueryType
 
-	// add config headers
+	md := make(metadata.MD, 0)
 	for k, v := range c.config.Headers {
-		if !c.isSystemHeader(k) {
-			for _, value := range v {
-				ctx = metadata.AppendToOutgoingContext(ctx, k, value)
-			}
+		for _, value := range v {
+			md.Append(k, value)
 		}
 	}
-
-	// add call options headers
 	for k, v := range options.Headers {
-		if !c.isSystemHeader(k) {
-			for _, value := range v {
-				ctx = metadata.AppendToOutgoingContext(ctx, k, value)
-			}
+		for _, value := range v {
+			md.Append(k, value)
 		}
 	}
-
-	// add system headers
-	ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+c.config.Token)
+	md.Set("authorization", "Bearer "+c.config.Token)
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
