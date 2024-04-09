@@ -185,18 +185,6 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 //
 // A field with a timestamp must be of type time.Time.
 //
-// Example usage:
-//
-//	type TemperatureSensor struct {
-//	    Measurement  string    `lp:"measurement"`
-//	    Sensor       string    `lp:"tag,sensor"`
-//	    ID           string    `lp:"tag,device_id"`
-//	    Temp         float64   `lp:"field,temperature"`
-//	    Hum          int       `lp:"field,humidity"`
-//	    Time         time.Time `lp:"timestamp"`
-//	    Description  string    `lp:"-"`
-//	}
-//
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - points: The custom points to encode and write.
@@ -215,18 +203,6 @@ func (c *Client) WriteData(ctx context.Context, points []interface{}, options ..
 // The points are written synchronously.
 //
 // A field with a timestamp must be of type time.Time.
-//
-// Example usage:
-//
-//	type TemperatureSensor struct {
-//	    Measurement  string    `lp:"measurement"`
-//	    Sensor       string    `lp:"tag,sensor"`
-//	    ID           string    `lp:"tag,device_id"`
-//	    Temp         float64   `lp:"field,temperature"`
-//	    Hum          int       `lp:"field,humidity"`
-//	    Time         time.Time `lp:"timestamp"`
-//	    Description  string    `lp:"-"`
-//	}
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
