@@ -25,11 +25,12 @@ package influxdb3
 import (
 	"errors"
 	"fmt"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 const (
