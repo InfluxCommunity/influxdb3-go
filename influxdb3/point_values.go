@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -70,7 +71,7 @@ func (pv *PointValues) SetTimestamp(timestamp time.Time) *PointValues {
 // SetTag sets a tag value and returns the modified PointValues
 func (pv *PointValues) SetTag(name string, value string) *PointValues {
 	if value == "" {
-		fmt.Printf("Empty tags has no effect, tag [%s], measurement [%s]\n", name, pv.MeasurementName)
+		slog.Debug(fmt.Sprintf("Empty tags has no effect, tag [%s], measurement [%s]", name, pv.MeasurementName))
 	} else {
 		pv.Tags[name] = value
 	}
