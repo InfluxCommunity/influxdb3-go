@@ -120,8 +120,6 @@ func New(config ClientConfig) (*Client, error) {
 //   - database - database (bucket) name
 //   - precision - timestamp precision when writing data
 //   - gzipThreshold - payload size threshold for gzipping data
-//
-// Example: https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
