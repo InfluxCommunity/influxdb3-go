@@ -1,6 +1,7 @@
 package influxdb3
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -38,6 +39,25 @@ func TestQueryOptions(t *testing.T) {
 			want: &QueryOptions{
 				Database:  "db-x",
 				QueryType: InfluxQL,
+			},
+		},
+		{
+			name: "add header",
+			opts: va(WithHeader("header-a", "value-a")),
+			want: &QueryOptions{
+				Headers: http.Header{
+					"header-a": {"value-a"},
+				},
+			},
+		},
+		{
+			name: "add headers",
+			opts: va(WithHeader("header-a", "value-a"), WithHeader("header-b", "value-b")),
+			want: &QueryOptions{
+				Headers: http.Header{
+					"header-a": {"value-a"},
+					"header-b": {"value-b"},
+				},
 			},
 		},
 	}

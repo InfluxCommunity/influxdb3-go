@@ -23,6 +23,8 @@
 package influxdb3
 
 import (
+	"net/http"
+
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
@@ -33,6 +35,9 @@ type QueryOptions struct {
 
 	// Query type.
 	QueryType QueryType
+
+	// Headers to be included in requests. Use to add or override headers in `ClientConfig`.
+	Headers http.Header
 }
 
 // WriteOptions holds options for write
@@ -110,6 +115,7 @@ type Option func(o *options)
 // Available options:
 //   - WithDatabase
 //   - WithQueryType
+//   - WithHeader
 type QueryOption = Option
 
 // WriteOption is a functional option type that can be passed to Client.Write methods.
@@ -132,6 +138,16 @@ func WithDatabase(database string) Option {
 func WithQueryType(queryType QueryType) Option {
 	return func(o *options) {
 		o.QueryType = queryType
+	}
+}
+
+// WithHeader is used to add or override default header in Client.Query method.
+func WithHeader(key, value string) Option {
+	return func(o *options) {
+		if o.Headers == nil {
+			o.Headers = make(http.Header, 0)
+		}
+		o.Headers[key] = []string{value}
 	}
 }
 

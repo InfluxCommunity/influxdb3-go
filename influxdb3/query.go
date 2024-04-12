@@ -62,9 +62,13 @@ func (c *Client) initializeQueryClient() error {
 	if err != nil {
 		return fmt.Errorf("flight: %s", err)
 	}
-	c.queryClient = &client
+	c.queryClient = client
 
 	return nil
+}
+
+func (c *Client) setQueryClient(flightClient flight.Client) {
+	c.queryClient = flightClient
 }
 
 // QueryParameters is a type for query parameters.
@@ -132,8 +136,19 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 	var queryType QueryType
 	queryType = options.QueryType
 
-	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+c.config.Token)
-	ctx = metadata.AppendToOutgoingContext(ctx, "database", database)
+	md := make(metadata.MD, 0)
+	for k, v := range c.config.Headers {
+		for _, value := range v {
+			md.Append(k, value)
+		}
+	}
+	for k, v := range options.Headers {
+		for _, value := range v {
+			md.Append(k, value)
+		}
+	}
+	md.Set("authorization", "Bearer "+c.config.Token)
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	ticketData := map[string]interface{}{
 		"database":   database,
@@ -151,7 +166,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 	}
 
 	ticket := &flight.Ticket{Ticket: ticketJSON}
-	stream, err := (*c.queryClient).DoGet(ctx, ticket)
+	stream, err := c.queryClient.DoGet(ctx, ticket)
 	if err != nil {
 		return nil, fmt.Errorf("flight do get: %s", err)
 	}
