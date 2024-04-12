@@ -47,7 +47,7 @@ type Client struct {
 	// Cached base server API URL.
 	apiURL *url.URL
 	// Flight client for executing queries
-	queryClient *flight.Client
+	queryClient flight.Client
 }
 
 // httpParams holds parameters for creating an HTTP request
@@ -172,7 +172,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	}
 	req.Header.Set("User-Agent", userAgent)
 	if c.authorization != "" {
-		req.Header.Add("Authorization", c.authorization)
+		req.Header.Set("Authorization", c.authorization)
 	}
 
 	resp, err := c.config.HTTPClient.Do(req)
@@ -236,6 +236,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 // Close closes all idle connections.
 func (c *Client) Close() error {
 	c.config.HTTPClient.CloseIdleConnections()
-	err := (*c.queryClient).Close()
+	err := c.queryClient.Close()
 	return err
 }
