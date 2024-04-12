@@ -1,5 +1,9 @@
 ## 0.7.0 [unreleased]
 
+### Bug Fixes
+
+1. [#71](https://github.com/InfluxCommunity/influxdb3-go/pull/71): Rename `FlightSQL` constant to `SQL`
+
 ### Others
 
 1. [#68](https://github.com/InfluxCommunity/influxdb3-go/pull/68): Upgrade Go version to 1.22.
@@ -57,5 +61,5 @@ Renamed config types and some options.
 
 - initial release of new client version
 - write using v2 api
-- query using flightSQL
+- query using SQL
 - query using influxQL
