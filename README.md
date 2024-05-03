@@ -32,6 +32,8 @@ The `influxdb3` Go package provides an easy and convenient way to interact with 
 Use this package to write and query data stored in your InfluxDB v3 instance.
 Query using SQL or InfluxQL and retrieve data in [Arrow Columnar Format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc) using InfluxDB's native Flight RPC API.
 
+We also offer this [Getting Started: InfluxDB 3.0 Go Client Library](https://www.youtube.com/watch?v=yr6a5U_ZkY8) video that you can use to learn more about the library and see code examples.
+
 ## Prerequisites
 
 ### InfluxDB v3 credentials
