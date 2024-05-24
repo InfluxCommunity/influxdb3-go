@@ -1,5 +1,9 @@
 ## 0.8.0 [unreleased]
 
+### Features
+
+1. [#85](https://github.com/InfluxCommunity/influxdb3-go/pull/85): Add standard `user-agent` header to gRPC requests.
+
 ## 0.7.0 [2024-04-16]
 
 ### Features
