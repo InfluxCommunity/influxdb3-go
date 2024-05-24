@@ -3,6 +3,7 @@
 ### Features
 
 1. [#85](https://github.com/InfluxCommunity/influxdb3-go/pull/85): Add standard `user-agent` header to gRPC requests.
+1. [#86](https://github.com/InfluxCommunity/influxdb3-go/pull/86): Add Serverless bucket creation support
 
 ## 0.7.0 [2024-04-16]
 
