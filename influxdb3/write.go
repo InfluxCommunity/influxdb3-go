@@ -144,11 +144,9 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		return fmt.Errorf("database not specified")
 	}
 
-	var precision lineprotocol.Precision
-	precision = options.Precision
+	var precision = options.Precision
 
-	var gzipThreshold int
-	gzipThreshold = options.GzipThreshold
+	var gzipThreshold = options.GzipThreshold
 
 	var body io.Reader
 	var err error
