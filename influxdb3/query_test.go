@@ -71,7 +71,12 @@ func TestQueryWithCustomHeader(t *testing.T) {
 	f := &flightServer{}
 	s.RegisterFlightService(f)
 
-	go s.Serve()
+	go func() {
+		err := s.Serve()
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}()
 	defer s.Shutdown()
 
 	middleware := &callHeadersMiddleware{}
@@ -82,8 +87,8 @@ func TestQueryWithCustomHeader(t *testing.T) {
 	defer fc.Close()
 
 	c, err := New(ClientConfig{
-		Host: "http://localhost:80",
-		Token: "my-token",
+		Host:     "http://localhost:80",
+		Token:    "my-token",
 		Database: "my-database",
 		Headers: http.Header{
 			"my-config-header": {"hdr-config-1"},
@@ -102,7 +107,46 @@ func TestQueryWithCustomHeader(t *testing.T) {
 	assert.Contains(t, middleware.outgoingMD, "my-config-header", "custom config header present")
 	assert.Equal(t, []string{"hdr-config-1"}, middleware.outgoingMD["my-config-header"], "custom config header value")
 	assert.Contains(t, middleware.outgoingMD, "my-call-header", "custom call header present")
-	assert.Equal(t, []string{"hdr-call-1"}, middleware.outgoingMD["my-call-header"],"custom call header value")
+	assert.Equal(t, []string{"hdr-call-1"}, middleware.outgoingMD["my-call-header"], "custom call header value")
+	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
+	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
+}
+
+func TestQueryWithDefaultHeaders(t *testing.T) {
+	s := flight.NewServerWithMiddleware(nil)
+	err := s.Init("localhost:18080")
+	require.NoError(t, err)
+	f := &flightServer{}
+	s.RegisterFlightService(f)
+
+	go func() {
+		err := s.Serve()
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}()
+	defer s.Shutdown()
+
+	middleware := &callHeadersMiddleware{}
+	fc, err := flight.NewClientWithMiddleware(s.Addr().String(), nil, []flight.ClientMiddleware{
+		flight.CreateClientMiddleware(middleware),
+	}, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+	defer fc.Close()
+
+	c, err := New(ClientConfig{
+		Host:     "http://localhost:80",
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+	defer c.Close()
+
+	c.setQueryClient(fc)
+	_, err = c.Query(context.Background(), "SELECT * FROM nothing")
+	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
+	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
+	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
 }
 
 // fake Flight server implementation
@@ -128,7 +172,10 @@ func (f *flightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetSe
 
 	w := flight.NewRecordWriter(fs, ipc.WithSchema(recs[0].Schema()))
 	for _, r := range recs {
-		w.Write(r)
+		err := w.Write(r)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -133,8 +133,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		return nil, errors.New("database not specified")
 	}
 
-	var queryType QueryType
-	queryType = options.QueryType
+	var queryType QueryType = options.QueryType
 
 	md := make(metadata.MD, 0)
 	for k, v := range c.config.Headers {
@@ -148,6 +147,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		}
 	}
 	md.Set("authorization", "Bearer "+c.config.Token)
+	md.Set("User-Agent", userAgent)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	ticketData := map[string]interface{}{
