@@ -12,17 +12,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateBucket(t *testing.T) {
+func TestServerlessClientCreateBucket(t *testing.T) {
 	correctPath := "/api/v2/buckets"
 
 	tests := []struct {
 		name     string
-		bucket   Bucket
+		bucket   *Bucket
 		wantBody map[string]any
+		wantErr  bool
 	}{
 		{
 			name: "Apply bucket orgID and name",
-			bucket: Bucket{
+			bucket: &Bucket{
 				OrgID: "my-organization",
 				Name:  "my-bucket",
 				RetentionRules: []BucketRetentionRule{
@@ -42,10 +43,11 @@ func TestCreateBucket(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "fallback to client config orgID and database name",
-			bucket: Bucket{
+			bucket: &Bucket{
 				RetentionRules: []BucketRetentionRule{
 					{
 						Type:         "expire",
@@ -63,6 +65,13 @@ func TestCreateBucket(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name:     "nil bucket",
+			bucket:   nil,
+			wantBody: nil,
+			wantErr:  true,
 		},
 	}
 
@@ -92,8 +101,31 @@ func TestCreateBucket(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			err = c.CreateBucket(context.Background(), &tt.bucket)
-			require.NoError(t, err)
+			sc := NewServerlessClient(c)
+			err = sc.CreateBucket(context.Background(), tt.bucket)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
+
+	t.Run("Internal error cases", func(t *testing.T) {
+		c, err := New(ClientConfig{
+			Host:  "dummy",
+			Token: "dummy",
+		})
+		require.NoError(t, err)
+
+		sc := NewServerlessClient(c)
+		err = sc.createBucket(context.Background(), "wrong path:", nil)
+		assert.Error(t, err)
+
+		wrongBody := map[string]any{
+			"funcField": func() {},
+		}
+		err = sc.createBucket(context.Background(), correctPath, wrongBody)
+		assert.Error(t, err)
+	})
 }
