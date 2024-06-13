@@ -74,7 +74,8 @@ type (
 )
 
 var (
-	MAX_PARTITIONS = 7
+	MAX_PARTITIONS     = 7
+	MANAGEMENT_API_URL = "https://console.influxdata.com"
 )
 
 func (t Tag) isPartitionTemplate()        {}
@@ -116,11 +117,7 @@ func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *Cloud
 // createDatabase is a helper function for CreateDatabase to enhance test coverage.
 func (d *CloudDedicatedClient) createDatabase(ctx context.Context, path string, db any, config *CloudDedicatedClientConfig) error {
 	if config.ManagementAPIURL == nil {
-		var err error
-		config.ManagementAPIURL, err = url.Parse("https://console.influxdata.com")
-		if err != nil {
-			return fmt.Errorf("failed to parse management API URL: %w", err)
-		}
+		config.ManagementAPIURL, _ = url.Parse(MANAGEMENT_API_URL)
 	}
 	u, err := config.ManagementAPIURL.Parse(path)
 	if err != nil {

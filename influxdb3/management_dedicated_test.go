@@ -230,7 +230,12 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		wrongBody := map[string]any{
 			"funcField": func() {},
 		}
+
 		err = dc.createDatabase(context.Background(), correctPath, wrongBody, &config)
+		assert.Error(t, err)
+
+		config.ManagementAPIURL = nil
+		err = dc.createDatabase(context.Background(), correctPath, nil, &config)
 		assert.Error(t, err)
 	})
 
