@@ -29,7 +29,7 @@ import (
 	"os"
 )
 
-func ExampleDedicatedClient_CreateDatabase() {
+func ExampleCloudDedicatedClient_CreateDatabase() {
 	managementToken := os.Getenv("INFLUX_MANAGEMENT_TOKEN")
 	accountID := os.Getenv("INFLUX_ACCOUNT_ID")
 	clusterID := os.Getenv("INFLUX_CLUSTER_ID")
