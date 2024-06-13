@@ -194,7 +194,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 				AccountID:        "test-account",
 				ClusterID:        "test-cluster",
 				ManagementToken:  "dummy",
-				ManagementAPIURL: *managementAPIURL,
+				ManagementAPIURL: managementAPIURL,
 			}
 
 			dc := NewCloudDedicatedClient(c)
@@ -220,7 +220,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 			AccountID:        "test-account",
 			ClusterID:        "test-cluster",
 			ManagementToken:  "dummy",
-			ManagementAPIURL: *managementAPIURL,
+			ManagementAPIURL: managementAPIURL,
 		}
 
 		dc := NewCloudDedicatedClient(c)

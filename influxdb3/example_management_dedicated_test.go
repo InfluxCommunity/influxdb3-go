@@ -47,7 +47,7 @@ func ExampleDedicatedClient_CreateDatabase() {
 		AccountID:        accountID,
 		ClusterID:        clusterID,
 		ManagementToken:  managementToken,
-		ManagementAPIURL: *managementAPIURL,
+		ManagementAPIURL: managementAPIURL,
 	}
 
 	defer client.Close()

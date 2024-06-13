@@ -42,7 +42,7 @@ type (
 		AccountID        string
 		ClusterID        string
 		ManagementToken  string
-		ManagementAPIURL url.URL
+		ManagementAPIURL *url.URL
 	}
 
 	Database struct {
@@ -115,6 +115,13 @@ func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *Cloud
 
 // createDatabase is a helper function for CreateDatabase to enhance test coverage.
 func (d *CloudDedicatedClient) createDatabase(ctx context.Context, path string, db any, config *CloudDedicatedClientConfig) error {
+	if config.ManagementAPIURL.String() == "" {
+		var err error
+		config.ManagementAPIURL, err = url.Parse("https://console.influxdata.com")
+		if err != nil {
+			return fmt.Errorf("failed to parse management API URL: %w", err)
+		}
+	}
 	u, err := config.ManagementAPIURL.Parse(path)
 	if err != nil {
 		return fmt.Errorf("failed to parse database creation path: %w", err)
