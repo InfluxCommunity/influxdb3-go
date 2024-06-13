@@ -115,7 +115,7 @@ func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *Cloud
 
 // createDatabase is a helper function for CreateDatabase to enhance test coverage.
 func (d *CloudDedicatedClient) createDatabase(ctx context.Context, path string, db any, config *CloudDedicatedClientConfig) error {
-	if config.ManagementAPIURL.String() == "" {
+	if config.ManagementAPIURL == nil {
 		var err error
 		config.ManagementAPIURL, err = url.Parse("https://console.influxdata.com")
 		if err != nil {
