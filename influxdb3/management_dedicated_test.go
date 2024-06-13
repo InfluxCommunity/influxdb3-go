@@ -169,9 +169,6 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "empty database name" {
-				fmt.Println("empty database name")
-			}
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// initialization of query client
 				if r.Method == "PRI" {
@@ -193,7 +190,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 			require.NoError(t, err)
 
 			managementAPIURL, _ := url.Parse(ts.URL)
-			config := DedicatedClientConfig{
+			config := CloudDedicatedClientConfig{
 				AccountID:        "test-account",
 				ClusterID:        "test-cluster",
 				ManagementToken:  "dummy",
@@ -219,7 +216,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 
 		managementAPIURL, _ := url.Parse(c.config.Host)
 
-		config := DedicatedClientConfig{
+		config := CloudDedicatedClientConfig{
 			AccountID:        "test-account",
 			ClusterID:        "test-cluster",
 			ManagementToken:  "dummy",

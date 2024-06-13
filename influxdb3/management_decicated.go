@@ -33,12 +33,12 @@ import (
 )
 
 type (
-	// Dedicatedclient represents a client for InfluxDB Cloud Dedicated administration operations.
-	DedicatedClient struct {
+	// CloudDedicatedClient represents a client for InfluxDB Cloud Dedicated administration operations.
+	CloudDedicatedClient struct {
 		client *Client
 	}
 
-	DedicatedClientConfig struct {
+	CloudDedicatedClientConfig struct {
 		AccountID        string
 		ClusterID        string
 		ManagementToken  string
@@ -54,7 +54,7 @@ type (
 	}
 
 	PartitionTemplate interface {
-		IsPartitionTemplate()
+		isPartitionTemplate()
 	}
 
 	Tag struct {
@@ -73,16 +73,20 @@ type (
 	}
 )
 
-func (t Tag) IsPartitionTemplate()        {}
-func (tb TagBucket) IsPartitionTemplate() {}
+var (
+	MAX_PARTITIONS = 7
+)
 
-// NewCloudDedicatedClient creates new DedicatedClient with given InfluxDB client.
-func NewCloudDedicatedClient(client *Client) *DedicatedClient {
-	return &DedicatedClient{client: client}
+func (t Tag) isPartitionTemplate()        {}
+func (tb TagBucket) isPartitionTemplate() {}
+
+// NewCloudDedicatedClient creates new CloudDedicatedClient with given InfluxDB client.
+func NewCloudDedicatedClient(client *Client) *CloudDedicatedClient {
+	return &CloudDedicatedClient{client: client}
 }
 
 // CreateDatabase creates a new database
-func (d *DedicatedClient) CreateDatabase(ctx context.Context, config *DedicatedClientConfig, db *Database) error {
+func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *CloudDedicatedClientConfig, db *Database) error {
 	if db == nil {
 		return errors.New("database must not nil")
 	}
@@ -92,8 +96,8 @@ func (d *DedicatedClient) CreateDatabase(ctx context.Context, config *DedicatedC
 	}
 	db.Name = d.client.config.Database
 
-	if len(db.PartitionTemplate) > 7 {
-		return errors.New("partition template should not have more than 7 tags or tag buckets")
+	if len(db.PartitionTemplate) > MAX_PARTITIONS {
+		return fmt.Errorf("partition template should not have more than %d tags or tag buckets", MAX_PARTITIONS)
 	}
 
 	if db.MaxTables == 0 {
@@ -110,7 +114,7 @@ func (d *DedicatedClient) CreateDatabase(ctx context.Context, config *DedicatedC
 }
 
 // createDatabase is a helper function for CreateDatabase to enhance test coverage.
-func (d *DedicatedClient) createDatabase(ctx context.Context, path string, db any, config *DedicatedClientConfig) error {
+func (d *CloudDedicatedClient) createDatabase(ctx context.Context, path string, db any, config *CloudDedicatedClientConfig) error {
 	u, err := config.ManagementAPIURL.Parse(path)
 	if err != nil {
 		return fmt.Errorf("failed to parse database creation path: %w", err)

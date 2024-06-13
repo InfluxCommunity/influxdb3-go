@@ -25,6 +25,7 @@ package influxdb3
 import (
 	"context"
 	"log"
+	"net/url"
 	"os"
 )
 
@@ -32,16 +33,21 @@ func ExampleDedicatedClient_CreateDatabase() {
 	managementToken := os.Getenv("INFLUX_MANAGEMENT_TOKEN")
 	accountID := os.Getenv("INFLUX_ACCOUNT_ID")
 	clusterID := os.Getenv("INFLUX_CLUSTER_ID")
+	managementAPIURL, err := url.Parse(os.Getenv("INFLUX_MANAGEMENT_API_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	client, err := NewFromEnv()
 	if err != nil {
 		panic(err)
 	}
 
-	cloudDedicatedConfig := DedicatedClientConfig{
-		AccountID:       accountID,
-		ClusterID:       clusterID,
-		ManagementToken: managementToken,
+	cloudDedicatedConfig := CloudDedicatedClientConfig{
+		AccountID:        accountID,
+		ClusterID:        clusterID,
+		ManagementToken:  managementToken,
+		ManagementAPIURL: *managementAPIURL,
 	}
 
 	defer client.Close()
