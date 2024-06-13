@@ -52,9 +52,9 @@ func ExampleDedicatedClient_CreateDatabase() {
 
 	defer client.Close()
 
-	dedicatedClient := NewCloudDedicatedClient(client)
+	cloudDedicatedClient := NewCloudDedicatedClient(client)
 
-	if err := dedicatedClient.CreateDatabase(context.Background(), &cloudDedicatedConfig, &Database{}); err != nil {
+	if err := cloudDedicatedClient.CreateDatabase(context.Background(), &cloudDedicatedConfig, &Database{}); err != nil {
 		log.Fatal(err)
 	}
 }
