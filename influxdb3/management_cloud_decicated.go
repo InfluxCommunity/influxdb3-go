@@ -46,11 +46,11 @@ type (
 	}
 
 	Database struct {
-		Name               string              `json:"name"`
-		MaxTables          uint64              `json:"maxTables"`          // default 500
-		MaxColumnsPerTable uint64              `json:"maxColumnsPerTable"` // default 250
-		RetentionPeriod    uint64              `json:"retentionPeriod"`    // nanoseconds default 0 is infinite
-		PartitionTemplate  []PartitionTemplate `json:"partitionTemplate"`  // Tag or TagBucket, limit is total of 7
+		ClusterDatabaseName               string              `json:"name"`
+		ClusterDatabaseMaxTables          uint64              `json:"maxTables"`          // default 500
+		ClusterDatabaseMaxColumnsPerTable uint64              `json:"maxColumnsPerTable"` // default 250
+		ClusterDatabaseRetentionPeriod    uint64              `json:"retentionPeriod"`    // nanoseconds default 0 is infinite
+		ClusterDatabasePartitionTemplate  []PartitionTemplate `json:"partitionTemplate"`  // Tag or TagBucket, limit is total of 7
 	}
 
 	PartitionTemplate interface {
@@ -95,18 +95,18 @@ func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *Cloud
 	if d.client.config.Database == "" {
 		return errors.New("database name must not be empty")
 	}
-	db.Name = d.client.config.Database
+	db.ClusterDatabaseName = d.client.config.Database
 
-	if len(db.PartitionTemplate) > MaxPartitions {
+	if len(db.ClusterDatabasePartitionTemplate) > MaxPartitions {
 		return fmt.Errorf("partition template should not have more than %d tags or tag buckets", MaxPartitions)
 	}
 
-	if db.MaxTables == 0 {
-		db.MaxTables = uint64(500)
+	if db.ClusterDatabaseMaxTables == 0 {
+		db.ClusterDatabaseMaxTables = uint64(500)
 	}
 
-	if db.MaxColumnsPerTable == 0 {
-		db.MaxColumnsPerTable = uint64(250)
+	if db.ClusterDatabaseMaxColumnsPerTable == 0 {
+		db.ClusterDatabaseMaxColumnsPerTable = uint64(250)
 	}
 
 	path := fmt.Sprintf("/api/v0/accounts/%s/clusters/%s/databases", config.AccountID, config.ClusterID)

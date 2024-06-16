@@ -49,8 +49,8 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		{
 			name: "create database with name and defaults",
 			db: &Database{
-				Name:              "test-database",
-				PartitionTemplate: []PartitionTemplate{},
+				ClusterDatabaseName:              "test-database",
+				ClusterDatabasePartitionTemplate: []PartitionTemplate{},
 			},
 			clientConfig: &ClientConfig{
 				Host:         "",
@@ -70,11 +70,11 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		{
 			name: "create database with name and custom values",
 			db: &Database{
-				Name:               "test-database",
-				MaxTables:          1000,
-				MaxColumnsPerTable: 500,
-				RetentionPeriod:    1000,
-				PartitionTemplate: []PartitionTemplate{
+				ClusterDatabaseName:               "test-database",
+				ClusterDatabaseMaxTables:          1000,
+				ClusterDatabaseMaxColumnsPerTable: 500,
+				ClusterDatabaseRetentionPeriod:    1000,
+				ClusterDatabasePartitionTemplate: []PartitionTemplate{
 					Tag{
 						Type:  "tag",
 						Value: "tag-value",
@@ -130,8 +130,8 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		{
 			name: "db partition template has more than 7 tags",
 			db: &Database{
-				Name: "test-database",
-				PartitionTemplate: []PartitionTemplate{
+				ClusterDatabaseName: "test-database",
+				ClusterDatabasePartitionTemplate: []PartitionTemplate{
 					Tag{},
 					Tag{},
 					Tag{},
@@ -154,7 +154,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		{
 			name: "empty database name",
 			db: &Database{
-				Name: "",
+				ClusterDatabaseName: "",
 			},
 			clientConfig: &ClientConfig{
 				Host:         "",
