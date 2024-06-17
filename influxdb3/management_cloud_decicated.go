@@ -43,7 +43,7 @@ type (
 		AccountID        string
 		ClusterID        string
 		ManagementToken  string
-		ManagementAPIURL *url.URL
+		ManagementAPIURL *url.URL // default is https://console.influxdata.com
 	}
 
 	Database struct {
