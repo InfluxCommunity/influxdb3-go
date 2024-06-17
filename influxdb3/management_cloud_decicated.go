@@ -34,6 +34,7 @@ import (
 
 type (
 	// CloudDedicatedClient represents a client for InfluxDB Cloud Dedicated administration operations.
+	// https://docs.influxdata.com/influxdb/cloud-dedicated/admin/databases/create/?t=Management+API
 	CloudDedicatedClient struct {
 		client *Client
 	}
