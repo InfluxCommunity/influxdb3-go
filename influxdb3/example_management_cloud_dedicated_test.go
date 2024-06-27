@@ -53,8 +53,15 @@ func ExampleCloudDedicatedClient_CreateDatabase() {
 	defer client.Close()
 
 	cloudDedicatedClient := NewCloudDedicatedClient(client)
+	db := &Database{
+		ClusterDatabaseName:               "testDB",
+		ClusterDatabaseMaxTables:          500,
+		ClusterDatabaseMaxColumnsPerTable: 250,
+		ClusterDatabaseRetentionPeriod:    0,
+		ClusterDatabasePartitionTemplate:  []PartitionTemplate{},
+	}
 
-	if err := cloudDedicatedClient.CreateDatabase(context.Background(), &cloudDedicatedConfig, &Database{}); err != nil {
+	if err := cloudDedicatedClient.CreateDatabase(context.Background(), &cloudDedicatedConfig, db); err != nil {
 		log.Fatal(err)
 	}
 }
