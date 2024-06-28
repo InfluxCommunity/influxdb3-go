@@ -54,6 +54,9 @@ type ClientConfig struct {
 	// This can be obtained through the GUI web browser interface.
 	Token string
 
+	// TokenPrefix for example, a Token, Bearer
+	TokenPrefix string
+
 	// Organization is name or ID of organization where data (databases, users, tasks, etc.) belongs to
 	// Optional for InfluxDB Cloud
 	Organization string
