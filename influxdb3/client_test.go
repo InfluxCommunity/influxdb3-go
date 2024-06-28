@@ -25,13 +25,14 @@ package influxdb3
 import (
 	"context"
 	"fmt"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -319,6 +320,18 @@ func TestMakeAPICall(t *testing.T) {
 		body:        nil,
 	})
 	assert.NotNil(t, res)
+	assert.Nil(t, err)
+	assert.Equal(t, "Token my-token", res.Request.Header.Get("Authorization"))
+	assert.Nil(t, err)
+
+	res, err = client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     http.Header{"Authorization": {"Bearer managment-api-token"}},
+		body:        nil,
+	})
+	assert.Equal(t, "Bearer managment-api-token", res.Request.Header.Get("Authorization"))
 	assert.Nil(t, err)
 }
 

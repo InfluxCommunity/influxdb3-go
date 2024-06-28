@@ -171,7 +171,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 		}
 	}
 	req.Header.Set("User-Agent", userAgent)
-	if c.authorization != "" {
+	if c.authorization != "" && req.Header.Get("Authorization") == "" {
 		req.Header.Set("Authorization", c.authorization)
 	}
 

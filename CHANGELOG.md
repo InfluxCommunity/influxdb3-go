@@ -1,5 +1,9 @@
 ## 0.9.0 [unreleased]
 
+### Features
+
+1. [#87](https://github.com/InfluxCommunity/influxdb3-go/pull/87): Add Cloud Dedicated database creation support
+
 ## 0.8.0 [2024-06-24]
 
 ### Features
