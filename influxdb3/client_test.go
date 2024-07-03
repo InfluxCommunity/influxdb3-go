@@ -433,7 +433,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 	assert.Equal(t, "cannot decode error response: unexpected end of JSON input", err.Error())
 }
 
-func TestResolveErrorV1(t *testing.T) {
+func TestResolveErrorEdge(t *testing.T) {
 	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
@@ -455,6 +455,31 @@ func TestResolveErrorV1(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, errMsg, err.Error())
+}
+
+func TestResolveErrorEdgeWithData(t *testing.T) {
+	errMsg := "compilation failed"
+	dataErrMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte(`{"error": "` + errMsg + `", "data": {"error_message": "` + dataErrMsg + `"}}`))
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.Nil(t, res)
+	require.Error(t, err)
+	assert.Equal(t, dataErrMsg, err.Error())
 }
 
 func TestResolveErrorNoError(t *testing.T) {
