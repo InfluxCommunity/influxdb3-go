@@ -194,10 +194,15 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		return nil
 	}
 
+	type data struct {
+		ErrorMessage string `json:"error_message"`
+	}
+
 	var httpError struct {
 		ServerError
-		// Error message of InfluxDB 1 error
+		// InfluxDB Edge/OSS error message fields
 		Error string `json:"error"`
+		Data  data   `json:"data"`
 	}
 
 	httpError.StatusCode = r.StatusCode
@@ -213,13 +218,17 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		httpError.Message = fmt.Sprintf("cannot read error response:: %v", err)
 	}
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ctype == "application/json" {
+	if ctype == "application/json" || ctype == "" {
 		err := json.Unmarshal(body, &httpError)
-		if err != nil {
+		if err != nil && ctype != "" {
 			httpError.Message = fmt.Sprintf("cannot decode error response: %v", err)
 		}
 		if httpError.Message == "" && httpError.Code == "" {
-			httpError.Message = httpError.Error
+			if len(httpError.Data.ErrorMessage) > 0 {
+				httpError.Message = httpError.Data.ErrorMessage
+			} else {
+				httpError.Message = httpError.Error
+			}
 		}
 	}
 	if httpError.Message == "" {
