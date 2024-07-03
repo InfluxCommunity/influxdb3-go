@@ -194,15 +194,13 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		return nil
 	}
 
-	type data struct {
-		ErrorMessage string `json:"error_message"`
-	}
-
 	var httpError struct {
 		ServerError
 		// InfluxDB Edge/OSS error message fields
 		Error string `json:"error"`
-		Data  data   `json:"data"`
+		Data  struct {
+			ErrorMessage string `json:"error_message"`
+		} `json:"data"`
 	}
 
 	httpError.StatusCode = r.StatusCode
