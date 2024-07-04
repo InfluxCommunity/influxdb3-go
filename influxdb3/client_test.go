@@ -322,6 +322,60 @@ func TestMakeAPICall(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMakeAPICallWithTokenPrefix(t *testing.T) {
+	html := `<html><body><h1>Response</h1></body></html>`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			auth := r.Header.Get("Authorization")
+			assert.Equal(t, "Bearer my-token", auth)
+		}
+		w.Header().Add("Content-Type", "text/html")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(html))
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token", TokenPrefix: "Bearer"})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.NotNil(t, res)
+	assert.Nil(t, err)
+}
+
+func TestMakeAPICallWithNoTokenPrefix(t *testing.T) {
+	html := `<html><body><h1>Response</h1></body></html>`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			auth := r.Header.Get("Authorization")
+			assert.Equal(t, "Token my-token", auth)
+		}
+		w.Header().Add("Content-Type", "text/html")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(html))
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	turl, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	res, err := client.makeAPICall(context.Background(), httpParams{
+		endpointURL: turl,
+		queryParams: nil,
+		httpMethod:  "GET",
+		headers:     nil,
+		body:        nil,
+	})
+	assert.NotNil(t, res)
+	assert.Nil(t, err)
+}
+
 func TestResolveErrorMessage(t *testing.T) {
 	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
