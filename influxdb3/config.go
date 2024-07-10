@@ -36,10 +36,20 @@ import (
 const (
 	envInfluxHost          = "INFLUX_HOST"
 	envInfluxToken         = "INFLUX_TOKEN"
+	envInfluxAuthScheme    = "INFLUX_AUTH_SCHEME"
 	envInfluxOrg           = "INFLUX_ORG"
 	envInfluxDatabase      = "INFLUX_DATABASE"
 	envInfluxPrecision     = "INFLUX_PRECISION"
 	envInfluxGzipThreshold = "INFLUX_GZIP_THRESHOLD"
+)
+
+const (
+	connStrInfluxToken         = "token"
+	connStrInfluxAuthScheme    = "authScheme"
+	connStrInfluxOrg           = "org"
+	connStrInfluxDatabase      = "database"
+	connStrInfluxPrecision     = "precision"
+	connStrInfluxGzipThreshold = "gzipThreshold"
 )
 
 // ClientConfig holds the parameters for creating a new client.
@@ -54,11 +64,12 @@ type ClientConfig struct {
 	// This can be obtained through the GUI web browser interface.
 	Token string
 
-	// TokenPrefix for example, a Token, Bearer
-	TokenPrefix string
+	// AuthScheme defines token authentication scheme. For example, "Token", "Bearer" etc.
+	// Leave empty for InfluxDB Cloud access. Set to "Bearer" for InfluxDB Edge (OSS).
+	AuthScheme string
 
-	// Organization is name or ID of organization where data (databases, users, tasks, etc.) belongs to
-	// Optional for InfluxDB Cloud
+	// Organization is name or ID of organization where data (databases, users, tasks, etc.) belongs to.
+	// Optional for InfluxDB Cloud.
 	Organization string
 
 	// Database used by the client.
@@ -108,21 +119,24 @@ func (c *ClientConfig) parse(connectionString string) error {
 	u.RawQuery = ""
 	c.Host = u.String()
 
-	if token, ok := values["token"]; ok {
+	if token, ok := values[connStrInfluxToken]; ok {
 		c.Token = token[0]
 	}
-	if org, ok := values["org"]; ok {
+	if authScheme, ok := values[connStrInfluxAuthScheme]; ok {
+		c.AuthScheme = authScheme[0]
+	}
+	if org, ok := values[connStrInfluxOrg]; ok {
 		c.Organization = org[0]
 	}
-	if database, ok := values["database"]; ok {
+	if database, ok := values[connStrInfluxDatabase]; ok {
 		c.Database = database[0]
 	}
-	if precision, ok := values["precision"]; ok {
+	if precision, ok := values[connStrInfluxPrecision]; ok {
 		if err := c.parsePrecision(precision[0]); err != nil {
 			return err
 		}
 	}
-	if gzipThreshold, ok := values["gzipThreshold"]; ok {
+	if gzipThreshold, ok := values[connStrInfluxGzipThreshold]; ok {
 		if err := c.parseGzipThreshold(gzipThreshold[0]); err != nil {
 			return err
 		}
@@ -138,6 +152,9 @@ func (c *ClientConfig) env() error {
 	}
 	if token, ok := os.LookupEnv(envInfluxToken); ok {
 		c.Token = token
+	}
+	if authScheme, ok := os.LookupEnv(envInfluxAuthScheme); ok {
+		c.AuthScheme = authScheme
 	}
 	if org, ok := os.LookupEnv(envInfluxOrg); ok {
 		c.Organization = org

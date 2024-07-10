@@ -74,6 +74,20 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "my-database", c.config.Database)
 	assert.Equal(t, "my-org", c.config.Organization)
 	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
+
+	c, err = New(ClientConfig{
+		Host:         "http://localhost:8086",
+		Token:        "my-token",
+		AuthScheme:   "my-auth-scheme",
+		Organization: "my-org",
+		Database:     "my-database",
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "my-auth-scheme my-token", c.authorization)
+	assert.Equal(t, "my-database", c.config.Database)
+	assert.Equal(t, "my-org", c.config.Organization)
+	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
 }
 
 func TestURLs(t *testing.T) {
@@ -141,6 +155,18 @@ func TestNewFromConnectionString(t *testing.T) {
 			},
 		},
 		{
+			name: "with auth scheme",
+			cs:   "https://host:8086?token=abc&authScheme=Custom&org=my-org&database=my-db",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				AuthScheme:   "Custom",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
 			name: "with write options",
 			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=ms",
 			cfg: &ClientConfig{
@@ -171,6 +197,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				assert.NotNil(t, c)
 				assert.Equal(t, tc.cfg.Host, c.config.Host)
 				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.AuthScheme, c.config.AuthScheme)
 				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
 				assert.Equal(t, tc.cfg.Database, c.config.Database)
 				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
@@ -211,7 +238,7 @@ func TestNewFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "simple",
+			name: "basic",
 			vars: map[string]string{
 				"INFLUX_HOST":     "http://host:8086",
 				"INFLUX_TOKEN":    "abc",
@@ -221,6 +248,24 @@ func TestNewFromEnv(t *testing.T) {
 			cfg: &ClientConfig{
 				Host:         "http://host:8086",
 				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with auth scheme",
+			vars: map[string]string{
+				"INFLUX_HOST":        "http://host:8086",
+				"INFLUX_TOKEN":       "abc",
+				"INFLUX_AUTH_SCHEME": "Custom",
+				"INFLUX_ORG":         "my-org",
+				"INFLUX_DATABASE":    "my-db",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				AuthScheme:   "Custom",
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &DefaultWriteOptions,
@@ -269,6 +314,7 @@ func TestNewFromEnv(t *testing.T) {
 	clearEnv := func() {
 		os.Unsetenv(envInfluxHost)
 		os.Unsetenv(envInfluxToken)
+		os.Unsetenv(envInfluxAuthScheme)
 		os.Unsetenv(envInfluxOrg)
 		os.Unsetenv(envInfluxDatabase)
 		os.Unsetenv(envInfluxPrecision)
@@ -292,6 +338,7 @@ func TestNewFromEnv(t *testing.T) {
 				assert.NotNil(t, c)
 				assert.Equal(t, tc.cfg.Host, c.config.Host)
 				assert.Equal(t, tc.cfg.Token, c.config.Token)
+				assert.Equal(t, tc.cfg.AuthScheme, c.config.AuthScheme)
 				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
 				assert.Equal(t, tc.cfg.Database, c.config.Database)
 				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
@@ -328,64 +375,19 @@ func TestMakeAPICall(t *testing.T) {
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
-		headers:     http.Header{"Authorization": {"Bearer managment-api-token"}},
+		headers:     http.Header{"Authorization": {"Bearer management-api-token"}},
 		body:        nil,
 	})
-	assert.Equal(t, "Bearer managment-api-token", res.Request.Header.Get("Authorization"))
+	assert.Equal(t, "Bearer management-api-token", res.Request.Header.Get("Authorization"))
 	assert.Nil(t, err)
-}
 
-func TestMakeAPICallWithTokenPrefix(t *testing.T) {
-	html := `<html><body><h1>Response</h1></body></html>`
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			auth := r.Header.Get("Authorization")
-			assert.Equal(t, "Bearer my-token", auth)
-		}
-		w.Header().Add("Content-Type", "text/html")
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte(html))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token", TokenPrefix: "Bearer"})
+	client, err = New(ClientConfig{Host: ts.URL, Token: "my-token", AuthScheme: "Bearer"})
 	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err = client.makeAPICall(context.Background(), httpParams{
 		endpointURL: turl,
-		queryParams: nil,
 		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
 	})
-	assert.NotNil(t, res)
-	assert.Nil(t, err)
-}
-
-func TestMakeAPICallWithNoTokenPrefix(t *testing.T) {
-	html := `<html><body><h1>Response</h1></body></html>`
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			auth := r.Header.Get("Authorization")
-			assert.Equal(t, "Token my-token", auth)
-		}
-		w.Header().Add("Content-Type", "text/html")
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte(html))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.NotNil(t, res)
+	assert.Equal(t, "Bearer my-token", res.Request.Header.Get("Authorization"))
 	assert.Nil(t, err)
 }
 
