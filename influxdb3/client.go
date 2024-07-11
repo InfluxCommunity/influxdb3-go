@@ -120,6 +120,7 @@ func New(config ClientConfig) (*Client, error) {
 //
 // Supported query parameters:
 //   - token - authentication token (required)
+//   - authScheme - authentication scheme
 //   - org - organization name
 //   - database - database (bucket) name
 //   - precision - timestamp precision when writing data
@@ -137,6 +138,7 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 // Supported variables:
 //   - INFLUX_HOST - cloud/server URL (required)
 //   - INFLUX_TOKEN - authentication token (required)
+//   - INFLUX_AUTH_SCHEME - authentication scheme
 //   - INFLUX_ORG - organization name
 //   - INFLUX_DATABASE - database (bucket) name
 //   - INFLUX_PRECISION - timestamp precision when writing data
