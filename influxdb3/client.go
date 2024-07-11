@@ -88,10 +88,11 @@ func New(config ClientConfig) (*Client, error) {
 	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
 
 	// Prepare auth header value
-	if c.config.TokenPrefix == "" {
-		c.config.TokenPrefix = "Token"
+	tokenPrefix := c.config.TokenPrefix
+	if tokenPrefix == "" {
+		tokenPrefix = "Token"
 	}
-	c.authorization = fmt.Sprintf("%s %s", c.config.TokenPrefix, c.config.Token)
+	c.authorization = fmt.Sprintf("%s %s", tokenPrefix, c.config.Token)
 
 	// Prepare HTTP client
 	if c.config.HTTPClient == nil {
