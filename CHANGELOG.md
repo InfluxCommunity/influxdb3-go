@@ -5,8 +5,11 @@
 ### Features
 
 1. [#87](https://github.com/InfluxCommunity/influxdb3-go/pull/87): Add Cloud Dedicated database creation support
-1. [#89](https://github.com/InfluxCommunity/influxdb3-go/pull/89): InfluxDB Edge (OSS) error handling
 1. [#91](https://github.com/InfluxCommunity/influxdb3-go/pull/91): Add Edge (OSS) authentication support.
+
+### Bug Fixes
+
+1. [#89](https://github.com/InfluxCommunity/influxdb3-go/pull/89): InfluxDB Edge (OSS) error handling
 
 ## 0.8.0 [2024-06-24]
 
