@@ -165,14 +165,17 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		}
 		headers["Content-Encoding"] = []string{"gzip"}
 	}
-	_, err = c.makeAPICall(ctx, httpParams{
+	resp, err := c.makeAPICall(ctx, httpParams{
 		endpointURL: u,
 		httpMethod:  "POST",
 		headers:     headers,
 		queryParams: u.Query(),
 		body:        body,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return resp.Body.Close()
 }
 
 // WriteData encodes fields of custom points into line protocol
