@@ -1,5 +1,9 @@
 ## 0.10.0 [unreleased]
 
+### Bug Fixes
+
+1. [#94](https://github.com/InfluxCommunity/influxdb3-go/pull/94): Resource leak from unclosed `Response`
+
 ## 0.9.0 [2024-08-12]
 
 ### Features
