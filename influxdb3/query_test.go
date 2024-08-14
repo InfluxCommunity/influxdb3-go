@@ -143,7 +143,7 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 	defer c.Close()
 
 	c.setQueryClient(fc)
-	_, err = c.Query(context.Background(), "SELECT * FROM nothing")
+	_, _ = c.Query(context.Background(), "SELECT * FROM nothing")
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
 	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
