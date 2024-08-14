@@ -1,9 +1,13 @@
 version: 2.1
+
 jobs:
-  build:
-    working_directory: ~/repo
+  tests-go:
+    parameters:
+      go-image:
+        type: string
+        default: "cimg/go:1.22"
     docker:
-      - image: cimg/go:1.22
+      - image: << parameters.go-image >>
     steps:
       - checkout
       - restore_cache:
@@ -53,3 +57,20 @@ jobs:
             ./codecov
       - store_artifacts:
           path: /tmp/artifacts
+
+  lint:
+    docker:
+      - image: golangci/golangci-lint
+    steps:
+      - checkout
+      - run:
+          name: Lint go code
+          command: |
+            golangci-lint run -v
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - tests-go
+      - lint

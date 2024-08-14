@@ -35,7 +35,7 @@ func ExampleClient_Query() {
 	defer client.Close()
 
 	// query
-	iterator, err := client.Query(context.Background(),
+	iterator, _ := client.Query(context.Background(),
 		"SELECT count(*) FROM weather WHERE time >= now() - interval '5 minutes'")
 
 	for iterator.Next() {
@@ -43,7 +43,7 @@ func ExampleClient_Query() {
 	}
 
 	// query with custom header
-	iterator, err = client.Query(context.Background(),
+	iterator, _ = client.Query(context.Background(),
 		"SELECT count(*) FROM stat WHERE time >= now() - interval '5 minutes'",
 		WithHeader("X-trace-ID", "#0122"))
 
@@ -60,7 +60,7 @@ func ExampleClient_QueryWithParameters() {
 	defer client.Close()
 
 	// query
-	iterator, err := client.QueryWithParameters(context.Background(),
+	iterator, _ := client.QueryWithParameters(context.Background(),
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",
@@ -71,7 +71,7 @@ func ExampleClient_QueryWithParameters() {
 	}
 
 	// query with custom header
-	iterator, err = client.QueryWithParameters(context.Background(),
+	iterator, _ = client.QueryWithParameters(context.Background(),
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",

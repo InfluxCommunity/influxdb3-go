@@ -1,0 +1,31 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+output:
+  # The formats used to render issues.
+  # Default:
+  #   formats:
+  #     - format: colored-line-number
+  #       path: stdout
+  formats:
+    - format: tab
+      path: stdout
+
+  # Make issues output unique by line.
+  # Default: true
+  uniq-by-line: false
+
+  # Sort results by the order defined in `sort-order`.
+  # Default: false
+  sort-results: true
+
+  # Show statistics per linter.
+  # Default: false
+  show-stats: true
