@@ -8,7 +8,6 @@
 
 1. [#95](https://github.com/InfluxCommunity/influxdb3-go/pull/95): Add `golangci-lint` to CI
 
-
 ## 0.9.0 [2024-08-12]
 
 ### Features
