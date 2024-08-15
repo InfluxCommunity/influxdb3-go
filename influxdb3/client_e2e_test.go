@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -228,7 +229,7 @@ func TestQueryDatabaseDoesNotExist(t *testing.T) {
 		Database: "does not exist",
 	})
 
-	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES")
+	iterator, err := client.Query(context.Background(), "SHOW TABLES")
 	assert.Nil(t, iterator)
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "bucket \"does not exist\" not found")
@@ -245,7 +246,7 @@ func TestQuerySchema(t *testing.T) {
 		Database: database,
 	})
 
-	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES")
+	iterator, err := client.Query(context.Background(), "SHOW TABLES")
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }
@@ -261,7 +262,7 @@ func TestQuerySchemaWithOptions(t *testing.T) {
 		Database: "does not exist",
 	})
 
-	iterator, err := client.Query(context.Background(), "SHOW NAMESPACES", influxdb3.WithDatabase(database))
+	iterator, err := client.Query(context.Background(), "SHOW TABLES", influxdb3.WithDatabase(database))
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
 }
