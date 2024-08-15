@@ -143,6 +143,9 @@ func (d *CloudDedicatedClient) createDatabase(ctx context.Context, path string, 
 		body:        bytes.NewReader(body),
 	}
 
-	_, err = d.client.makeAPICall(ctx, param)
-	return err
+	resp, err := d.client.makeAPICall(ctx, param)
+	if err != nil {
+		return err
+	}
+	return resp.Body.Close()
 }

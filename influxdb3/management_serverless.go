@@ -95,6 +95,9 @@ func (c *ServerlessClient) createBucket(ctx context.Context, path string, bucket
 		body:        bytes.NewReader(body),
 	}
 
-	_, err = c.client.makeAPICall(ctx, param)
-	return err
+	resp, err := c.client.makeAPICall(ctx, param)
+	if err != nil {
+		return err
+	}
+	return resp.Body.Close()
 }

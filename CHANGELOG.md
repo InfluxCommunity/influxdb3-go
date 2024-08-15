@@ -1,5 +1,9 @@
 ## 0.10.0 [unreleased]
 
+### Bug Fixes
+
+1. [#94](https://github.com/InfluxCommunity/influxdb3-go/pull/94): Resource leak from unclosed `Response`
+
 ### CI
 
 1. [#95](https://github.com/InfluxCommunity/influxdb3-go/pull/95): Add `golangci-lint` to CI
