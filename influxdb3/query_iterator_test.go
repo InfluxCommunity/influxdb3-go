@@ -2,13 +2,14 @@ package influxdb3
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
 	"github.com/apache/arrow/go/v15/arrow/ipc"
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type testMessagesReader struct {

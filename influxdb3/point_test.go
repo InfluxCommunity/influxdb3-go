@@ -152,7 +152,7 @@ func TestPointDefaultTags(t *testing.T) {
 		"tag1": "a",
 		"tag3": "c",
 	}, map[string]interface{}{
-		"float64":  80.1234567,
+		"float64": 80.1234567,
 	}, time.Unix(60, 70))
 	defaultTags := map[string]string{
 		"tag2": "b",
