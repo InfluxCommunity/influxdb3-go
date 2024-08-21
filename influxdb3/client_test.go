@@ -367,9 +367,9 @@ func TestMakeAPICall(t *testing.T) {
 		body:        nil,
 	})
 	assert.NotNil(t, res)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "Token my-token", res.Request.Header.Get("Authorization"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	res, err = client.makeAPICall(context.Background(), httpParams{
 		endpointURL: turl,
@@ -379,7 +379,7 @@ func TestMakeAPICall(t *testing.T) {
 		body:        nil,
 	})
 	assert.Equal(t, "Bearer management-api-token", res.Request.Header.Get("Authorization"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	client, err = New(ClientConfig{Host: ts.URL, Token: "my-token", AuthScheme: "Bearer"})
 	require.NoError(t, err)
@@ -388,7 +388,7 @@ func TestMakeAPICall(t *testing.T) {
 		httpMethod:  "GET",
 	})
 	assert.Equal(t, "Bearer my-token", res.Request.Header.Get("Authorization"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestResolveErrorMessage(t *testing.T) {
