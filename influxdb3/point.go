@@ -283,12 +283,11 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	sort.Strings(fieldKeys)
 	for _, fieldKey := range fieldKeys {
 		fieldValue := p.Values.Fields[fieldKey]
-		value, b := lineprotocol.NewValue(convertField(fieldValue))
-		if b {
-			enc.AddField(fieldKey, value)
-		} else {
+		value, ok := lineprotocol.NewValue(convertField(fieldValue))
+		if !ok {
 			return nil, fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
 		}
+		enc.AddField(fieldKey, value)
 	}
 
 	enc.EndLine(p.Values.Timestamp)
