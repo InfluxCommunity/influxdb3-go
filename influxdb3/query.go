@@ -129,7 +129,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		return nil, errors.New("database not specified")
 	}
 
-	var queryType QueryType = options.QueryType
+	var queryType = options.QueryType
 
 	md := make(metadata.MD, 0)
 	for k, v := range c.config.Headers {
