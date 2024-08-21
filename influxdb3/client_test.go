@@ -610,7 +610,7 @@ func TestFixUrl(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("fix url: %s", tc.input),
+		t.Run(tc.input,
 			func(t *testing.T) {
 				u, safe := ReplaceURLProtocolWithPort(tc.input)
 				assert.Equal(t, tc.expected, u)
