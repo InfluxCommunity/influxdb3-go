@@ -404,7 +404,7 @@ func TestResolveErrorMessage(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -428,7 +428,7 @@ func TestResolveErrorHTML(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -453,7 +453,7 @@ func TestResolveErrorRetryAfter(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -478,7 +478,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -502,7 +502,7 @@ func TestResolveErrorEdge(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -527,7 +527,7 @@ func TestResolveErrorEdgeWithData(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
@@ -548,7 +548,7 @@ func TestResolveErrorNoError(t *testing.T) {
 	require.NoError(t, err)
 	turl, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{
+	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 		endpointURL: turl,
 		queryParams: nil,
 		httpMethod:  "GET",
