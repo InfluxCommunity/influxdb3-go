@@ -24,7 +24,6 @@ package influxdb3
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -52,7 +51,7 @@ func TestNew(t *testing.T) {
 	require.Nil(t, c)
 	if assert.Error(t, err) {
 		expectedMessage := "parsing host URL:"
-		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), fmt.Sprintf("\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error()))
+		assert.True(t, strings.HasPrefix(err.Error(), expectedMessage), "\nexpected prefix : %s\nactual message  : %s", expectedMessage, err.Error())
 	}
 
 	c, err = New(ClientConfig{Host: "http@localhost:8086", Token: "my-token"})
