@@ -295,7 +295,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 	if len(b1) != len(b2) {
 		return -1
 	}
-	for i := 0; i < len(b1); i++ {
+	for i := 0; i < len(b1); i++ { //nolint:intrange
 		if b1[i] != b2[i] {
 			return i
 		}
