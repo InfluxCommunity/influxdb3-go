@@ -311,7 +311,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 			return
 		}
 		assert.EqualValues(t, correctPath, r.URL.String())
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	options := DefaultWriteOptions
@@ -354,7 +354,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 			}
 			return
 		}
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -399,7 +399,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, string(lp), string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -435,7 +435,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, string(lp), string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -479,7 +479,7 @@ func TestWriteData(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -526,7 +526,7 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -579,7 +579,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -623,7 +623,7 @@ func TestGzip(t *testing.T) {
 			}
 			return
 		}
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -663,7 +663,7 @@ func TestCustomHeaders(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, "cpu,host=local usage_user=16.75\n", string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -681,7 +681,7 @@ func TestCustomHeaders(t *testing.T) {
 
 func TestWriteErrorMarshalPoint(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{

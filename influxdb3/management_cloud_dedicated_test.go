@@ -182,7 +182,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 				err = json.Unmarshal(bodyBytes, &body)
 				require.NoError(t, err)
 				assert.Equal(t, tt.wantBody, body)
-				w.WriteHeader(201)
+				w.WriteHeader(http.StatusCreated)
 			}))
 
 			tt.clientConfig.Host = ts.URL
