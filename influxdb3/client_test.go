@@ -370,6 +370,7 @@ func TestMakeAPICall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Token my-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
+	res.Body.Close()
 
 	res, err = client.makeAPICall(context.Background(), httpParams{
 		endpointURL: turl,
@@ -380,6 +381,7 @@ func TestMakeAPICall(t *testing.T) {
 	})
 	assert.Equal(t, "Bearer management-api-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
+	res.Body.Close()
 
 	client, err = New(ClientConfig{Host: ts.URL, Token: "my-token", AuthScheme: "Bearer"})
 	require.NoError(t, err)
@@ -389,6 +391,7 @@ func TestMakeAPICall(t *testing.T) {
 	})
 	assert.Equal(t, "Bearer my-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
+	res.Body.Close()
 }
 
 func TestResolveErrorMessage(t *testing.T) {
@@ -413,6 +416,7 @@ func TestResolveErrorMessage(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, "invalid: "+errMsg, err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorHTML(t *testing.T) {
@@ -437,6 +441,7 @@ func TestResolveErrorHTML(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, html, err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorRetryAfter(t *testing.T) {
@@ -462,6 +467,7 @@ func TestResolveErrorRetryAfter(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, html, err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorWrongJsonResponse(t *testing.T) {
@@ -487,6 +493,7 @@ func TestResolveErrorWrongJsonResponse(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, "cannot decode error response: unexpected end of JSON input", err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorEdge(t *testing.T) {
@@ -511,6 +518,7 @@ func TestResolveErrorEdge(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, errMsg, err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorEdgeWithData(t *testing.T) {
@@ -536,6 +544,7 @@ func TestResolveErrorEdgeWithData(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, dataErrMsg, err.Error())
+	res.Body.Close()
 }
 
 func TestResolveErrorNoError(t *testing.T) {
@@ -557,6 +566,7 @@ func TestResolveErrorNoError(t *testing.T) {
 	assert.Nil(t, res)
 	require.Error(t, err)
 	assert.Equal(t, `500 Internal Server Error`, err.Error())
+	res.Body.Close()
 }
 
 func TestNewServerError(t *testing.T) {
