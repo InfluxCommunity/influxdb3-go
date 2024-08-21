@@ -98,9 +98,9 @@ issues:
       text: "require-error:" #testifylint:require-error
     - path: _test\.go
       text: "go-require:" #testifylint:go-require
-    # Relax some specific check for examples (for now only), they are not executed in CI.
+    # Relax some specific check for examples (for now, we should have really nice examples) - they are not executed in CI.
     - path: .*example(_.*)?_test\.go$
-      text: "exitAfterDefer:"
+      text: "exitAfterDefer:" #gocritic:exitAfterDefer
     - path: .*example(_.*)?_test\.go$
       text: "deep-exit:" #revive:deep-exit
 
