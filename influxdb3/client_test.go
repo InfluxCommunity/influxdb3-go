@@ -32,7 +32,6 @@ import (
 	"testing"
 
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -369,7 +368,7 @@ func TestMakeAPICall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Token my-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	res, err = client.makeAPICall(context.Background(), httpParams{
 		endpointURL: turl,
@@ -380,7 +379,7 @@ func TestMakeAPICall(t *testing.T) {
 	})
 	assert.Equal(t, "Bearer management-api-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	client, err = New(ClientConfig{Host: ts.URL, Token: "my-token", AuthScheme: "Bearer"})
 	require.NoError(t, err)
@@ -390,7 +389,7 @@ func TestMakeAPICall(t *testing.T) {
 	})
 	assert.Equal(t, "Bearer my-token", res.Request.Header.Get("Authorization"))
 	assert.NoError(t, err)
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 func TestResolveErrorMessage(t *testing.T) {

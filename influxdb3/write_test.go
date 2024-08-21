@@ -658,7 +658,7 @@ func TestCustomHeaders(t *testing.T) {
 		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
 			return
 		}
-		xHeader := r.Header.Get("X-device")
+		xHeader := r.Header.Get("X-Device")
 		assert.Equal(t, "ab-01", xHeader)
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -671,7 +671,7 @@ func TestCustomHeaders(t *testing.T) {
 		Token:    "my-token",
 		Database: "my-database",
 		Headers: http.Header{
-			"X-device": []string{"ab-01"},
+			"X-Device": []string{"ab-01"},
 		},
 	})
 	require.NoError(t, err)
