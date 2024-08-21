@@ -238,5 +238,4 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		err = dc.createDatabase(context.Background(), correctPath, nil, &config)
 		assert.Error(t, err)
 	})
-
 }

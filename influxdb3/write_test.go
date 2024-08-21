@@ -39,7 +39,6 @@ import (
 )
 
 func TestEncode(t *testing.T) {
-
 	now := time.Now()
 	tests := []struct {
 		name  string
@@ -125,7 +124,7 @@ func TestEncode(t *testing.T) {
 			error: `encoding error: invalid tag key ""`,
 		},
 		{
-			name: "test missing struct field field name",
+			name: "test missing struct field field name", //nolint
 			s: &struct {
 				Measurement string  `lp:"measurement"`
 				Temp        float64 `lp:"field,"`
@@ -231,9 +230,9 @@ func TestEncode(t *testing.T) {
 			error: `cannot use map[string]interface {} as point`,
 		},
 	}
+
 	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
-
 			client, err := New(ClientConfig{
 				Host:  "http://localhost:8086",
 				Token: "my-token",
@@ -270,6 +269,7 @@ func genPoints(t *testing.T, count int) []*Point {
 	}
 	return ps
 }
+
 func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]string) []byte {
 	var bytes []byte
 	var defaultTagsOrNil map[string]string
@@ -632,7 +632,7 @@ func TestGzip(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	//Test no gzip on small body
+	// Test no gzip on small body
 	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
