@@ -32,8 +32,7 @@ const (
 )
 
 func (t QueryType) String() string {
-	switch t {
-	case InfluxQL:
+	if t == InfluxQL {
 		return "InfluxQL"
 	}
 	return "SQL"
