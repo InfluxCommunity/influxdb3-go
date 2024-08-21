@@ -49,14 +49,14 @@ func ReplaceURLProtocolWithPort(url string) (string, *bool) {
 		safe = new(bool)
 		*safe = false
 		if strings.Count(url, ":") == 0 {
-			url = url + ":80"
+			url += ":80"
 		}
 	} else if strings.HasPrefix(url, "https://") {
 		url = strings.TrimPrefix(url, "https://")
 		safe = new(bool)
 		*safe = true
 		if strings.Count(url, ":") == 0 {
-			url = url + ":443"
+			url += ":443"
 		}
 	}
 
