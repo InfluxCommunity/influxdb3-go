@@ -6,6 +6,7 @@ linters:
     - err113
     - exhaustruct
     - exhaustive
+    # TODO fix the code and enable
     - forcetypeassert
     - funlen
     - godot
@@ -38,7 +39,7 @@ linters-settings:
         disabled: true
       - name: cognitive-complexity
         disabled: true
-      # TODO fix in the future
+      # TODO fix the code and enable
       - name: confusing-naming
         disabled: true
       - name: cyclomatic
@@ -68,7 +69,7 @@ linters-settings:
 issues:
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
-    # Some code is just exceptional.
+    # Some code is just exceptional. Review whenever the code is changed.
     - path: influxdb3/query_iterator\.go
       linters:
         - gocyclo
