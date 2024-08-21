@@ -293,7 +293,7 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 
 	enc.EndLine(p.Values.Timestamp)
 	if err := enc.Err(); err != nil {
-		return nil, fmt.Errorf("encoding error: %v", err)
+		return nil, fmt.Errorf("encoding error: %w", err)
 	}
 	return enc.Bytes(), nil
 }

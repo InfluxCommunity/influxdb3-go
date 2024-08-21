@@ -164,7 +164,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 
 	req, err := http.NewRequestWithContext(ctx, params.httpMethod, fullURL, params.body)
 	if err != nil {
-		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
+		return nil, fmt.Errorf("error calling %s: %w", fullURL, err)
 	}
 	for k, v := range c.config.Headers {
 		for _, i := range v {
@@ -183,7 +183,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 
 	resp, err := c.config.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error calling %s: %v", fullURL, err)
+		return nil, fmt.Errorf("error calling %s: %w", fullURL, err)
 	}
 	err = c.resolveHTTPError(resp)
 	if err != nil {
