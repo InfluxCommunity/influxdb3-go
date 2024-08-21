@@ -67,10 +67,6 @@ func (c *Client) initializeQueryClient() error {
 	return nil
 }
 
-func (c *Client) setQueryClient(flightClient flight.Client) {
-	c.queryClient = flightClient
-}
-
 // QueryParameters is a type for query parameters.
 type QueryParameters = map[string]any
 
