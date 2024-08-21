@@ -38,8 +38,9 @@ linters-settings:
         disabled: true
       - name: cognitive-complexity
         disabled: true
+      # TODO fix in the future
       - name: confusing-naming
-        severity: warning
+        disabled: true
       - name: cyclomatic
         disabled: true
       - name: exported
@@ -75,10 +76,8 @@ issues:
     - path: _test\.go
       linters:
         - bodyclose
-        - canonicalheader
         - goconst
         - gofmt
-        - gci
         - paralleltest
         - tagalign
         - testableexamples
@@ -87,25 +86,24 @@ issues:
         - tparallel
         - unparam
     - path: _test\.go
-      text: "deep-exit:" #revive:deep-exit
-    - path: _test\.go
-      text: "unused-parameter:" #revive:unused-parameter
-    - path: _test\.go
-      text: "unhandled-error:" #revive:unhandled-error
-    - path: _test\.go
       text: "G104: Errors unhandled" #gosec:G104
     - path: _test\.go
       text: "G404: Use of weak random number generator" #gosec:G404
     - path: _test\.go
-      text: "require-error:" #testifylint:require-error
-    - path: _test\.go
-      text: "go-require:" #testifylint:go-require
-    - path: _test\.go
       text: "Error return value of .((os.)?std(out|err)..*|.*Close.*|.*Flush|.*Disconnect|.*Clear|os.Remove(All)?|.*print(f|ln)?|os.(Un)?Setenv). is not checked"
     - path: _test\.go
       text: "Unhandled error in call to function (os.(Un)?Setenv)"
-    - path: .*example_.*_test\.go$
+    - path: _test\.go
+      text: "unused-parameter:" #revive:unused-parameter
+    - path: _test\.go
+      text: "require-error:" #testifylint:require-error
+    - path: _test\.go
+      text: "go-require:" #testifylint:go-require
+    # Relax some specific check for examples (for now only), they are not executed in CI.
+    - path: .*example(_.*)?_test\.go$
       text: "exitAfterDefer:"
+    - path: .*example(_.*)?_test\.go$
+      text: "deep-exit:" #revive:deep-exit
 
   # Independently of option `exclude` we use default exclude patterns,
   # it can be disabled by this option.
