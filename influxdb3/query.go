@@ -95,7 +95,6 @@ func (c *Client) Query(ctx context.Context, query string, options ...QueryOption
 //   - An error, if any.
 func (c *Client) QueryWithParameters(ctx context.Context, query string, parameters QueryParameters,
 	options ...QueryOption) (*QueryIterator, error) {
-
 	return c.query(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
