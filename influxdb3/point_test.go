@@ -229,3 +229,10 @@ func TestPoint_SetTimestamp(t *testing.T) {
 	p.SetTimestampWithEpoch(99)
 	assert.Equal(t, time.Unix(0, 99), p.Values.Timestamp)
 }
+
+func TestFromValuesMissingMeasurement(t *testing.T) {
+	values := &PointValues{}
+	_, err := FromValues(values)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "missing measurement")
+}
