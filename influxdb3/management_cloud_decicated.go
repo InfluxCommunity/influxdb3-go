@@ -93,10 +93,12 @@ func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *Cloud
 		return errors.New("database must not nil")
 	}
 
-	if d.client.config.Database == "" {
-		return errors.New("database name must not be empty")
+	if db.ClusterDatabaseName == "" {
+		if d.client.config.Database == "" {
+			return errors.New("database name must not be empty")
+		}
+		db.ClusterDatabaseName = d.client.config.Database
 	}
-	db.ClusterDatabaseName = d.client.config.Database
 
 	if len(db.ClusterDatabasePartitionTemplate) > MaxPartitions {
 		return fmt.Errorf("partition template should not have more than %d tags or tag buckets", MaxPartitions)
