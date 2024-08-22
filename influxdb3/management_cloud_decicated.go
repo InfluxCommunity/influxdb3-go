@@ -87,7 +87,8 @@ func NewCloudDedicatedClient(client *Client) *CloudDedicatedClient {
 	return &CloudDedicatedClient{client: client}
 }
 
-// CreateDatabase creates a new database
+// CreateDatabase creates a new database. If Database.ClusterDatabaseName is
+// not provided, it defaults to the database name configured in Client.
 func (d *CloudDedicatedClient) CreateDatabase(ctx context.Context, config *CloudDedicatedClientConfig, db *Database) error {
 	if db == nil {
 		return errors.New("database must not nil")
