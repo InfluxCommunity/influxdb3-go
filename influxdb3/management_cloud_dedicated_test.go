@@ -47,6 +47,26 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 		wantErr      bool
 	}{
 		{
+			name: "create database with defaults",
+			db: &Database{
+				ClusterDatabasePartitionTemplate: []PartitionTemplate{},
+			},
+			clientConfig: &ClientConfig{
+				Host:         "",
+				Token:        "my-token",
+				Organization: "default-organization",
+				Database:     "default-database",
+			},
+			wantBody: map[string]any{
+				"name":               "default-database",
+				"maxTables":          float64(500),
+				"maxColumnsPerTable": float64(250),
+				"retentionPeriod":    float64(0),
+				"partitionTemplate":  []any{},
+			},
+			wantErr: false,
+		},
+		{
 			name: "create database with name and defaults",
 			db: &Database{
 				ClusterDatabaseName:              "test-database",
@@ -59,7 +79,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 				Database:     "default-database",
 			},
 			wantBody: map[string]any{
-				"name":               "default-database",
+				"name":               "test-database",
 				"maxTables":          float64(500),
 				"maxColumnsPerTable": float64(250),
 				"retentionPeriod":    float64(0),
@@ -95,7 +115,7 @@ func TestDedicatedClientCreateDatabase(t *testing.T) {
 				Database:     "default-database",
 			},
 			wantBody: map[string]any{
-				"name":               "default-database",
+				"name":               "test-database",
 				"maxTables":          float64(1000),
 				"maxColumnsPerTable": float64(500),
 				"retentionPeriod":    float64(1000),
