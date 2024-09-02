@@ -141,7 +141,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		database = c.config.Database
 	}
 	if database == "" {
-		return fmt.Errorf("database not specified")
+		return errors.New("database not specified")
 	}
 
 	var precision = options.Precision

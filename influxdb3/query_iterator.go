@@ -260,9 +260,7 @@ func getArrowValue(arrayNoType arrow.Array, i int) (interface{}, error) {
 		return arrayNoType.(*array.MonthDayNanoInterval).Value(i), nil
 	// case arrow.RUN_END_ENCODED:
 	// 	return arrayNoType.(*array.RunEndEncoded).Value(i), nil
-
 	default:
 		return nil, fmt.Errorf("not supported data type: %s", arrayNoType.DataType().ID().String())
-
 	}
 }

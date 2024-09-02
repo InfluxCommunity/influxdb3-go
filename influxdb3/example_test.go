@@ -22,7 +22,9 @@
 
 package influxdb3
 
-import "log"
+import (
+	"log"
+)
 
 func ExampleNew() {
 	client, err := New(ClientConfig{
@@ -51,4 +53,3 @@ func ExampleNewFromEnv() {
 	}
 	defer client.Close()
 }
-

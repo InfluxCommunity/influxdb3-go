@@ -39,7 +39,6 @@ import (
 )
 
 func TestEncode(t *testing.T) {
-
 	now := time.Now()
 	tests := []struct {
 		name  string
@@ -125,7 +124,7 @@ func TestEncode(t *testing.T) {
 			error: `encoding error: invalid tag key ""`,
 		},
 		{
-			name: "test missing struct field field name",
+			name: "test missing struct field field name", //nolint
 			s: &struct {
 				Measurement string  `lp:"measurement"`
 				Temp        float64 `lp:"field,"`
@@ -231,9 +230,9 @@ func TestEncode(t *testing.T) {
 			error: `cannot use map[string]interface {} as point`,
 		},
 	}
+
 	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
-
 			client, err := New(ClientConfig{
 				Host:  "http://localhost:8086",
 				Token: "my-token",
@@ -270,6 +269,7 @@ func genPoints(t *testing.T, count int) []*Point {
 	}
 	return ps
 }
+
 func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]string) []byte {
 	var bytes []byte
 	var defaultTagsOrNil map[string]string
@@ -295,7 +295,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 	if len(b1) != len(b2) {
 		return -1
 	}
-	for i := 0; i < len(b1); i++ {
+	for i := 0; i < len(b1); i++ { //nolint:intrange
 		if b1[i] != b2[i] {
 			return i
 		}
@@ -311,7 +311,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 			return
 		}
 		assert.EqualValues(t, correctPath, r.URL.String())
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	options := DefaultWriteOptions
@@ -354,7 +354,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 			}
 			return
 		}
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -399,7 +399,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, string(lp), string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -435,7 +435,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, string(lp), string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -479,7 +479,7 @@ func TestWriteData(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -526,7 +526,7 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -579,7 +579,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, lp, string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -623,7 +623,7 @@ func TestGzip(t *testing.T) {
 			}
 			return
 		}
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -632,7 +632,7 @@ func TestGzip(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	//Test no gzip on small body
+	// Test no gzip on small body
 	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
@@ -658,12 +658,12 @@ func TestCustomHeaders(t *testing.T) {
 		if r.Method == "PRI" { // query client initialization; HTTP/2 should not happen if https was used?
 			return
 		}
-		xHeader := r.Header.Get("X-device")
+		xHeader := r.Header.Get("X-Device")
 		assert.Equal(t, "ab-01", xHeader)
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.Equal(t, "cpu,host=local usage_user=16.75\n", string(body))
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{
@@ -671,7 +671,7 @@ func TestCustomHeaders(t *testing.T) {
 		Token:    "my-token",
 		Database: "my-database",
 		Headers: http.Header{
-			"X-device": []string{"ab-01"},
+			"X-Device": []string{"ab-01"},
 		},
 	})
 	require.NoError(t, err)
@@ -681,7 +681,7 @@ func TestCustomHeaders(t *testing.T) {
 
 func TestWriteErrorMarshalPoint(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer ts.Close()
 	c, err := New(ClientConfig{

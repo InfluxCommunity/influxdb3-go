@@ -2,13 +2,14 @@ package influxdb3
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
 	"github.com/apache/arrow/go/v15/arrow/ipc"
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type testMessagesReader struct {
@@ -31,15 +32,15 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 	rb := array.NewRecordBuilder(memory.DefaultAllocator, schema)
 	rec := rb.NewRecord() // first record is empty
 	err := writer.Write(rec)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	rb.Field(0).(*array.Int32Builder).AppendValues([]int32{1}, nil)
 	rec = rb.NewRecord() // second record is not empty
 	err = writer.Write(rec)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = writer.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	reader := ipc.NewMessageReader(&buf)
 
@@ -47,7 +48,7 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 		&testMessagesReader{
 			r: reader,
 		})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	fReader := &flight.Reader{Reader: ipcReader}
 	it := newQueryIterator(fReader)

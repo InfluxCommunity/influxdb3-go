@@ -86,7 +86,7 @@ func TestConvert(t *testing.T) {
 				ft := reflect.TypeOf(float64(0))
 				assert.True(t, val.Type().ConvertibleTo(ft))
 				valf := val.Convert(ft)
-				assert.True(t, math.Abs(f-valf.Float()) < 1e-6)
+				assert.Less(t, math.Abs(f-valf.Float()), 1e-6)
 			} else {
 				assert.EqualValues(t, tv.targetVal, v)
 			}
@@ -128,7 +128,7 @@ func TestPoint(t *testing.T) {
 
 	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
 	require.NoError(t, err)
-	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line))
+	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line)) //nolint
 }
 
 func TestPointTags(t *testing.T) {
@@ -152,7 +152,7 @@ func TestPointDefaultTags(t *testing.T) {
 		"tag1": "a",
 		"tag3": "c",
 	}, map[string]interface{}{
-		"float64":  80.1234567,
+		"float64": 80.1234567,
 	}, time.Unix(60, 70))
 	defaultTags := map[string]string{
 		"tag2": "b",
@@ -202,11 +202,11 @@ func TestFieldValues(t *testing.T) {
 		SetStringField("string", "a").
 		SetBooleanField("bool", true)
 
-	assert.Equal(t, 1.2, *p.GetDoubleField("double"))
+	assert.InDelta(t, 1.2, *p.GetDoubleField("double"), 0.0)
 	assert.Equal(t, int64(1), *p.GetIntegerField("int"))
 	assert.Equal(t, uint64(42), *p.GetUIntegerField("uint"))
 	assert.Equal(t, "a", *p.GetStringField("string"))
-	assert.Equal(t, true, *p.GetBooleanField("bool"))
+	assert.True(t, *p.GetBooleanField("bool"))
 }
 
 func TestCopy(t *testing.T) {
@@ -228,4 +228,11 @@ func TestPoint_SetTimestamp(t *testing.T) {
 	assert.Equal(t, time.Unix(60, 80), p.Values.Timestamp)
 	p.SetTimestampWithEpoch(99)
 	assert.Equal(t, time.Unix(0, 99), p.Values.Timestamp)
+}
+
+func TestFromValuesMissingMeasurement(t *testing.T) {
+	values := &PointValues{}
+	_, err := FromValues(values)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "missing measurement")
 }

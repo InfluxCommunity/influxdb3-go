@@ -47,7 +47,7 @@ func (c *Client) initializeQueryClient() error {
 	if safe == nil || *safe {
 		pool, err := x509.SystemCertPool()
 		if err != nil {
-			return fmt.Errorf("x509: %s", err)
+			return fmt.Errorf("x509: %w", err)
 		}
 		transport = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, ""))
 	} else {
@@ -60,7 +60,7 @@ func (c *Client) initializeQueryClient() error {
 
 	client, err := flight.NewClientWithMiddleware(url, nil, nil, opts...)
 	if err != nil {
-		return fmt.Errorf("flight: %s", err)
+		return fmt.Errorf("flight: %w", err)
 	}
 	c.queryClient = client
 
@@ -99,7 +99,6 @@ func (c *Client) Query(ctx context.Context, query string, options ...QueryOption
 //   - An error, if any.
 func (c *Client) QueryWithParameters(ctx context.Context, query string, parameters QueryParameters,
 	options ...QueryOption) (*QueryIterator, error) {
-
 	return c.query(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
@@ -133,7 +132,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		return nil, errors.New("database not specified")
 	}
 
-	var queryType QueryType = options.QueryType
+	var queryType = options.QueryType
 
 	md := make(metadata.MD, 0)
 	for k, v := range c.config.Headers {
@@ -162,18 +161,18 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 
 	ticketJSON, err := json.Marshal(ticketData)
 	if err != nil {
-		return nil, fmt.Errorf("serialize: %s", err)
+		return nil, fmt.Errorf("serialize: %w", err)
 	}
 
 	ticket := &flight.Ticket{Ticket: ticketJSON}
 	stream, err := c.queryClient.DoGet(ctx, ticket)
 	if err != nil {
-		return nil, fmt.Errorf("flight do get: %s", err)
+		return nil, fmt.Errorf("flight do get: %w", err)
 	}
 
 	reader, err := flight.NewRecordReader(stream, ipc.WithAllocator(memory.DefaultAllocator))
 	if err != nil {
-		return nil, fmt.Errorf("flight reader: %s", err)
+		return nil, fmt.Errorf("flight reader: %w", err)
 	}
 
 	iterator := newQueryIterator(reader)

@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -58,7 +59,7 @@ func NewServerlessClient(client *Client) *ServerlessClient {
 // CreateBucket creates a new bucket
 func (c *ServerlessClient) CreateBucket(ctx context.Context, bucket *Bucket) error {
 	if bucket == nil {
-		return fmt.Errorf("bucket must not be nil")
+		return errors.New("bucket must not be nil")
 	}
 
 	if bucket.OrgID == "" {

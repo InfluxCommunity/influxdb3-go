@@ -52,7 +52,6 @@ func checkContainerType(p interface{}, alsoMap bool, usage string) error {
 			if !validFieldType(t) {
 				return fmt.Errorf("cannot use field '%s' of type '%v' as a %s", f.Name, t, usage)
 			}
-
 		}
 	case reflect.Map:
 		key := t.Key()

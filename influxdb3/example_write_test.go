@@ -117,10 +117,9 @@ func ExampleClient_WriteData() {
 
 	// write points with options
 	err = client.WriteData(context.Background(), points, WithDefaultTags(map[string]string{
-		"version":"0.1",
+		"version": "0.1",
 	}))
 	if err != nil {
 		log.Fatal()
 	}
 }
-
