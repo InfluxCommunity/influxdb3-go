@@ -11,7 +11,6 @@ linters:
     - err113
     - exhaustruct
     - exhaustive
-    # TODO fix the code and enable
     - forcetypeassert
     - funlen
     - godot
@@ -47,7 +46,6 @@ linters-settings:
         disabled: true
       - name: cognitive-complexity
         disabled: true
-      # TODO fix the code and enable
       - name: confusing-naming
         disabled: true
       - name: cyclomatic
