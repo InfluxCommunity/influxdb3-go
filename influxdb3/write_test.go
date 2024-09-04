@@ -764,7 +764,7 @@ func TestHttpErrorWithHeaders(t *testing.T) {
 	})
 	assert.Equal(t, 400, serr.StatusCode)
 	assert.Equal(t, "Test Response", serr.Message)
-	assert.Equal(t, 6, len(serr.Headers))
+	assert.Len(t, serr.Headers, 6)
 	assert.Equal(t, traceID, serr.Headers["Trace-Id"][0])
 	assert.Equal(t, build, serr.Headers["X-Influxdb-Build"][0])
 	assert.Equal(t, tsVersion, serr.Headers["X-Influxdb-Version"][0])
