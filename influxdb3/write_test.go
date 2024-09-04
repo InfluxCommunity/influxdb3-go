@@ -25,6 +25,7 @@ package influxdb3
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -738,7 +739,7 @@ func TestHttpErrorWithHeaders(t *testing.T) {
 	tsVersion := "v0.0.1"
 	build := "TestServer"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Trace-ID", traceID)
+		w.Header().Set("Trace-Id", traceID)
 		w.Header().Set("X-Influxdb-Build", build)
 		w.Header().Set("X-Influxdb-Version", tsVersion)
 		w.Header().Set("Content-Type", "application/json")
@@ -757,13 +758,16 @@ func TestHttpErrorWithHeaders(t *testing.T) {
 	require.NoError(t, err)
 	err = tc.WriteData(context.Background(), []any{})
 	require.Error(t, err)
-	assert.NotPanics(t, func() { _ = err.(*ServerError) })
-	assert.Equal(t, 400, err.(*ServerError).StatusCode)
-	assert.Equal(t, "Test Response", err.(*ServerError).Message)
-	assert.Equal(t, 6, len(err.(*ServerError).Headers))
-	assert.Equal(t, traceID, err.(*ServerError).Headers["Trace-Id"][0])
-	assert.Equal(t, build, err.(*ServerError).Headers["X-Influxdb-Build"][0])
-	assert.Equal(t, tsVersion, err.(*ServerError).Headers["X-Influxdb-Version"][0])
+	var serr *ServerError
+	assert.NotPanics(t, func() {
+		errors.As(err, &serr)
+	})
+	assert.Equal(t, 400, serr.StatusCode)
+	assert.Equal(t, "Test Response", serr.Message)
+	assert.Equal(t, 6, len(serr.Headers))
+	assert.Equal(t, traceID, serr.Headers["Trace-Id"][0])
+	assert.Equal(t, build, serr.Headers["X-Influxdb-Build"][0])
+	assert.Equal(t, tsVersion, serr.Headers["X-Influxdb-Version"][0])
 }
 
 func TestWriteDatabaseNotSet(t *testing.T) {
