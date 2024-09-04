@@ -733,6 +733,39 @@ func TestHttpError(t *testing.T) {
 	assert.ErrorContains(t, err, "error calling")
 }
 
+func TestHttpErrorWithHeaders(t *testing.T) {
+	traceID := "123456789ABCDEF0"
+	tsVersion := "v0.0.1"
+	build := "TestServer"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Trace-ID", traceID)
+		w.Header().Set("X-Influxdb-Build", build)
+		w.Header().Set("X-Influxdb-Version", tsVersion)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte("{ \"message\": \"Test Response\" }"))
+		if err != nil {
+			assert.FailNow(t, err.Error())
+		}
+	}))
+	defer ts.Close()
+	tc, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+	err = tc.WriteData(context.Background(), []any{})
+	require.Error(t, err)
+	assert.NotPanics(t, func() { _ = err.(*ServerError) })
+	assert.Equal(t, 400, err.(*ServerError).StatusCode)
+	assert.Equal(t, "Test Response", err.(*ServerError).Message)
+	assert.Equal(t, 6, len(err.(*ServerError).Headers))
+	assert.Equal(t, traceID, err.(*ServerError).Headers["Trace-Id"][0])
+	assert.Equal(t, build, err.(*ServerError).Headers["X-Influxdb-Build"][0])
+	assert.Equal(t, tsVersion, err.(*ServerError).Headers["X-Influxdb-Version"][0])
+}
+
 func TestWriteDatabaseNotSet(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
 	p.SetTag("host", "local")
