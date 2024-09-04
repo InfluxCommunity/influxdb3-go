@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 	"time"
@@ -121,5 +122,26 @@ func ExampleClient_WriteData() {
 	}))
 	if err != nil {
 		log.Fatal()
+	}
+}
+
+func ExampleClient_severError() {
+	client, err := NewFromEnv()
+	if err != nil {
+		log.Fatal()
+	}
+	defer client.Close()
+
+	err = client.Write(context.Background(),
+		[]byte("air,sensor=HRF03,device_ID=42 humidity=67.1,temperature="))
+
+	if err != nil {
+		log.Printf("WARN write failed: %s", err.Error())
+		var svErr *ServerError
+		errors.As(err, &svErr)
+		log.Printf("   ServerError headers:")
+		for key, val := range svErr.Headers {
+			log.Printf("    %s = %s", key, val)
+		}
 	}
 }
