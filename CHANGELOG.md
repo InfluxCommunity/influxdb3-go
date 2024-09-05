@@ -1,5 +1,9 @@
 ## 0.10.0 [unreleased]
 
+### Features
+
+1. [#100](https://github.com/InfluxCommunity/influxdb3-go/pull/100): Expose HTTP Response headers in `ServerError`
+
 ### Bug Fixes
 
 1. [#94](https://github.com/InfluxCommunity/influxdb3-go/pull/94): Resource leak from unclosed `Response`
