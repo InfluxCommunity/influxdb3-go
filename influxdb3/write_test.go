@@ -25,7 +25,6 @@ package influxdb3
 import (
 	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -759,9 +758,7 @@ func TestHttpErrorWithHeaders(t *testing.T) {
 	err = tc.WriteData(context.Background(), []any{})
 	require.Error(t, err)
 	var serr *ServerError
-	assert.NotPanics(t, func() {
-		errors.As(err, &serr)
-	})
+	require.ErrorAs(t, err, &serr)
 	assert.Equal(t, 400, serr.StatusCode)
 	assert.Equal(t, "Test Response", serr.Message)
 	assert.Len(t, serr.Headers, 6)
