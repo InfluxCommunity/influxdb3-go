@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // ServerError represents an error returned from an InfluxDB API server.
@@ -36,6 +37,8 @@ type ServerError struct {
 	StatusCode int `json:"-"`
 	// RetryAfter holds the value of Retry-After header if sent by server, otherwise zero
 	RetryAfter int `json:"-"`
+	// Headers hold the response headers
+	Headers http.Header `json:"headers"`
 }
 
 // NewServerError returns new with just a message

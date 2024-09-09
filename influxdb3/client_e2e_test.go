@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -281,4 +282,29 @@ func TestQuerySchemaInfluxQL(t *testing.T) {
 	iterator, err := client.Query(context.Background(), "SHOW MEASUREMENTS", influxdb3.WithQueryType(influxdb3.InfluxQL))
 	require.NoError(t, err)
 	assert.NotNil(t, iterator.Raw())
+}
+
+func TestWriteError(t *testing.T) {
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+
+	err = client.Write(context.Background(), []byte("test,type=negative val="))
+	require.Error(t, err)
+	assert.NotPanics(t, func() { _ = err.(*influxdb3.ServerError) })
+	assert.Regexp(t, "[0-9a-f]{16}", err.(*influxdb3.ServerError).Headers["Trace-Id"][0])
+	b, perr := strconv.ParseBool(err.(*influxdb3.ServerError).Headers["Trace-Sampled"][0])
+	require.NoError(t, perr)
+	assert.False(t, b)
+	assert.NotNil(t, err.(*influxdb3.ServerError).Headers["Strict-Transport-Security"])
+	assert.Regexp(t, "[0-9a-f]{32}", err.(*influxdb3.ServerError).Headers["X-Influxdb-Request-Id"][0])
+	assert.NotNil(t, err.(*influxdb3.ServerError).Headers["X-Influxdb-Build"][0])
+
 }

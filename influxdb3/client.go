@@ -243,6 +243,8 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 	}
 
+	httpError.Headers = r.Header
+
 	return &httpError.ServerError
 }
 
