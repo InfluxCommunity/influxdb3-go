@@ -1,5 +1,7 @@
 ## 0.11.0 [unreleased]
 
+1. [#105](https://github.com/InfluxCommunity/influxdb3-go/pull/105): Support newlines in tag values.
+
 ## 0.10.0 [2024-09-13]
 
 ### Features
