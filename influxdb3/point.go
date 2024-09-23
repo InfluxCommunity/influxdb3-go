@@ -273,9 +273,9 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		// Though this is outside the lineprotocol specification, it was supported in
 		// previous GO client versions.
 		if value, ok := p.Values.Tags[tagKey]; ok {
-			enc.AddTag(tagKey, strings.Replace(value, "\n", "\\n", -1))
+			enc.AddTag(tagKey, strings.ReplaceAll(value, "\n", "\\n"))
 		} else {
-			enc.AddTag(tagKey, strings.Replace(defaultTags[tagKey], "\n", "\\n", -1))
+			enc.AddTag(tagKey, strings.ReplaceAll(defaultTags[tagKey], "\n", "\\n"))
 		}
 	}
 
