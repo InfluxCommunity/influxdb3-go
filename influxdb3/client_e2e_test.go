@@ -39,7 +39,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func SkipCheck(t *testing.T) {
+
+	if _, present := os.LookupEnv("TESTING_INFLUXDB_URL"); !present {
+		t.Skip("TESTING_INFLUXDB_URL not set")
+	}
+	if _, present := os.LookupEnv("TESTING_INFLUXDB_TOKEN"); !present {
+		t.Skip("TESTING_INFLUXDB_TOKEN not set")
+	}
+	if _, present := os.LookupEnv("TESTING_INFLUXDB_DATABASE"); !present {
+		t.Skip("TESTING_INFLUXDB_DATABASE not set")
+	}
+}
+
 func TestWriteAndQueryExample(t *testing.T) {
+	SkipCheck(t)
 	now := time.Now().UTC()
 	testId := now.UnixNano()
 
@@ -153,6 +167,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 }
 
 func TestQueryWithParameters(t *testing.T) {
+	SkipCheck(t)
 	now := time.Now().UTC()
 	testId := now.UnixNano()
 
@@ -221,6 +236,7 @@ func TestQueryWithParameters(t *testing.T) {
 }
 
 func TestQueryDatabaseDoesNotExist(t *testing.T) {
+	SkipCheck(t)
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 
@@ -237,6 +253,7 @@ func TestQueryDatabaseDoesNotExist(t *testing.T) {
 }
 
 func TestQuerySchema(t *testing.T) {
+	SkipCheck(t)
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -253,6 +270,7 @@ func TestQuerySchema(t *testing.T) {
 }
 
 func TestQuerySchemaWithOptions(t *testing.T) {
+	SkipCheck(t)
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -269,6 +287,7 @@ func TestQuerySchemaWithOptions(t *testing.T) {
 }
 
 func TestQuerySchemaInfluxQL(t *testing.T) {
+	SkipCheck(t)
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -285,6 +304,7 @@ func TestQuerySchemaInfluxQL(t *testing.T) {
 }
 
 func TestWriteError(t *testing.T) {
+	SkipCheck(t)
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -307,4 +327,37 @@ func TestWriteError(t *testing.T) {
 	assert.Regexp(t, "[0-9a-f]{32}", err.(*influxdb3.ServerError).Headers["X-Influxdb-Request-Id"][0])
 	assert.NotNil(t, err.(*influxdb3.ServerError).Headers["X-Influxdb-Build"][0])
 
+}
+
+func TestEscapedStringValues(t *testing.T) {
+	SkipCheck(t)
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+	p := influxdb3.NewPoint("escapee",
+		map[string]string{
+			"tag1": "new\nline and space",
+			"tag2": "escaped\\nline and space",
+		},
+		map[string]interface{}{
+			"fVal": 41.3,
+			"sVal": "greetings\nearthlings",
+		}, time.Now())
+
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
+	require.NoError(t, err)
+	qit, err := client.Query(context.Background(), "SELECT * FROM \"escapee\" WHERE time >= now() - interval '1 minute'")
+	require.NoError(t, err)
+	for qit.Next() {
+		assert.EqualValues(t, "greetings\\nearthlings", qit.Value()["sVal"])
+		assert.EqualValues(t, "new\\nline and space", qit.Value()["tag1"])
+		assert.EqualValues(t, "escaped\\nline and space", qit.Value()["tag2"])
+	}
 }
