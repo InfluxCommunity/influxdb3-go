@@ -664,7 +664,7 @@ func TestRespCloseOnError(t *testing.T) {
 	})
 
 	if callErr != nil {
-		slog.Info(fmt.Sprintf("err %s", callErr.Error()))
+		slog.Info(callErr.Error())
 		assert.EqualValues(t, "Not Found: The page you are looking for was not found", callErr.Error())
 	} else {
 		assert.Fail(t, fmt.Sprintf("Call should have returned error. But got res %s", res.Body))
