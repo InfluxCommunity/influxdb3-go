@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
@@ -268,10 +269,13 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		}
 		lastKey = tagKey
 
+		// N.B. Some customers have requested support for newline chars in tag values (EAR 5476)
+		// Though this is outside the lineprotocol specification, it was supported in
+		// previous GO client versions.
 		if value, ok := p.Values.Tags[tagKey]; ok {
-			enc.AddTag(tagKey, value)
+			enc.AddTag(tagKey, strings.ReplaceAll(value, "\n", "\\n"))
 		} else {
-			enc.AddTag(tagKey, defaultTags[tagKey])
+			enc.AddTag(tagKey, strings.ReplaceAll(defaultTags[tagKey], "\n", "\\n"))
 		}
 	}
 

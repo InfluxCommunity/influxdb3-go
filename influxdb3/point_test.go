@@ -178,6 +178,49 @@ func TestPointDefaultTags(t *testing.T) {
 	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
 }
 
+func TestPointWithNewlineTags(t *testing.T) {
+	p := NewPoint("test",
+		map[string]string{
+			"tag1":    "new\nline and space",
+			"tag2":    "escaped\\nline and space",
+			"ambiTag": "ambiguous\ntag",
+		},
+		map[string]interface{}{
+			"fVal": 41.3,
+		}, time.Unix(60, 70))
+
+	defaultTags := map[string]string{
+		"defTag1": "default\nline and space",
+		"defTag2": "escaped\\ndefault line and space",
+		"ambiTag": "default\nambiguous\ntag",
+	}
+
+	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t,
+		"test,ambiTag=ambiguous\\ntag,tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space "+
+			"fVal=41.3 60000000070\n",
+		string(line))
+
+	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	require.NoError(t, err)
+	assert.EqualValues(t,
+		"test,ambiTag=ambiguous\\ntag,defTag1=default\\nline\\ and\\ space,defTag2=escaped"+
+			"\\ndefault\\ line\\ and\\ space,tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space "+
+			"fVal=41.3 60000000070\n",
+		string(line))
+
+	pInvalid := NewPoint("test", map[string]string{
+		"tag\nbroken": "tag\nvalue with space",
+	}, map[string]interface{}{
+		"fVal": 17.2,
+	}, time.Unix(60, 70))
+
+	_, err = pInvalid.MarshalBinary(lineprotocol.Nanosecond)
+	require.Error(t, err)
+	assert.EqualValues(t, "encoding error: invalid tag key \"tag\\nbroken\"", err.Error())
+}
+
 func TestPointFields(t *testing.T) {
 	p := NewPoint("test", nil, map[string]interface{}{
 		"field1": 10,
