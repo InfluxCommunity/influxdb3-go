@@ -125,7 +125,7 @@ func ExampleClient_WriteData() {
 	}
 }
 
-func ExampleClient_severError() {
+func ExampleClient_serverError() {
 	client, err := NewFromEnv()
 	if err != nil {
 		log.Fatal()
