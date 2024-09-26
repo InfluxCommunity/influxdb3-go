@@ -26,10 +26,13 @@
 package influxdb3_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -360,4 +363,36 @@ func TestEscapedStringValues(t *testing.T) {
 		assert.EqualValues(t, "new\\nline and space", qit.Value()["tag1"])
 		assert.EqualValues(t, "escaped\\nline and space", qit.Value()["tag2"])
 	}
+}
+
+func TestRespBodyClosedAfterError(t *testing.T) {
+	SkipCheck(t)
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	buffer := bytes.NewBuffer(make([]byte, 256))
+	logger := slog.New(slog.NewTextHandler(buffer, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	origLogger := slog.Default()
+	slog.SetDefault(logger)
+	defer func() {
+		b := bytes.Trim(buffer.Bytes(), "\x00")
+		logged := strings.Split(string(b), "\n")
+		assert.Regexp(t,
+			".*level=DEBUG msg=\"Closed response body on HTTP Error\\(invalid: no data written, errors encountered on line\\(s\\): line 1: No fields were provided\\)\"",
+			logged[0])
+		slog.SetLogLoggerLevel(slog.LevelInfo)
+		slog.SetDefault(origLogger)
+	}()
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+
+	err = client.Write(context.Background(), []byte("test,type=negative val="))
+	require.Error(t, err)
 }
