@@ -189,7 +189,6 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, err
 	}
-
 	return resp, nil
 }
 
@@ -199,6 +198,9 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return nil
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	var httpError struct {
 		ServerError

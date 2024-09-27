@@ -1,6 +1,9 @@
 ## 0.11.0 [unreleased]
 
+### Bug Fixes
+
 1. [#105](https://github.com/InfluxCommunity/influxdb3-go/pull/105): Support newlines in tag values.
+1. [#106](https://github.com/InfluxCommunity/influxdb3-go/pull/106): Close `resp.Body` after HTTP error response is encountered.
 
 ## 0.10.0 [2024-09-13]
 
