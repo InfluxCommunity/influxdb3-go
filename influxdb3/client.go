@@ -28,7 +28,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime"
 	"net/http"
 	"net/url"
@@ -188,14 +187,6 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	}
 	err = c.resolveHTTPError(resp)
 	if err != nil {
-		closingErr := resp.Body.Close()
-		if closingErr != nil {
-			slog.Warn(fmt.Sprintf("Failed to close response body on HTTP Error(%s): %s",
-				err.Error(),
-				closingErr.Error()))
-		} else {
-			slog.Debug(fmt.Sprintf("Closed response body on HTTP Error(%s)", err.Error()))
-		}
 		return nil, err
 	}
 	return resp, nil
@@ -207,6 +198,9 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return nil
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	var httpError struct {
 		ServerError
