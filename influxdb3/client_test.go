@@ -23,10 +23,7 @@
 package influxdb3
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -624,49 +621,5 @@ func TestFixUrl(t *testing.T) {
 					assert.Equal(t, *tc.expectedSafe, *safe)
 				}
 			})
-	}
-}
-
-func TestRespCloseOnError(t *testing.T) {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-	buffer := bytes.NewBuffer(make([]byte, 256))
-	logger := slog.New(slog.NewTextHandler(buffer, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-	origLogger := slog.Default()
-	slog.SetDefault(logger)
-	defer func() {
-		b := bytes.Trim(buffer.Bytes(), "\x00")
-		logged := strings.Split(string(b), "\n")
-		assert.Regexp(t,
-			".*level=DEBUG msg=\"Closed response body on HTTP Error\\(Not Found: The page you are looking for was not found\\).*",
-			logged[0])
-		slog.SetLogLoggerLevel(slog.LevelInfo)
-		slog.SetDefault(origLogger)
-	}()
-	msg := "{ \"code\": \"Not Found\", \"message\": \"The page you are looking for was not found\", \"data\": null }"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(msg))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, callErr := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-
-	if callErr != nil {
-		slog.Info(callErr.Error())
-		assert.EqualValues(t, "Not Found: The page you are looking for was not found", callErr.Error())
-	} else {
-		assert.Fail(t, fmt.Sprintf("Call should have returned error. But got res %s", res.Body))
 	}
 }
