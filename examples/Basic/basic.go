@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/apache/arrow/go/v15/arrow"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	// Create a Point using the full params constructor.
 	p := influxdb3.NewPoint("stat",
 		map[string]string{"location": "Paris"},
-		map[string]interface{}{
+		map[string]any{
 			"temperature": 24.5,
 			"humidity":    40,
 		},
@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	// Create a Point using the fluent interface (method chaining). 
+	// Create a Point using the fluent interface (method chaining).
 	p = influxdb3.NewPointWithMeasurement("stat").
 		SetTag("location", "London").
 		SetField("temperature", 17.1).
@@ -71,7 +71,7 @@ func main() {
 		Time  time.Time `lp:"timestamp"`
 	}{"stat", "Madrid", 33.8, 35, time.Now()}
 
-	// Write the data. 
+	// Write the data.
 	err = client.WriteData(context.Background(), []any{sensorData})
 	if err != nil {
 		panic(err)
