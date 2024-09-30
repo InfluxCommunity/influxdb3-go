@@ -23,10 +23,11 @@
 package batching
 
 import (
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultValues(t *testing.T) {
@@ -63,12 +64,12 @@ func TestAddAndEmit(t *testing.T) {
 		}),
 	)
 
-	for i := 0; i < batchSize; i++ {
+	for range batchSize {
 		b.Add(&influxdb3.Point{})
 	}
 
 	assert.True(t, emitted, "Emit callback should have been called")
-	assert.Equal(t, batchSize, len(emittedPoints), "The emitted batch size should match the expected size")
+	assert.Len(t, emittedPoints, batchSize, "The emitted batch size should match the expected size")
 }
 
 func TestReadyCallback(t *testing.T) {
@@ -82,7 +83,7 @@ func TestReadyCallback(t *testing.T) {
 		}),
 	)
 
-	for i := 0; i < batchSize; i++ {
+	for range batchSize {
 		b.Add(&influxdb3.Point{})
 	}
 
@@ -106,7 +107,7 @@ func TestPartialEmit(t *testing.T) {
 	points := b.Emit()
 
 	assert.False(t, emitted, "Emit callback should not have been called automatically")
-	assert.Equal(t, 2, len(points), "Emit should return all points when batch size is not reached")
+	assert.Len(t, points, 2, "Emit should return all points when batch size is not reached")
 }
 
 func TestThreadSafety(t *testing.T) {
@@ -120,11 +121,11 @@ func TestThreadSafety(t *testing.T) {
 		}),
 	)
 
-	for i := 0; i < 25; i++ {
+	for range 25 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for j := 0; j < 4; j++ {
+			for range 4 {
 				b.Add(&influxdb3.Point{})
 			}
 		}()
@@ -134,5 +135,5 @@ func TestThreadSafety(t *testing.T) {
 
 	points := b.Emit()
 	assert.Equal(t, 20, emits, "All points should have been emitted")
-	assert.Equal(t, 0, len(points), "Remaining points should be emitted correctly")
+	assert.Empty(t, points, "Remaining points should be emitted correctly")
 }

@@ -25,11 +25,12 @@ package batching_test
 import (
 	"context"
 	"fmt"
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
 )
 
 func Example_batcher() {
@@ -54,7 +55,7 @@ func Example_batcher() {
 	t := time.Now().Add(-54 * time.Second)
 
 	// Write 54 points synchronously to the batcher
-	for i := 0; i < 54; i++ {
+	for range 54 {
 		p := influxdb3.NewPoint("stat",
 			map[string]string{"location": "Paris"},
 			map[string]any{
@@ -101,7 +102,7 @@ func Example_batcher() {
 	t = time.Now().Add(-54 * time.Second)
 
 	// Write 54 points synchronously to the batcher
-	for i := 0; i < 54; i++ {
+	for range 54 {
 		p := influxdb3.NewPoint("stat",
 			map[string]string{"location": "Madrid"},
 			map[string]any{

@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
 	"github.com/apache/arrow/go/v15/arrow"
 )
+
+const NumPoints = 54
 
 func main() {
 	// Create a random number generator
@@ -44,10 +47,10 @@ func main() {
 	b := batching.NewBatcher(batching.WithSize(5))
 
 	// Simulate delay of a second
-	t := time.Now().Add(-54 * time.Second)
+	t := time.Now().Add(-NumPoints * time.Second)
 
-	// Write 54 points synchronously to the batcher
-	for i := 0; i < 54; i++ {
+	// Write points synchronously to the batcher
+	for range NumPoints {
 		p := influxdb3.NewPoint("stat",
 			map[string]string{"location": "Paris"},
 			map[string]any{
@@ -82,7 +85,7 @@ func main() {
 	// Create a batcher with a size of 5, a ready callback and an emit callback to write the batch to the client
 	b = batching.NewBatcher(
 		batching.WithSize(5),
-		batching.WithReadyCallback(func() { fmt.Println("ready") }),
+		batching.WithReadyCallback(func() { fmt.Println("-- ready --") }),
 		batching.WithEmitCallback(func(points []*influxdb3.Point) {
 			err = client.WritePoints(context.Background(), points)
 			if err != nil {
@@ -92,10 +95,10 @@ func main() {
 	)
 
 	// Simulate delay of a second
-	t = time.Now().Add(-54 * time.Second)
+	t = time.Now().Add(-NumPoints * time.Second)
 
-	// Write 54 points synchronously to the batcher
-	for i := 0; i < 54; i++ {
+	// Write points synchronously to the batcher
+	for range NumPoints {
 		p := influxdb3.NewPoint("stat",
 			map[string]string{"location": "Madrid"},
 			map[string]any{
@@ -131,12 +134,15 @@ func main() {
 		panic(err)
 	}
 
+	// Use a tabwriter to format the output
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+	defer w.Flush()
+
+	fmt.Fprintln(w, "\nTime\tLocation\tTemperature\tHumidity")
 	// Process the data
 	for iterator.Next() {
 		value := iterator.Value()
-		fmt.Printf("%s at %v:\n", value["location"],
-			(value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC822))
-		fmt.Printf("  temperature: %f\n", value["temperature"])
-		fmt.Printf("  humidity   : %d%%\n", value["humidity"])
+		t := (value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC3339)
+		fmt.Fprintf(w, "%v\t%s\t%.1f\t%d\n", t, value["location"], value["temperature"], value["humidity"])
 	}
 }
