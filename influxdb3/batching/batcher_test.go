@@ -79,9 +79,8 @@ func TestReady(t *testing.T) {
 		WithSize(batchSize),
 	)
 
-	for range batchSize {
-		b.Add(&influxdb3.Point{})
-	}
+	points := []*influxdb3.Point{{}, {}, {}, {}, {}}
+	b.Add(points...)
 
 	assert.True(t, b.Ready(), "Batcher should be ready when the batch size is reached")
 }
@@ -115,13 +114,13 @@ func TestPartialEmit(t *testing.T) {
 		}),
 	)
 
-	b.Add(&influxdb3.Point{})
+	b.Add(&influxdb3.Point{}, &influxdb3.Point{})
 	b.Add(&influxdb3.Point{})
 
 	points := b.Emit()
 
 	assert.False(t, emitted, "Emit callback should not have been called automatically")
-	assert.Len(t, points, 2, "Emit should return all points when batch size is not reached")
+	assert.Len(t, points, 3, "Emit should return all points when batch size is not reached")
 }
 
 func TestThreadSafety(t *testing.T) {

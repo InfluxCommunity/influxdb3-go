@@ -103,13 +103,13 @@ func NewBatcher(options ...Option) *Batcher {
 	return b
 }
 
-// Add a metric to the batcher and call the given callbacks if any
-func (b *Batcher) Add(p *influxdb3.Point) {
+// Add metric(s) to the batcher and call the given callbacks if any
+func (b *Batcher) Add(p ...*influxdb3.Point) {
 	b.Lock()
 	defer b.Unlock()
 
 	// Add the point
-	b.points = append(b.points, p)
+	b.points = append(b.points, p...)
 
 	// Call callbacks if a new batch is ready
 	if b.isReady() {
