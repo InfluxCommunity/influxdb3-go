@@ -72,6 +72,20 @@ func TestAddAndEmit(t *testing.T) {
 	assert.Len(t, emittedPoints, batchSize, "The emitted batch size should match the expected size")
 }
 
+func TestReady(t *testing.T) {
+	batchSize := 5
+
+	b := NewBatcher(
+		WithSize(batchSize),
+	)
+
+	for range batchSize {
+		b.Add(&influxdb3.Point{})
+	}
+
+	assert.True(t, b.Ready(), "Batcher should be ready when the batch size is reached")
+}
+
 func TestReadyCallback(t *testing.T) {
 	batchSize := 5
 	readyCalled := false
