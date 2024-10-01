@@ -2,7 +2,7 @@
 
 ### Features
 
-1. [#107](https://github.com/InfluxCommunity/influxdb3-go/pull/107): Added `Batcher` to simplify the process of writing data in batches.
+1. [#107](https://github.com/InfluxCommunity/influxdb3-go/pull/107): Add `Batcher` to simplify the process of writing data in batches.
 
 ## 0.11.0 [2024-09-27]
 
