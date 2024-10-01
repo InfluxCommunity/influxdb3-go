@@ -250,7 +250,7 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-func genPoints(t *testing.T, count int) []*Point {
+func genPoints(count int) []*Point {
 	ps := make([]*Point, count)
 	ts := time.Now()
 	gen := rand.New(rand.NewSource(321))
@@ -332,7 +332,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 }
 
 func TestWritePointsAndBytes(t *testing.T) {
-	points := genPoints(t, 5000)
+	points := genPoints(5000)
 	byts := points2bytes(t, points)
 	reqs := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -382,7 +382,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 }
 
 func TestWritePointsWithOptionsDeprecated(t *testing.T) {
-	points := genPoints(t, 1)
+	points := genPoints(1)
 	defaultTags := map[string]string{
 		"defaultTag": "default",
 		"rack":       "main",
@@ -418,7 +418,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 }
 
 func TestWritePointsWithOptions(t *testing.T) {
-	points := genPoints(t, 1)
+	points := genPoints(1)
 	defaultTags := map[string]string{
 		"defaultTag": "default",
 		"rack":       "main",
@@ -490,6 +490,41 @@ func TestWriteData(t *testing.T) {
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s})
 	assert.NoError(t, err)
+}
+
+func TestWriteEmptyData(t *testing.T) {
+	calls := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	err = c.Write(context.Background(), []byte{})
+	assert.NoError(t, err)
+
+	err = c.Write(context.Background(), nil)
+	assert.NoError(t, err)
+
+	err = c.WritePoints(context.Background(), []*Point{})
+	assert.NoError(t, err)
+
+	err = c.WritePoints(context.Background(), nil)
+	assert.NoError(t, err)
+
+	err = c.WriteData(context.Background(), []any{})
+	assert.NoError(t, err)
+
+	err = c.WriteData(context.Background(), nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 0, calls)
 }
 
 func TestWriteDataWithOptionsDeprecated(t *testing.T) {
@@ -597,7 +632,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 }
 
 func TestGzip(t *testing.T) {
-	points := genPoints(t, 1)
+	points := genPoints(1)
 	byts := points2bytes(t, points)
 	wasGzip := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -637,7 +672,7 @@ func TestGzip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, wasGzip)
 	// Test gzip on larger body
-	points = genPoints(t, 100)
+	points = genPoints(100)
 	byts = points2bytes(t, points)
 	err = c.Write(context.Background(), byts)
 	assert.NoError(t, err)

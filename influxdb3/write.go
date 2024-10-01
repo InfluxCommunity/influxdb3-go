@@ -38,7 +38,7 @@ import (
 )
 
 // WritePoints writes all the given points to the server into the given database.
-// The data is written synchronously.
+// The data is written synchronously. Empty batch is skipped.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -52,7 +52,7 @@ func (c *Client) WritePoints(ctx context.Context, points []*Point, options ...Wr
 }
 
 // WritePointsWithOptions writes all the given points to the server into the given database.
-// The data is written synchronously.
+// The data is written synchronously. Empty batch is skipped.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -99,7 +99,7 @@ func (c *Client) writePoints(ctx context.Context, points []*Point, options *Writ
 
 // Write writes line protocol record(s) to the server into the given database.
 // Multiple records must be separated by the new line character (\n).
-// The data is written synchronously.
+// The data is written synchronously. Empty buff is skipped.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -114,7 +114,7 @@ func (c *Client) Write(ctx context.Context, buff []byte, options ...WriteOption)
 
 // WriteWithOptions writes line protocol record(s) to the server into the given database.
 // Multiple records must be separated by the new line character (\n).
-// The data is written synchronously.
+// The data is written synchronously. Empty buff is skipped.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -134,6 +134,10 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 }
 
 func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) error {
+	// Skip zero size batch
+	if len(buff) == 0 {
+		return nil
+	}
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -182,7 +186,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 // and writes line protocol record(s) to the server into the given database.
 // Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
-// The points are written synchronously.
+// The points are written synchronously. Empty batch is skipped.
 //
 // A field with a timestamp must be of type time.Time.
 //
@@ -201,7 +205,7 @@ func (c *Client) WriteData(ctx context.Context, points []interface{}, options ..
 // and writes line protocol record(s) to the server into the given database.
 // Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
-// The points are written synchronously.
+// The points are written synchronously. Empty batch is skipped.
 //
 // A field with a timestamp must be of type time.Time.
 //
