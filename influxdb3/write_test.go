@@ -790,7 +790,7 @@ func TestHttpErrorWithHeaders(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	err = tc.WriteData(context.Background(), []any{})
+	err = tc.Write(context.Background(), []byte("data"))
 	require.Error(t, err)
 	var serr *ServerError
 	require.ErrorAs(t, err, &serr)
