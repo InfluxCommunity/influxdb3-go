@@ -133,11 +133,7 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 	return c.write(ctx, buff, options)
 }
 
-func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) error {
-	// Skip zero size batch
-	if len(buff) == 0 {
-		return nil
-	}
+func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams, error) {
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -145,7 +141,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		database = c.config.Database
 	}
 	if database == "" {
-		return errors.New("database not specified")
+		return nil, errors.New("database not specified")
 	}
 
 	var precision = options.Precision
@@ -153,7 +149,6 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	var gzipThreshold = options.GzipThreshold
 
 	var body io.Reader
-	var err error
 	u, _ := c.apiURL.Parse("write")
 	params := u.Query()
 	params.Set("org", c.config.Organization)
@@ -163,19 +158,49 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"application/json"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
-		body, err = gzip.CompressWithGzip(body)
+		r, err := gzip.CompressWithGzip(body)
 		if err != nil {
-			return fmt.Errorf("unable to compress write body: %w", err)
+			return nil, fmt.Errorf("unable to compress body: %w", err)
 		}
+
+		// This is necessary for Request.GetBody to be set by NewRequest, ensuring that
+		// the Transport can retry the request when a network error occurs.
+		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/request.go#L884
+		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/transport.go#L89-L92
+		//
+		// It is particularly useful for handling transient errors in HTTP/2 and persistent
+		// connections in standard HTTP.
+		// Additionally, it helps manage graceful HTTP/2 shutdowns (e.g. GOAWAY frames).
+		b, err := io.ReadAll(r)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read compressed body: %w", err)
+		}
+		body = bytes.NewReader(b)
+
 		headers["Content-Encoding"] = []string{"gzip"}
 	}
-	resp, err := c.makeAPICall(ctx, httpParams{
+
+	return &httpParams{
 		endpointURL: u,
 		httpMethod:  "POST",
 		headers:     headers,
 		queryParams: u.Query(),
 		body:        body,
-	})
+	}, nil
+}
+
+func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) error {
+	// Skip zero size batch
+	if len(buff) == 0 {
+		return nil
+	}
+
+	params, err := c.makeHTTPParams(buff, options)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		return err
 	}

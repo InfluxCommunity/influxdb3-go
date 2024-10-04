@@ -830,3 +830,45 @@ func TestWriteWithOptionsNotSet(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "options not set")
 }
+
+func TestMakeHTTPParamsBody(t *testing.T) {
+	points := genPoints(100)
+	byts := points2bytes(t, points)
+
+	c, err := New(ClientConfig{
+		Host:     "http://localhost",
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	for _, gzipThreshold := range []int{
+		0, // gzipping disabled
+		1, // gzipping enabled
+	} {
+		c.config.WriteOptions.GzipThreshold = gzipThreshold
+
+		params, err := c.makeHTTPParams(byts, c.config.WriteOptions)
+		assert.NoError(t, err)
+
+		// copy URL
+		urlObj := *params.endpointURL
+		urlObj.RawQuery = params.queryParams.Encode()
+
+		fullURL := urlObj.String()
+
+		req, err := http.NewRequestWithContext(context.Background(), params.httpMethod, fullURL, params.body)
+		assert.NoError(t, err)
+
+		slurp1, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+
+		newBody, err := req.GetBody()
+		assert.NoError(t, err)
+
+		slurp2, err := io.ReadAll(newBody)
+		assert.NoError(t, err)
+
+		assert.Equal(t, string(slurp1), string(slurp2))
+	}
+}

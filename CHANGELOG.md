@@ -1,5 +1,9 @@
 ## 0.13.0 [unreleased]
 
+### Features
+
+1. [#108](https://github.com/InfluxCommunity/influxdb3-go/pull/108): Allow Request.GetBody to be set when writing gzipped data to make calls more resilient.
+
 ## 0.12.0 [2024-10-02]
 
 ### Features
