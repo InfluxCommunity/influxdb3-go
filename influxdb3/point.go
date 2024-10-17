@@ -248,6 +248,22 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	enc.SetPrecision(precision)
 	enc.StartLine(p.Values.MeasurementName)
 
+	// N.B. Some customers have requested support for newline and tab chars in tag values (EAR 5476)
+	// Though this is outside the lineprotocol specification, it was supported in
+	// previous GO client versions.
+	tagEscapes := map[string]string{
+		"\n": "\\n",
+		"\t": "\\t",
+	}
+
+	replacer := func(reps map[string]string, s string) string {
+		result := s
+		for key, val := range reps {
+			result = strings.ReplaceAll(result, key, val)
+		}
+		return result
+	}
+
 	// sort Tags
 	tagKeys := make([]string, 0, len(p.Values.Tags)+len(defaultTags))
 	for k := range p.Values.Tags {
@@ -270,17 +286,10 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		lastKey = tagKey
 
 		// N.B. Some customers have requested support for newline and tab chars in tag values (EAR 5476)
-		// Though this is outside the lineprotocol specification, it was supported in
-		// previous GO client versions.
 		if value, ok := p.Values.Tags[tagKey]; ok {
-			enc.AddTag(tagKey,
-				strings.ReplaceAll(
-					strings.ReplaceAll(value, "\t", "\\t"),
-					"\n", "\\n"))
+			enc.AddTag(tagKey, replacer(tagEscapes, value))
 		} else {
-			enc.AddTag(tagKey, strings.ReplaceAll(
-				strings.ReplaceAll(defaultTags[tagKey], "\t", "\\t"),
-				"\n", "\\n"))
+			enc.AddTag(tagKey, replacer(tagEscapes, defaultTags[tagKey]))
 		}
 	}
 

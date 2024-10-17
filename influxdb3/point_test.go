@@ -178,7 +178,7 @@ func TestPointDefaultTags(t *testing.T) {
 	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
 }
 
-func TestPointWithNewlineTags(t *testing.T) {
+func TestPointWithEscapedTags(t *testing.T) {
 	p := NewPoint("test",
 		map[string]string{
 			"tag1":    "new\nline and space",
