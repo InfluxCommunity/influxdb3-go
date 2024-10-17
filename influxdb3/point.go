@@ -269,13 +269,18 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		}
 		lastKey = tagKey
 
-		// N.B. Some customers have requested support for newline chars in tag values (EAR 5476)
+		// N.B. Some customers have requested support for newline and tab chars in tag values (EAR 5476)
 		// Though this is outside the lineprotocol specification, it was supported in
 		// previous GO client versions.
 		if value, ok := p.Values.Tags[tagKey]; ok {
-			enc.AddTag(tagKey, strings.ReplaceAll(value, "\n", "\\n"))
+			enc.AddTag(tagKey,
+				strings.ReplaceAll(
+					strings.ReplaceAll(value, "\t", "\\t"),
+					"\n", "\\n"))
 		} else {
-			enc.AddTag(tagKey, strings.ReplaceAll(defaultTags[tagKey], "\n", "\\n"))
+			enc.AddTag(tagKey, strings.ReplaceAll(
+				strings.ReplaceAll(defaultTags[tagKey], "\t", "\\t"),
+				"\n", "\\n"))
 		}
 	}
 

@@ -345,6 +345,8 @@ func TestEscapedStringValues(t *testing.T) {
 		map[string]string{
 			"tag1": "new\nline and space",
 			"tag2": "escaped\\nline and space",
+			"tag3": "escaped\nline and\ttab",
+			"tag4": "preescaped\\nline and\\ttab",
 		},
 		map[string]interface{}{
 			"fVal": 41.3,
@@ -359,5 +361,7 @@ func TestEscapedStringValues(t *testing.T) {
 		assert.EqualValues(t, "greetings\\nearthlings", qit.Value()["sVal"])
 		assert.EqualValues(t, "new\\nline and space", qit.Value()["tag1"])
 		assert.EqualValues(t, "escaped\\nline and space", qit.Value()["tag2"])
+		assert.EqualValues(t, "escaped\\nline and\\ttab", qit.Value()["tag3"])
+		assert.EqualValues(t, "preescaped\\nline and\\ttab", qit.Value()["tag4"])
 	}
 }
