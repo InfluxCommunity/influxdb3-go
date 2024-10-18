@@ -178,12 +178,14 @@ func TestPointDefaultTags(t *testing.T) {
 	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
 }
 
-func TestPointWithNewlineTags(t *testing.T) {
+func TestPointWithEscapedTags(t *testing.T) {
 	p := NewPoint("test",
 		map[string]string{
 			"tag1":    "new\nline and space",
 			"tag2":    "escaped\\nline and space",
 			"ambiTag": "ambiguous\ntag",
+			"tabTag1": "drink\tTab",
+			"tabTag2": "Tab\\tulator",
 		},
 		map[string]interface{}{
 			"fVal": 41.3,
@@ -198,16 +200,16 @@ func TestPointWithNewlineTags(t *testing.T) {
 	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t,
-		"test,ambiTag=ambiguous\\ntag,tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space "+
-			"fVal=41.3 60000000070\n",
+		"test,ambiTag=ambiguous\\ntag,tabTag1=drink\\tTab,tabTag2=Tab\\tulator,"+
+			"tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space fVal=41.3 60000000070\n",
 		string(line))
 
 	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
 	require.NoError(t, err)
 	assert.EqualValues(t,
-		"test,ambiTag=ambiguous\\ntag,defTag1=default\\nline\\ and\\ space,defTag2=escaped"+
-			"\\ndefault\\ line\\ and\\ space,tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space "+
-			"fVal=41.3 60000000070\n",
+		"test,ambiTag=ambiguous\\ntag,defTag1=default\\nline\\ and\\ space,"+
+			"defTag2=escaped\\ndefault\\ line\\ and\\ space,tabTag1=drink\\tTab,tabTag2=Tab\\tulator,"+
+			"tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space fVal=41.3 60000000070\n",
 		string(line))
 
 	pInvalid := NewPoint("test", map[string]string{
