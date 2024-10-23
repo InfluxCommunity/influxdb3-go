@@ -52,17 +52,6 @@ func WithCapacity(capacity int) PBOption {
 	}
 }
 
-/*
-func WithIdiom(idiom int) Option {
-	return func(b *Batcher) {
-		if idiom < 0 || idiom > BatchIdiomLP {
-			b.idiom = BatchIdiomUnknown
-		} else {
-			b.idiom = idiom
-		}
-	}
-} */
-
 // WithReadyCallback sets the function called when a new batch is ready. The
 // batcher will wait for the callback to finish, so please return as fast as
 // possible and move long-running processing to a  go-routine.
@@ -72,10 +61,10 @@ func WithReadyCallback(f func()) PBOption {
 	}
 }
 
-// WithEmitCallback sets the function called when a new batch is ready with the
+// WithEmitPointsCallback sets the function called when a new batch is ready with the
 // batch of points. The batcher will wait for the callback to finish, so please
 // return as fast as possible and move long-running processing to a go-routine.
-func WithEmitCallback(f func([]*influxdb3.Point)) PBOption {
+func WithEmitPointsCallback(f func([]*influxdb3.Point)) PBOption {
 	return func(b *PointBatcher) {
 		b.callbackEmit = f
 	}
@@ -87,28 +76,19 @@ const DefaultBatchSize = 1000
 // DefaultCapacity is the default initial capacity of the point buffer
 const DefaultCapacity = 2 * DefaultBatchSize
 
-type Batcher interface {
-	Add(any)
-	Ready() bool
-	Emit() any
-}
-
-type BatcherCallBacks interface {
-	callbackReady()
-	callbackEmit([]any)
-}
-
 type BaseBatcher struct {
 	size     int
 	capacity int
 
 	callbackReady func()
-	callbackEmit  func([]*influxdb3.Point)
+	callbackEmit  func([]any)
 }
 
 // Batcher collects points and emits them as batches
 type PointBatcher struct {
 	BaseBatcher
+
+	callbackEmit func([]*influxdb3.Point)
 
 	points []*influxdb3.Point
 	sync.Mutex
@@ -202,8 +182,17 @@ func WithBufferCapacity(capacity int) LPOption {
 	}
 }
 
+func WithEmitBytesCallback(f func([]byte)) LPOption {
+	return func(b *LPBatcher) {
+		b.callbackEmit = f
+	}
+}
+
 type LPBatcher struct {
 	BaseBatcher
+
+	callbackEmit func([]byte)
+
 	buffer []byte
 	sync.Mutex
 }
@@ -213,28 +202,68 @@ func NewLPBatcher(options ...LPOption) *LPBatcher {
 		size:     DefaultBatchSize,
 		capacity: DefaultCapacity,
 	}
-	b := &LPBatcher{
+	l := &LPBatcher{
 		BaseBatcher: base,
 	}
 
 	// Apply the options
 	for _, o := range options {
-		o(b)
+		o(l)
 	}
 
 	// setup internal data
-	b.buffer = make([]byte, 0, b.capacity)
+	l.buffer = make([]byte, 0, l.capacity)
+	return l
+}
 
-	return b
+func (l *LPBatcher) Add(lines ...string) {
+	l.Lock()
+	defer l.Unlock()
+
+	for _, line := range lines {
+		if len(line) != 0 { // ignore empty lines
+			l.buffer = append(l.buffer, line...)
+			if line[len(line)-1] != '\n' {
+				l.buffer = append(l.buffer, '\n')
+			}
+		}
+	}
+
+	if l.isReady() {
+		// TODO callback ready should be checked here
+		if l.callbackEmit != nil {
+			l.callbackEmit(l.emitBytes())
+		}
+	}
+}
+
+func (l *LPBatcher) Ready() bool {
+	l.Lock()
+	defer l.Unlock()
+	return l.isReady()
+}
+
+func (l *LPBatcher) isReady() bool {
+	return len(l.buffer) >= l.size
+}
+
+func (b *LPBatcher) Emit() []byte {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.emitBytes()
+}
+
+func (l *LPBatcher) emitBytes() []byte {
+	c := min(l.size, len(l.buffer))
+
+	packet := l.buffer[:c]
+	l.buffer = l.buffer[c:]
+
+	return packet
 }
 
 /*
-func (b *PointBatcher) emitBytes() []byte {
-	b.Lock()
-	defer b.Unlock()
-	return []byte(b.buffer)
-}
-
 func (b *Batcher) addToBuffer(items ...*interface{}) {
 	b.Lock()
 	defer b.Unlock()
