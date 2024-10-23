@@ -79,16 +79,36 @@ func TestAddAndDefaultEmitPointDefault(t *testing.T) {
 }
 
 func TestAddAndEmitLineProtocolDefault(t *testing.T) {
-	batchSize := 1000
-	capacity := 10000
+	batchSize := 1000 // Bytes
+	capacity := 10000 // Bytes
+	var emitted bool
+	var emittedBytes []byte
+
 	lps2emit := make([]string, batchSize)
 
-	b := NewLPBatcher(WithBufferSize(batchSize), WithBufferCapacity(capacity))
+	b := NewLPBatcher(
+		WithBufferSize(batchSize),
+		WithBufferCapacity(capacity),
+		WithEmitBytesCallback(func(b []byte) {
+			emitted = true
+			emittedBytes = b
+		}))
 	fmt.Printf("\nDEBUG b: %+v", b)
 
-	for n := range batchSize / 2 {
+	for n := range 10 {
 		lps2emit[n] = fmt.Sprintf("lptest,foo=bar count=%di", n+1)
 	}
+
+	b.Add(lps2emit...)
+
+	//fmt.Printf("\nDEBUG Inspect b.buffer %s", string(b.buffer))
+	fmt.Printf("\nDEBUG b.Ready %t", b.Ready())
+
+	packet := b.Emit()
+	fmt.Printf("\nDEBUG Inspect packet %s", string(packet))
+
+	fmt.Printf("\nDEBUG Inspect emitted %t", emitted)
+	fmt.Printf("\nDEBUG Inspect emittedBytes %s\n", string(emittedBytes))
 
 	/*err := b.AddLP(lps2emit...)
 	if err != nil {
@@ -108,7 +128,7 @@ func TestAddAndCallBackEmitPoint(t *testing.T) {
 
 	b := NewPointBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			fmt.Printf("callback called with %v\n", points)
 			emitted = true
 			emittedPoints = points
@@ -161,7 +181,7 @@ func TestPartialEmit(t *testing.T) {
 
 	b := NewPointBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emitted = true
 		}),
 	)
@@ -182,7 +202,7 @@ func TestThreadSafety(t *testing.T) {
 	emits := 0
 	b := NewPointBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emits++
 		}),
 	)
