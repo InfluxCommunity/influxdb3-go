@@ -24,7 +24,9 @@ package batching
 
 import (
 	"fmt"
+	"math"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
@@ -81,44 +83,42 @@ func TestAddAndDefaultEmitPointDefault(t *testing.T) {
 func TestAddAndEmitLineProtocolDefault(t *testing.T) {
 	batchSize := 1000 // Bytes
 	capacity := 10000 // Bytes
-	var emitted bool
-	var emittedBytes []byte
+	emitCount := 0
+	emittedBytes := make([]byte, 0)
 
-	lps2emit := make([]string, batchSize)
+	lps2emit := make([]string, 100)
 
 	b := NewLPBatcher(
 		WithBufferSize(batchSize),
 		WithBufferCapacity(capacity),
 		WithEmitBytesCallback(func(b []byte) {
-			emitted = true
-			emittedBytes = b
+			emitCount++
+			emittedBytes = append(emittedBytes, b...)
 		}))
 	fmt.Printf("\nDEBUG b: %+v", b)
 
-	for n := range 10 {
+	for n := range lps2emit {
 		lps2emit[n] = fmt.Sprintf("lptest,foo=bar count=%di", n+1)
 	}
 
-	b.Add(lps2emit...)
-
-	//fmt.Printf("\nDEBUG Inspect b.buffer %s", string(b.buffer))
-	fmt.Printf("\nDEBUG b.Ready %t", b.Ready())
-
-	packet := b.Emit()
-	fmt.Printf("\nDEBUG Inspect packet %s", string(packet))
-
-	fmt.Printf("\nDEBUG Inspect emitted %t", emitted)
-	fmt.Printf("\nDEBUG Inspect emittedBytes %s\n", string(emittedBytes))
-
-	/*err := b.AddLP(lps2emit...)
-	if err != nil {
-		fmt.Println(err)
+	for i, _ := range lps2emit {
+		if i > 0 && i%10 == 0 {
+			set := lps2emit[i-10 : i]
+			b.Add(set...)
+		}
 	}
-	fmt.Printf("\nDEBUG b: %+v", b)
-	result := b.Emit()
-	fmt.Printf("\nDEBUG result: %+v", result)
-	fmt.Printf("\nDEBUG result[0]: %v\n", *result[0]) */
+	// add lingering set
+	b.Add(lps2emit[len(lps2emit)-10:]...)
 
+	verify := strings.Join(lps2emit, "\n")
+
+	assert.False(t, b.Ready())
+
+	_ = b.Emit() // flush any leftovers - to be collected in callback above
+
+	expectCall := math.Ceil(float64(len(emittedBytes)) / float64(batchSize))
+	assert.Equal(t, int(expectCall), emitCount)
+	assert.Equal(t, verify, string(emittedBytes))
 }
 
 func TestAddAndCallBackEmitPoint(t *testing.T) {
