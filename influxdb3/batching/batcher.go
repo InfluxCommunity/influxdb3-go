@@ -24,6 +24,7 @@ THE SOFTWARE.
 package batching
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
@@ -251,14 +252,22 @@ func (b *LPBatcher) Emit() []byte {
 	b.Lock()
 	defer b.Unlock()
 
-	return b.emitBytes()
+	packet := b.emitBytes()
+
+	if b.callbackEmit != nil {
+		b.callbackEmit(packet)
+	}
+
+	return packet
 }
 
 func (l *LPBatcher) emitBytes() []byte {
 	c := min(l.size, len(l.buffer))
 
-	packet := l.buffer[:c]
-	l.buffer = l.buffer[c:]
+	prepacket := l.buffer[:c]
+	lastLF := bytes.LastIndexByte(prepacket, '\n')
+	packet := l.buffer[:lastLF]
+	l.buffer = l.buffer[len(packet):]
 
 	return packet
 }
