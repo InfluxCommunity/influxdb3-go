@@ -23,10 +23,14 @@
 package batching
 
 import (
+	"fmt"
+	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,20 +55,46 @@ func TestCustomValues(t *testing.T) {
 	assert.Equal(t, capacity, cap(b.points))
 }
 
-func TestAddAndEmit(t *testing.T) {
+func TestAddAndDefaultEmitPointDefault(t *testing.T) {
+	batchSize := 10
+	//emitted := false
+	points2emit := make([]*influxdb3.Point, batchSize)
+
+	b := NewBatcher(WithSize(batchSize))
+	for n := range batchSize / 2 {
+		points2emit[n] = influxdb3.NewPointWithMeasurement("pointtest").
+			SetTag("foo", "bar").
+			SetIntegerField("count", int64(n+1))
+	}
+	fmt.Printf("\nDEBUG points2emit[0]: %v\n", reflect.TypeOf(points2emit[0]))
+	b.Add(points2emit...)
+	// force Emit
+	result := b.Emit()
+	fmt.Printf("\nDEBUG Inspect result %+v", result)
+	fmt.Printf("\nDEBUG Inspect result %+v", reflect.TypeOf(result[0]))
+	lp, err := result[0].MarshalBinary(lineprotocol.Millisecond)
+	if err != nil {
+		fmt.Printf("err: %s\n", err)
+	}
+	fmt.Printf("\nDEBUG Inspect lp %s", string(lp))
+}
+
+func TestAddAndCallBackEmitPoint(t *testing.T) {
 	batchSize := 5
 	emitted := false
 	var emittedPoints []*influxdb3.Point
 
 	b := NewBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
+			fmt.Printf("callback called with %v\n", points)
 			emitted = true
 			emittedPoints = points
 		}),
 	)
 
 	for range batchSize {
+		fmt.Printf("Adding point")
 		b.Add(&influxdb3.Point{})
 	}
 
@@ -109,7 +139,7 @@ func TestPartialEmit(t *testing.T) {
 
 	b := NewBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emitted = true
 		}),
 	)
@@ -129,7 +159,7 @@ func TestThreadSafety(t *testing.T) {
 	emits := 0
 	b := NewBatcher(
 		WithSize(batchSize),
-		WithEmitCallback(func(points []*influxdb3.Point) {
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emits++
 		}),
 	)
@@ -149,4 +179,42 @@ func TestThreadSafety(t *testing.T) {
 	points := b.Emit()
 	assert.Equal(t, 20, emits, "All points should have been emitted")
 	assert.Empty(t, points, "Remaining points should be emitted correctly")
+}
+
+func TestAddLargerThanSize(t *testing.T) {
+	batchSize := 5
+	emitCt := 0
+	pointSet := make([]*influxdb3.Point, (batchSize*10)+3)
+	for ct := range pointSet {
+		pointSet[ct] = influxdb3.NewPoint("test",
+			map[string]string{"foo": "bar"},
+			map[string]interface{}{"count": ct + 1},
+			time.Now())
+	}
+
+	for _, v := range pointSet {
+		lp, _ := v.MarshalBinary(lineprotocol.Millisecond)
+		fmt.Printf("%s", string(lp))
+	}
+	subSet := pointSet[:5]
+	fmt.Printf("DEBUG subset: %v\n", subSet)
+	resultSet := make([]*influxdb3.Point, 0)
+	b := NewBatcher(WithSize(batchSize),
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
+			resultSet = append(resultSet, points...)
+			emitCt++
+		}))
+
+	b.Add(pointSet...)
+	fmt.Printf("\nDEBUG emitCt: %d\n", emitCt)
+	fmt.Printf("\nDEBUG len(resultSet): %d\n", len(resultSet))
+	fmt.Printf("\nDEBUG len(b.points): %d\n", len(b.points))
+	fmt.Printf("\nDEBUG dump resultSet:\n")
+	for _, rp := range resultSet {
+		lp, _ := rp.MarshalBinary(lineprotocol.Millisecond)
+		fmt.Printf("%s", string(lp))
+	}
+	fmt.Println()
+	//assert.Equal(t, pointSet, resultSet)
+
 }
