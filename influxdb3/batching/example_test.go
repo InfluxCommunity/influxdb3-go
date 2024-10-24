@@ -49,7 +49,7 @@ func Example_batcher() {
 	// Synchronous use
 
 	// Create a Batcher with a size of 5
-	b := batching.NewPointBatcher(batching.WithSize(5))
+	b := batching.NewBatcher(batching.WithSize(5))
 
 	// Simulate delay of a second
 	t := time.Now().Add(-54 * time.Second)
@@ -87,7 +87,7 @@ func Example_batcher() {
 	// Asynchronous use
 
 	// Create a batcher with a size of 5, a ready callback and an emit callback to write the batch to the client
-	b = batching.NewPointBatcher(
+	b = batching.NewBatcher(
 		batching.WithSize(5),
 		batching.WithReadyCallback(func() { fmt.Println("ready") }),
 		batching.WithEmitPointsCallback(func(points []*influxdb3.Point) {
