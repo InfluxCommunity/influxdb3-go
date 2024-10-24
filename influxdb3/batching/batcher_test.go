@@ -24,11 +24,10 @@ package batching
 
 import (
 	"fmt"
-	"math"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
@@ -36,7 +35,7 @@ import (
 )
 
 func TestDefaultValues(t *testing.T) {
-	b := NewPointBatcher()
+	b := NewBatcher()
 
 	// Check that default values are set correctly
 	assert.Equal(t, DefaultBatchSize, b.size)
@@ -47,7 +46,7 @@ func TestCustomValues(t *testing.T) {
 	batchSize := 10
 	capacity := 100
 
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 		WithCapacity(capacity),
 	)
@@ -61,7 +60,7 @@ func TestAddAndDefaultEmitPointDefault(t *testing.T) {
 	//emitted := false
 	points2emit := make([]*influxdb3.Point, batchSize)
 
-	b := NewPointBatcher(WithSize(batchSize))
+	b := NewBatcher(WithSize(batchSize))
 	for n := range batchSize / 2 {
 		points2emit[n] = influxdb3.NewPointWithMeasurement("pointtest").
 			SetTag("foo", "bar").
@@ -80,53 +79,12 @@ func TestAddAndDefaultEmitPointDefault(t *testing.T) {
 	fmt.Printf("\nDEBUG Inspect lp %s", string(lp))
 }
 
-func TestAddAndEmitLineProtocolDefault(t *testing.T) {
-	batchSize := 1000 // Bytes
-	capacity := 10000 // Bytes
-	emitCount := 0
-	emittedBytes := make([]byte, 0)
-
-	lps2emit := make([]string, 100)
-
-	b := NewLPBatcher(
-		WithBufferSize(batchSize),
-		WithBufferCapacity(capacity),
-		WithEmitBytesCallback(func(b []byte) {
-			emitCount++
-			emittedBytes = append(emittedBytes, b...)
-		}))
-	fmt.Printf("\nDEBUG b: %+v", b)
-
-	for n := range lps2emit {
-		lps2emit[n] = fmt.Sprintf("lptest,foo=bar count=%di", n+1)
-	}
-
-	for i, _ := range lps2emit {
-		if i > 0 && i%10 == 0 {
-			set := lps2emit[i-10 : i]
-			b.Add(set...)
-		}
-	}
-	// add lingering set
-	b.Add(lps2emit[len(lps2emit)-10:]...)
-
-	verify := strings.Join(lps2emit, "\n")
-
-	assert.False(t, b.Ready())
-
-	_ = b.Emit() // flush any leftovers - to be collected in callback above
-
-	expectCall := math.Ceil(float64(len(emittedBytes)) / float64(batchSize))
-	assert.Equal(t, int(expectCall), emitCount)
-	assert.Equal(t, verify, string(emittedBytes))
-}
-
 func TestAddAndCallBackEmitPoint(t *testing.T) {
 	batchSize := 5
 	emitted := false
 	var emittedPoints []*influxdb3.Point
 
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			fmt.Printf("callback called with %v\n", points)
@@ -147,7 +105,7 @@ func TestAddAndCallBackEmitPoint(t *testing.T) {
 func TestReady(t *testing.T) {
 	batchSize := 5
 
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 	)
 
@@ -161,7 +119,7 @@ func TestReadyCallback(t *testing.T) {
 	batchSize := 5
 	readyCalled := false
 
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 		WithReadyCallback(func() {
 			readyCalled = true
@@ -179,7 +137,7 @@ func TestPartialEmit(t *testing.T) {
 	batchSize := 5
 	emitted := false
 
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emitted = true
@@ -196,11 +154,10 @@ func TestPartialEmit(t *testing.T) {
 }
 
 func TestThreadSafety(t *testing.T) {
-	//t.Skip("Hangs")
 	batchSize := 5
 	var wg sync.WaitGroup
 	emits := 0
-	b := NewPointBatcher(
+	b := NewBatcher(
 		WithSize(batchSize),
 		WithEmitPointsCallback(func(points []*influxdb3.Point) {
 			emits++
@@ -224,17 +181,40 @@ func TestThreadSafety(t *testing.T) {
 	assert.Empty(t, points, "Remaining points should be emitted correctly")
 }
 
-func TestByteBuffer(t *testing.T) {
-	t.Skip("Exploratory")
-	/*
-		b := NewLPBatcher()
-		lines := []string{
-			"cpu,host=3CPO val=3.14",
-			"cpu,host=R2D2 val=2.71\n",
-			"cpu,host=HAL69 val=1.23",
-		}
+func TestAddLargerThanSize(t *testing.T) {
+	batchSize := 5
+	emitCt := 0
+	pointSet := make([]*influxdb3.Point, (batchSize*10)+3)
+	for ct := range pointSet {
+		pointSet[ct] = influxdb3.NewPoint("test",
+			map[string]string{"foo": "bar"},
+			map[string]interface{}{"count": ct + 1},
+			time.Now())
+	}
 
-		b.AddLP(lines...)
-		fmt.Printf("DEBUG:\n%v\n", b.Emit())
-	*/
+	for _, v := range pointSet {
+		lp, _ := v.MarshalBinary(lineprotocol.Millisecond)
+		fmt.Printf("%s", string(lp))
+	}
+	subSet := pointSet[:5]
+	fmt.Printf("DEBUG subset: %v\n", subSet)
+	resultSet := make([]*influxdb3.Point, 0)
+	b := NewBatcher(WithSize(batchSize),
+		WithEmitPointsCallback(func(points []*influxdb3.Point) {
+			resultSet = append(resultSet, points...)
+			emitCt++
+		}))
+
+	b.Add(pointSet...)
+	fmt.Printf("\nDEBUG emitCt: %d\n", emitCt)
+	fmt.Printf("\nDEBUG len(resultSet): %d\n", len(resultSet))
+	fmt.Printf("\nDEBUG len(b.points): %d\n", len(b.points))
+	fmt.Printf("\nDEBUG dump resultSet:\n")
+	for _, rp := range resultSet {
+		lp, _ := rp.MarshalBinary(lineprotocol.Millisecond)
+		fmt.Printf("%s", string(lp))
+	}
+	fmt.Println()
+	//assert.Equal(t, pointSet, resultSet)
+
 }
