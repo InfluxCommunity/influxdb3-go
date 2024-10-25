@@ -24,30 +24,19 @@ THE SOFTWARE.
 package batching
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
-const (
-	BatchUnknown = iota
-	BatchPoints  = iota
-	BatchLP      = iota
-)
-
+// Option to adapt properties of a batcher
 type Option func(*interface{})
 
-// Option to adapt properties of a batcher
-type PBOption func(*Batcher)
-
 // WithSize changes the batch-size emitted by the batcher
-/*func WithSize(size int) PBOption {
-	return func(b *Batcher) {
-		b.size = size
-	}
-}*/
-
+// With the standard Batcher the implied unit is a Point
+// With the LPBatcher the implied unit is a byte
 func WithSize(size int) Option {
 	return func(b *interface{}) {
 		if bb, bok := (*b).(*Batcher); bok {
@@ -55,18 +44,14 @@ func WithSize(size int) Option {
 		} else if lb, lok := (*b).(*LPBatcher); lok {
 			lb.size = size
 		} else {
-			slog.Warn("Failed to match Batcher in WithCapacityOpt. Value not set.")
+			slog.Warn("Failed to match Batcher type in WithSize. Value not set.")
 		}
 	}
 }
 
-// WithCapacity changes the initial capacity of the points buffer
-/*func WithCapacity(capacity int) PBOption {
-	return func(b *Batcher) {
-		b.capacity = capacity
-	}
-}*/
-
+// WithCapacity changes the initial capacity of the internal buffer
+// With the standard Batcher implied unit is a Point
+// With the LPBatcher the implied unit is a byte
 func WithCapacity(capacity int) Option {
 	return func(b *interface{}) {
 		if bb, bok := (*b).(*Batcher); bok {
@@ -74,7 +59,7 @@ func WithCapacity(capacity int) Option {
 		} else if lb, lok := (*b).(*LPBatcher); lok {
 			lb.capacity = capacity
 		} else {
-			slog.Warn("Failed to match Batcher in WithCapacityOpt. Value not set.")
+			slog.Warn("Failed to match Batcher type in WithCapacity. Value not set.")
 		}
 	}
 }
@@ -82,12 +67,6 @@ func WithCapacity(capacity int) Option {
 // WithReadyCallback sets the function called when a new batch is ready. The
 // batcher will wait for the callback to finish, so please return as fast as
 // possible and move long-running processing to a  go-routine.
-/*func WithReadyCallback(f func()) PBOption {
-	return func(b *Batcher) {
-		b.callbackReady = f
-	}
-}*/
-
 func WithReadyCallback(f func()) Option {
 	return func(b *interface{}) {
 		if bb, bok := (*b).(*Batcher); bok {
@@ -95,27 +74,21 @@ func WithReadyCallback(f func()) Option {
 		} else if lb, lok := (*b).(*LPBatcher); lok {
 			lb.callbackReady = f
 		} else {
-			slog.Warn("Failed to match Batcher in WithReadyCallbackOpt. Callback not set.")
+			slog.Warn("Failed to match Batcher type in WithReadyCallback. Callback not set.")
 		}
 	}
 
 }
 
-// WithEmitPointsCallback sets the function called when a new batch is ready with the
+// WithEmitCallback sets the function called when a new batch is ready with the
 // batch of points. The batcher will wait for the callback to finish, so please
 // return as fast as possible and move long-running processing to a go-routine.
-/*func WithEmitPointsCallback(f func([]*influxdb3.Point)) PBOption {
-	return func(b *Batcher) {
-		b.callbackEmit = f
-	}
-}*/
-
-func WithEmitPointsCallback(f func([]*influxdb3.Point)) Option {
+func WithEmitCallback(f func([]*influxdb3.Point)) Option {
 	return func(b *interface{}) {
 		if bb, bok := (*b).(*Batcher); bok {
 			bb.callbackEmit = f
 		} else {
-			slog.Warn("Failed to match Batcher in WithEmitPointsCallbackOpt. Callback not set.")
+			slog.Warn("Failed to match type Batcher in WithEmitPointsCallback. Callback not set.")
 		}
 	}
 }
@@ -175,7 +148,6 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 
 	// Add the point
 	b.points = append(b.points, p...)
-	//b.addToBuffer(interfaces...)
 
 	// Call callbacks if a new batch is ready
 	for b.isReady() {
@@ -186,6 +158,13 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 			b.callbackEmit(b.emitPoints())
 		} else {
 			// no emitter callback
+			if b.CurrentLoadSize() >= (b.capacity - b.size) {
+				slog.Warn(
+					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
+						"Batcher load is %d points waiting to be emitted.",
+						b.CurrentLoadSize()),
+				)
+			}
 			break
 		}
 	}
@@ -221,61 +200,15 @@ func (b *Batcher) emitPoints() []*influxdb3.Point {
 	return points
 }
 
-/*
-func (b *Batcher) addToBuffer(items ...*interface{}) {
-	b.Lock()
-	defer b.Unlock()
-
-	b.buffer = append(b.buffer, items...)
-
-	//Call callbacks if a new batch is ready
-	if b.isReady() {
-		if b.callbackReady != nil {
-			b.callbackReady()
-		}
-		if b.callbackEmit != nil {
-			// ??? and if its line protocol?
-			b.callbackEmit(b.emitPoints())
-		}
-	}
+// Flush drains all points even if buffer currently larger than size.
+// It does not call the callbackEmit method
+func (b *Batcher) Flush() []*influxdb3.Point {
+	slog.Info(fmt.Sprintf("Flushing all points (%d) from buffer.", b.CurrentLoadSize()))
+	points := b.points
+	b.points = b.points[len(points):]
+	return points
 }
-*/
-/*
-func (b *Batcher) AddPoints(p ...*influxdb3.Point) error {
-	//b.Lock()
-	//defer b.Unlock()
-	if b.idiom != BatchIdiomPoints {
-		if len(b.buffer) == 0 {
-			b.idiom = BatchIdiomPoints
-		} else {
-			return errors.New("this batcher does not support the Point idiom")
-		}
-	}
-	interfaces := make([]*interface{}, len(p))
-	// Add the point
-	for i, point := range p {
-		var iface interface{} = point
-		interfaces[i] = &iface
-	}
-	//b.points = append(b.points, p...)
-	b.addToBuffer(interfaces...)
-	return nil
-} */
 
-/*
-func (b *Batcher) AddLP(lines ...string) error {
-	if b.idiom != BatchIdiomLP {
-		if len(b.buffer) == 0 {
-			b.idiom = BatchIdiomLP
-		} else {
-			return errors.New("this batcher does not support the Line Protocol (LP) idiom")
-		}
-	}
-	interfaces := make([]*interface{}, len(lines))
-	for n, line := range lines {
-		var iface interface{} = line
-		interfaces[n] = &iface
-	}
-	b.addToBuffer(interfaces...)
-	return nil
-} */
+func (b *Batcher) CurrentLoadSize() int {
+	return len(b.points)
+}
