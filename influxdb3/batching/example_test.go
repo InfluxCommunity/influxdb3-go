@@ -90,7 +90,7 @@ func Example_batcher() {
 	b = batching.NewBatcher(
 		batching.WithSize(5),
 		batching.WithReadyCallback(func() { fmt.Println("ready") }),
-		batching.WithEmitPointsCallback(func(points []*influxdb3.Point) {
+		batching.WithEmitCallback(func(points []*influxdb3.Point) {
 			err = client.WritePoints(context.Background(), points)
 			if err != nil {
 				log.Fatal(err)
