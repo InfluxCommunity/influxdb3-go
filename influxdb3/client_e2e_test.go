@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
  The MIT License
 
@@ -28,13 +25,16 @@ package influxdb3_test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
 	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -364,4 +364,91 @@ func TestEscapedStringValues(t *testing.T) {
 		assert.EqualValues(t, "escaped\\nline and\\ttab", qit.Value()["tag3"])
 		assert.EqualValues(t, "preescaped\\nline and\\ttab", qit.Value()["tag4"])
 	}
+}
+
+func TestBatchLP(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+	defer client.Close()
+
+	dataTemplate := "ibot,location=%s,id=%s fVal=%f,count=%di %d"
+	locations := []string{"akron", "dakar", "kyoto", "perth"}
+	ids := []string{"R2D2", "C3PO", "ROBBIE"}
+	lines := make([]string, 0)
+	now := time.Now().UnixMilli()
+	//rand.Seed(now.UnixNano())
+	for n := range 20 {
+		lines = append(lines, fmt.Sprintf(dataTemplate, locations[n%len(locations)],
+			ids[n%len(ids)],
+			(rand.Float64()*100)-50.0, n+1, now-int64(n*1000)))
+		if n%2 == 0 {
+			lines[n] = lines[n] + "\n" // verify appending LF
+		}
+	}
+
+	fmt.Printf("DEBUG lines %+v\n", lines)
+
+	size := 256
+	capacity := size * 2
+	readyCt := 0
+	emitCt := 0
+	results := make([]byte, 0)
+	lpb := batching.NewLPBatcher(
+		batching.WithSize(size),
+		batching.WithCapacity(capacity),
+		batching.WithReadyCallback(func() {
+			readyCt++
+		}),
+		batching.WithEmitBytesCallback(func(ba []byte) {
+			emitCt++
+			results = append(results, ba...)
+			err := client.Write(context.Background(), ba, influxdb3.WithPrecision(lineprotocol.Millisecond))
+			if err != nil {
+				fmt.Printf("ERROR %v\n", err)
+			}
+		}))
+
+	//fmt.Printf("DEBUG type(lpb) %s\n", reflect.Type(lpb))
+	fmt.Printf("DEBUG lpb: %+v\n", lpb)
+
+	for _, line := range lines {
+		lpb.Add(line)
+	}
+
+	fmt.Printf("DEBUG readyCt: %d\n", readyCt)
+	fmt.Printf("DEBUG emitCt: %d\n", emitCt)
+	fmt.Printf("DEBUG results: %+v\n", string(results))
+	fmt.Printf("DEBUG lpb.buffer: %+v\n", lpb.CurrentLoadSize())
+	fmt.Printf("DEBUG getting rest\n")
+	fmt.Printf("DEBUG last emit to string: %s\n", string(lpb.Emit()))
+	fmt.Printf("DEBUG loadsize %d\n", lpb.CurrentLoadSize())
+
+	query := "SELECT * FROM \"ibot\" WHERE time >= now() - interval '1 minutes' Order by count"
+
+	qResults, qerr := client.Query(context.Background(), query)
+
+	if qerr != nil {
+		fmt.Printf("ERROR %v\n", qerr)
+	}
+
+	//for qResults.Next() {
+	qResults.Next()
+	json, merr := qResults.Raw().Record().MarshalJSON()
+	if merr != nil {
+		fmt.Printf("ERROR %v\n", merr)
+	} else {
+		fmt.Printf("DEBUG: %s\n", string(json))
+	}
+	//}
+
 }
