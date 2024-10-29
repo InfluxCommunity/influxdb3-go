@@ -62,12 +62,16 @@ func (l *LPBatcher) Add(lines ...string) {
 		}
 	}
 
+	//fmt.Printf("DEBUG after load l.buffer #%s#\n", string(l.buffer))
+
 	for l.isReady() {
 		if l.callbackReady != nil {
 			l.callbackReady()
 		}
 		if l.callbackEmit != nil {
+			// fmt.Printf("DEBUG calling emit function\n")
 			l.callbackEmit(l.emitBytes())
+			//fmt.Printf("DEBUG l.buffer #%s#\n", string(l.buffer))
 		} else {
 			// no emitter callback
 			if l.CurrentLoadSize() > (l.capacity - l.size) {
@@ -106,17 +110,15 @@ func (l *LPBatcher) Emit() []byte {
 func (l *LPBatcher) emitBytes() []byte {
 	c := min(l.size, len(l.buffer))
 
-	prepacket := l.buffer[:c]
-	lastLF := bytes.LastIndexByte(prepacket, '\n')
-
-	if len(prepacket) < 1 || lastLF < 0 {
-		return prepacket
+	if c == 0 { // i.e. buffer is empty
+		return l.buffer
 	}
+
+	prepacket := l.buffer[:c]
+	lastLF := bytes.LastIndexByte(prepacket, '\n') + 1
+
 	packet := l.buffer[:lastLF]
 	l.buffer = l.buffer[len(packet):]
-	if len(l.buffer) == 1 && l.buffer[0] == '\n' { // removing lingering delimiter
-		l.buffer = l.buffer[1:]
-	}
 
 	return packet
 }
