@@ -23,7 +23,6 @@
 package batching
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -178,7 +177,6 @@ func TestAddLargerThanSize(t *testing.T) {
 	expectedCt := len(pointSet) / batchSize
 	assert.Equal(t, expectedCt, emitCt)
 	assert.Equal(t, loadFactor*batchSize, len(resultSet))
-	fmt.Printf("DEBUG resultSet %d\n", len(resultSet))
 	assert.Equal(t, remainder, len(b.points))
 	assert.Equal(t, pointSet[:len(pointSet)-remainder], resultSet)
 }

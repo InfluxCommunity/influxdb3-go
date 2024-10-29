@@ -49,8 +49,6 @@ func TestLPBatcherCreate(t *testing.T) {
 		}),
 	)
 
-	fmt.Printf("DEBUG l: %v\n", l)
-
 	assert.Equal(t, size, l.size)
 	assert.Equal(t, capacity, l.capacity)
 	assert.False(t, emitted)
@@ -84,6 +82,46 @@ func TestLPReadyCallback(t *testing.T) {
 	assert.True(t, readyCalled)
 }
 
+func TestEmitEmptyBatcher(t *testing.T) {
+	size := 256
+	capacity := size * 2
+
+	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+
+	results := lpb.Emit()
+
+	assert.Equal(t, 0, len(results))
+}
+
+func TestAddLineAppendsLF(t *testing.T) {
+	size := 256
+	capacity := size * 2
+
+	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lines := []string{
+		"cpu,location=roswell,id=R2D2 fVal=3.14,iVal=42i",
+		"cpu,location=dyatlov,id=C3PO fVal=2.71,iVal=21i",
+		"cpu,location=titan,id=HAL69 fVal=1.41,iVal=7i",
+	}
+	lpb.Add(lines...)
+	results := lpb.Emit()
+	assert.Equal(t, []byte(strings.Join(lines, "\n")+"\n"), results)
+}
+
+func TestAddLineAppendsNoLFWhenPresent(t *testing.T) {
+	size := 256
+	capacity := size * 2
+	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lines := []string{
+		"cpu,location=roswell,id=R2D2 fVal=3.14,iVal=42i\n",
+		"cpu,location=dyatlov,id=C3PO fVal=2.71,iVal=21i\n",
+		"cpu,location=titan,id=HAL69 fVal=1.41,iVal=7i\n",
+	}
+	lpb.Add(lines...)
+	results := lpb.Emit()
+	assert.Equal(t, []byte(strings.Join(lines, "")), results)
+}
+
 func TestLPAddAndPartialEmit(t *testing.T) {
 	size := 500
 	capacity := size * 2
@@ -98,7 +136,8 @@ func TestLPAddAndPartialEmit(t *testing.T) {
 		lineByteCt += len([]byte(lines[n])) + 1
 	}
 
-	verif := strings.Join(lines, "\n")
+	verify := strings.Join(lines, "\n")
+	verify += "\n"
 
 	lpb := NewLPBatcher(
 		WithSize(size),
@@ -113,7 +152,7 @@ func TestLPAddAndPartialEmit(t *testing.T) {
 
 	packet := lpb.Emit()
 
-	assert.Equal(t, verif, string(packet))
+	assert.Equal(t, verify, string(packet))
 	assert.Equal(t, 0, lpb.CurrentLoadSize())
 	assert.Equal(t, 0, emitCount)         // callback should not have been called
 	assert.Equal(t, 0, len(emittedBytes)) // callback should not have been called
@@ -153,6 +192,7 @@ func TestLPAddAndEmitCallBack(t *testing.T) {
 	lpb.Add(lps2emit[len(lps2emit)-10:]...)
 
 	verify := strings.Join(lps2emit, "\n")
+	verify += "\n"
 
 	assert.False(t, lpb.Ready())
 
@@ -209,28 +249,22 @@ func TestLPThreadSafety(t *testing.T) {
 }
 
 func TestLPAddLargerThanSize(t *testing.T) {
-	// TODO review test -- appears Emit called too frequently
-	// Look for leading '\n' in lp.buffer
-	size := 64
+	batchSize := 64
 	loadFactor := 10
-	capacity := size * loadFactor
+	capacity := batchSize * loadFactor
 	remainder := 3
 	testString := "123456789ABCDEF\n"
-	stringSet := make([]string, ((size/len(testString))*loadFactor)+remainder)
-	stringSetByteCt := 0
+	stringSet := make([]string, ((batchSize/len(testString))*loadFactor)+remainder)
+	verify := make([]byte, 0)
 	for ct := range stringSet {
 		stringSet[ct] = testString
-		stringSetByteCt += len([]byte(testString))
+		verify = append(verify, []byte(stringSet[ct])...)
 	}
-
-	fmt.Printf("DEBUG len(stringSet)=%d\n", len(stringSet))
-	fmt.Printf("DEBUG stringSetByteCount %d\n", stringSetByteCt)
-	fmt.Printf("DEBUG stringSet: %v\n", stringSet)
 
 	emitCt := 0
 	resultBuffer := make([]byte, 0)
 	lpb := NewLPBatcher(
-		WithSize(size),
+		WithSize(batchSize),
 		WithCapacity(capacity),
 		WithEmitBytesCallback(func(ba []byte) {
 			emitCt++
@@ -239,13 +273,14 @@ func TestLPAddLargerThanSize(t *testing.T) {
 
 	lpb.Add(stringSet...)
 
-	results := strings.Split(string(resultBuffer), "\n")
-	resultsBytes := len(resultBuffer)
-	fmt.Printf("DEBUG emitCt: %d\n", emitCt)
-	fmt.Printf("DEBUG resultsBytes: %d\n", resultsBytes)
-	fmt.Printf("DEBUG len(results): %d\n", len(results))
-	fmt.Printf("DEBUG results: %s\n", results)
-	fmt.Printf("DEBUG lpb.CurrentLoadSize: %d\n", lpb.CurrentLoadSize())
-	fmt.Printf("DEBUG lpb.buffer #%s#\n", string(lpb.buffer))
+	resultBytes := len(resultBuffer)
+	assert.Equal(t, len(verify)/batchSize, emitCt, "Emit should be called correct number of times")
+	assert.Equal(t, batchSize*emitCt, resultBytes,
+		"ResultBuffer should have size of batchSize * number of emit calls ")
+	checkBuffer := verify[:batchSize*emitCt]
+	remainBuffer := verify[batchSize*emitCt:]
+	assert.Equal(t, checkBuffer, resultBuffer)
+	assert.Equal(t, len(remainBuffer), lpb.CurrentLoadSize())
+	assert.Equal(t, remainBuffer, lpb.buffer)
 
 }
