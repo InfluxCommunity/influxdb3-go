@@ -77,9 +77,7 @@ func (l *LPBatcher) Add(lines ...string) {
 			l.callbackReady()
 		}
 		if l.callbackByteEmit != nil {
-			// fmt.Printf("DEBUG calling emit function\n")
 			l.callbackByteEmit(l.emitBytes())
-			//fmt.Printf("DEBUG l.buffer #%s#\n", string(l.buffer))
 		} else {
 			// no emitter callback
 			if l.CurrentLoadSize() > (l.capacity - l.size) {
