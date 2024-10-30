@@ -5,48 +5,58 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
 const DefaultBufferSize = 100000
 const DefaultBufferCapacity = DefaultBufferSize * 2
 
-func WithEmitBytesCallback(f func([]byte)) Option {
-	return func(b *interface{}) {
-		if lpb, ok := (*b).(*LPBatcher); ok {
-			lpb.callbackEmit = f
-		} else {
-			slog.Warn("Failed to match type LPBatcher in WithEmitBytesCallback. Callback not set.")
-		}
-	}
-}
-
 type LPBatcher struct {
-	BaseBatcher
+	size     int
+	capacity int
 
-	callbackEmit func([]byte)
+	callbackReady    func()
+	callbackByteEmit func([]byte)
 
 	buffer []byte
 	sync.Mutex
 }
 
-func NewLPBatcher(options ...func(*interface{})) *LPBatcher {
-	base := BaseBatcher{
+func (lpb *LPBatcher) Size(s int) {
+	lpb.size = s
+}
+
+func (lpb *LPBatcher) Capacity(c int) {
+	lpb.capacity = c
+}
+
+func (lpb *LPBatcher) ReadyCallback(f func()) {
+	lpb.callbackReady = f
+}
+
+func (lpb *LPBatcher) EmitCallback(f func([]*influxdb3.Point)) {
+	slog.Warn("EmitCallback([]*influxbb3.Point) not supported in LPBatcher")
+}
+
+func (lpb *LPBatcher) EmitBytesCallback(f func([]byte)) {
+	lpb.callbackByteEmit = f
+}
+
+func NewLPBatcher(options ...Option) *LPBatcher {
+	lpb := &LPBatcher{
 		size:     DefaultBufferSize,
 		capacity: DefaultBufferCapacity,
-	}
-	l := &LPBatcher{
-		BaseBatcher: base,
 	}
 
 	// Apply the options
 	for _, o := range options {
-		ptr2arg := interface{}(l)
-		o(&ptr2arg)
+		o(lpb)
 	}
 
 	// setup internal data
-	l.buffer = make([]byte, 0, l.capacity)
-	return l
+	lpb.buffer = make([]byte, 0, lpb.capacity)
+	return lpb
 }
 
 func (l *LPBatcher) Add(lines ...string) {
@@ -62,21 +72,19 @@ func (l *LPBatcher) Add(lines ...string) {
 		}
 	}
 
-	//fmt.Printf("DEBUG after load l.buffer #%s#\n", string(l.buffer))
-
 	for l.isReady() {
 		if l.callbackReady != nil {
 			l.callbackReady()
 		}
-		if l.callbackEmit != nil {
+		if l.callbackByteEmit != nil {
 			// fmt.Printf("DEBUG calling emit function\n")
-			l.callbackEmit(l.emitBytes())
+			l.callbackByteEmit(l.emitBytes())
 			//fmt.Printf("DEBUG l.buffer #%s#\n", string(l.buffer))
 		} else {
 			// no emitter callback
 			if l.CurrentLoadSize() > (l.capacity - l.size) {
 				slog.Warn(
-					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
+					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
 						"Batcher load is %d bytes waiting to be emitted.",
 						l.CurrentLoadSize()),
 				)

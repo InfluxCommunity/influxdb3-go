@@ -31,89 +31,41 @@ import (
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
-// Option to adapt properties of a batcher
-type Option func(*interface{})
-
-// WithSize changes the batch-size emitted by the batcher
-// With the standard Batcher the implied unit is a Point
-// With the LPBatcher the implied unit is a byte
-func WithSize(size int) Option {
-	return func(b *interface{}) {
-		if bb, bok := (*b).(*Batcher); bok {
-			bb.size = size
-		} else if lb, lok := (*b).(*LPBatcher); lok {
-			lb.size = size
-		} else {
-			slog.Warn("Failed to match Batcher type in WithSize. Value not set.")
-		}
-	}
-}
-
-// WithCapacity changes the initial capacity of the internal buffer
-// With the standard Batcher implied unit is a Point
-// With the LPBatcher the implied unit is a byte
-func WithCapacity(capacity int) Option {
-	return func(b *interface{}) {
-		if bb, bok := (*b).(*Batcher); bok {
-			bb.capacity = capacity
-		} else if lb, lok := (*b).(*LPBatcher); lok {
-			lb.capacity = capacity
-		} else {
-			slog.Warn("Failed to match Batcher type in WithCapacity. Value not set.")
-		}
-	}
-}
-
-// WithReadyCallback sets the function called when a new batch is ready. The
-// batcher will wait for the callback to finish, so please return as fast as
-// possible and move long-running processing to a  go-routine.
-func WithReadyCallback(f func()) Option {
-	return func(b *interface{}) {
-		if bb, bok := (*b).(*Batcher); bok {
-			bb.callbackReady = f
-		} else if lb, lok := (*b).(*LPBatcher); lok {
-			lb.callbackReady = f
-		} else {
-			slog.Warn("Failed to match Batcher type in WithReadyCallback. Callback not set.")
-		}
-	}
-
-}
-
-// WithEmitCallback sets the function called when a new batch is ready with the
-// batch of points. The batcher will wait for the callback to finish, so please
-// return as fast as possible and move long-running processing to a go-routine.
-func WithEmitCallback(f func([]*influxdb3.Point)) Option {
-	return func(b *interface{}) {
-		if bb, bok := (*b).(*Batcher); bok {
-			bb.callbackEmit = f
-		} else {
-			slog.Warn("Failed to match type Batcher in WithEmitPointsCallback. Callback not set.")
-		}
-	}
-}
-
 // DefaultBatchSize is the default number of points emitted
 const DefaultBatchSize = 1000
 
 // DefaultCapacity is the default initial capacity of the point buffer
 const DefaultCapacity = 2 * DefaultBatchSize
 
-type BaseBatcher struct {
-	size     int
-	capacity int
-
-	callbackReady func()
-}
-
 // Batcher collects points and emits them as batches
 type Batcher struct {
-	BaseBatcher
-
-	callbackEmit func([]*influxdb3.Point)
+	size          int
+	capacity      int
+	callbackReady func()
+	callbackEmit  func([]*influxdb3.Point)
 
 	points []*influxdb3.Point
 	sync.Mutex
+}
+
+func (b *Batcher) Size(s int) {
+	b.size = s
+}
+
+func (b *Batcher) Capacity(c int) {
+	b.capacity = c
+}
+
+func (b *Batcher) ReadyCallback(f func()) {
+	b.callbackReady = f
+}
+
+func (b *Batcher) EmitCallback(f func([]*influxdb3.Point)) {
+	b.callbackEmit = f
+}
+
+func (b *Batcher) EmitBytesCallback(f func([]byte)) {
+	slog.Warn("Basic Batcher does not support bytes emitting functionality")
 }
 
 // NewBatcher creates and initializes a new Batcher instance applying the
@@ -121,18 +73,14 @@ type Batcher struct {
 // initial capacity is DefaultCapacity.
 func NewBatcher(options ...Option) *Batcher {
 	// Set up a batcher with the default values
-	base := BaseBatcher{
+	b := &Batcher{
 		size:     DefaultBatchSize,
 		capacity: DefaultCapacity,
-	}
-	b := &Batcher{
-		BaseBatcher: base,
 	}
 
 	// Apply the options
 	for _, o := range options {
-		ptr2arg := interface{}(b)
-		o(&ptr2arg)
+		o(b)
 	}
 
 	// setup internal data

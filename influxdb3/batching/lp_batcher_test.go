@@ -15,7 +15,7 @@ func TestLPDefaultValues(t *testing.T) {
 	assert.Equal(t, DefaultBufferSize, lpb.size)
 	assert.Equal(t, DefaultBufferCapacity, lpb.capacity)
 	assert.Nil(t, lpb.callbackReady)
-	assert.Nil(t, lpb.callbackEmit)
+	assert.Nil(t, lpb.callbackByteEmit)
 }
 
 func TestLPCustomValues(t *testing.T) {
@@ -30,7 +30,7 @@ func TestLPCustomValues(t *testing.T) {
 	assert.Equal(t, size, lpb.size)
 	assert.Equal(t, capacity, lpb.capacity)
 	assert.Nil(t, lpb.callbackReady)
-	assert.Nil(t, lpb.callbackEmit)
+	assert.Nil(t, lpb.callbackByteEmit)
 }
 
 func TestLPBatcherCreate(t *testing.T) {
@@ -53,7 +53,7 @@ func TestLPBatcherCreate(t *testing.T) {
 	assert.Equal(t, capacity, l.capacity)
 	assert.False(t, emitted)
 	assert.Nil(t, emittedBytes)
-	assert.NotNil(t, l.callbackEmit)
+	assert.NotNil(t, l.callbackByteEmit)
 	assert.Nil(t, l.callbackReady)
 }
 
