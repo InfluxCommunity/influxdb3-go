@@ -37,6 +37,9 @@ import (
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
+// timeType is the exact type for the Time
+var timeType = reflect.TypeOf(time.Time{})
+
 // WritePoints writes all the given points to the server into the given database.
 // The data is written synchronously. Empty batch is skipped.
 //
@@ -265,16 +268,17 @@ func (c *Client) writeData(ctx context.Context, points []interface{}, options *W
 }
 
 func encode(x interface{}, options *WriteOptions) ([]byte, error) {
-	if err := checkContainerType(x, false, "point"); err != nil {
-		return nil, err
-	}
-
 	t := reflect.TypeOf(x)
 	v := reflect.ValueOf(x)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 		v = v.Elem()
 	}
+
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("cannot use %v as point", t)
+	}
+
 	fields := reflect.VisibleFields(t)
 
 	var point = &Point{
@@ -298,21 +302,41 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 			if len(parts) == 2 {
 				name = parts[1]
 			}
+			field := v.FieldByIndex(f.Index)
 			switch typ {
 			case "measurement":
 				if point.GetMeasurement() != "" {
 					return nil, errors.New("multiple measurement fields")
 				}
-				point.SetMeasurement(v.FieldByIndex(f.Index).String())
+				point.SetMeasurement(field.String())
 			case "tag":
-				point.SetTag(name, v.FieldByIndex(f.Index).String())
+				point.SetTag(name, field.String())
 			case "field":
-				point.SetField(name, v.FieldByIndex(f.Index).Interface())
+				var fieldVal interface{}
+				if f.IsExported() {
+					fieldVal = field.Interface()
+				} else {
+					switch field.Kind() {
+					case reflect.Bool:
+						fieldVal = field.Bool()
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+						fieldVal = field.Int()
+					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+						fieldVal = field.Uint()
+					case reflect.Float32, reflect.Float64:
+						fieldVal = field.Float()
+					case reflect.String:
+						fieldVal = field.String()
+					default:
+						return nil, fmt.Errorf("cannot use field '%s' of type '%v' as a field", name, t)
+					}
+				}
+				point.SetField(name, fieldVal)
 			case "timestamp":
 				if f.Type != timeType {
 					return nil, fmt.Errorf("cannot use field '%s' as a timestamp", f.Name)
 				}
-				point.SetTimestamp(v.FieldByIndex(f.Index).Interface().(time.Time))
+				point.SetTimestamp(field.Interface().(time.Time))
 			default:
 				return nil, fmt.Errorf("invalid tag %s", typ)
 			}
