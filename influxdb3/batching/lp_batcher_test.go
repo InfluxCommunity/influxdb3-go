@@ -12,7 +12,7 @@ import (
 func TestLPDefaultValues(t *testing.T) {
 	lpb := NewLPBatcher()
 
-	assert.Equal(t, DefaultBufferSize, lpb.size)
+	assert.Equal(t, DefaultByteBatchSize, lpb.size)
 	assert.Equal(t, DefaultBufferCapacity, lpb.capacity)
 	assert.Nil(t, lpb.callbackReady)
 	assert.Nil(t, lpb.callbackByteEmit)
