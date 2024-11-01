@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
  The MIT License
 
@@ -369,10 +366,10 @@ func TestEscapedStringValues(t *testing.T) {
 	}
 }
 
-func TestBatchLP(t *testing.T) {
+func TestLPBatcher(t *testing.T) {
 	SkipCheck(t)
 	// TODO add asserts
-
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
@@ -390,11 +387,10 @@ func TestBatchLP(t *testing.T) {
 	ids := []string{"R2D2", "C3PO", "ROBBIE"}
 	lines := make([]string, 0)
 	now := time.Now().UnixMilli()
-	//rand.Seed(now.UnixNano())
 	for n := range 2000 {
 		lines = append(lines, fmt.Sprintf(dataTemplate, locations[n%len(locations)],
 			ids[n%len(ids)],
-			(rand.Float64()*100)-50.0, n+1, now-int64(n*1000)))
+			(rnd.Float64()*100)-50.0, n+1, now-int64(n*1000)))
 		if n%2 == 0 {
 			lines[n] = lines[n] + "\n" // verify appending LF
 		}
@@ -408,9 +404,9 @@ func TestBatchLP(t *testing.T) {
 	emitCt := 0
 	results := make([]byte, 0)
 	lpb := batching.NewLPBatcher(
-		batching.WithSize(size),
-		batching.WithCapacity(capacity),
-		batching.WithReadyCallback(func() {
+		batching.WithBufferSize(size),
+		batching.WithBufferCapacity(capacity),
+		batching.WithByteEmitReadyCallback(func() {
 			readyCt++
 		}),
 		batching.WithEmitBytesCallback(func(ba []byte) {
@@ -437,7 +433,6 @@ func TestBatchLP(t *testing.T) {
 
 	fmt.Printf("DEBUG readyCt: %d\n", readyCt)
 	fmt.Printf("DEBUG emitCt: %d\n", emitCt)
-	fmt.Printf("DEBUG results: %+v\n", string(results))
 	fmt.Printf("DEBUG lpb.buffer: %+v\n", lpb.CurrentLoadSize())
 	fmt.Printf("DEBUG getting rest\n")
 
@@ -447,6 +442,7 @@ func TestBatchLP(t *testing.T) {
 		fmt.Printf("ERROR %v\n", err)
 	}
 	results = append(results, leftover...)
+	fmt.Printf("DEBUG results: %+v\n", string(results))
 
 	fmt.Printf("DEBUG last emit to string: %s\n", string(lpb.Emit()))
 	fmt.Printf("DEBUG loadsize %d\n", lpb.CurrentLoadSize())

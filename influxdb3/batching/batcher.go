@@ -37,6 +37,55 @@ const DefaultBatchSize = 1000
 // DefaultCapacity is the default initial capacity of the point buffer
 const DefaultCapacity = 2 * DefaultBatchSize
 
+type Emittable interface {
+	Size(int)             // setsize
+	Capacity(int)         // set capacity
+	ReadyCallback(func()) // ready Callback
+}
+
+type PointEmittable interface {
+	Emittable
+	EmitCallback(func([]*influxdb3.Point)) // callback for emitting points
+}
+
+type Option func(PointEmittable)
+
+// WithSize changes the batch-size emitted by the batcher
+// With the standard Batcher the implied unit is a Point
+// With the LPBatcher the implied unit is a byte
+func WithSize(size int) Option {
+	return func(b PointEmittable) {
+		b.Size(size)
+	}
+}
+
+// WithCapacity changes the initial capacity of the internal buffer
+// With the standard Batcher implied unit is a Point
+// With the LPBatcher the implied unit is a byte
+func WithCapacity(capacity int) Option {
+	return func(b PointEmittable) {
+		b.Capacity(capacity)
+	}
+}
+
+// WithReadyCallback sets the function called when a new batch is ready. The
+// batcher will wait for the callback to finish, so please return as fast as
+// possible and move long-running processing to a  go-routine.
+func WithReadyCallback(f func()) Option {
+	return func(b PointEmittable) {
+		b.ReadyCallback(f)
+	}
+}
+
+// WithEmitCallback sets the function called when a new batch is ready with the
+// batch of points. The batcher will wait for the callback to finish, so please
+// return as fast as possible and move long-running processing to a go-routine.
+func WithEmitCallback(f func([]*influxdb3.Point)) Option {
+	return func(b PointEmittable) {
+		b.EmitCallback(f)
+	}
+}
+
 // Batcher collects points and emits them as batches
 type Batcher struct {
 	size          int
@@ -62,10 +111,6 @@ func (b *Batcher) ReadyCallback(f func()) {
 
 func (b *Batcher) EmitCallback(f func([]*influxdb3.Point)) {
 	b.callbackEmit = f
-}
-
-func (b *Batcher) EmitBytesCallback(f func([]byte)) {
-	slog.Warn("Basic Batcher does not support bytes emitting functionality")
 }
 
 // NewBatcher creates and initializes a new Batcher instance applying the

@@ -5,12 +5,50 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
-
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
 
 const DefaultBufferSize = 100000
 const DefaultBufferCapacity = DefaultBufferSize * 2
+
+type ByteEmittable interface {
+	Emittable
+	EmitBytesCallback(func([]byte)) // callback for emitting bytes
+}
+
+type LPOption func(ByteEmittable)
+
+// WithSize changes the batch-size emitted by the batcher
+// With the standard Batcher the implied unit is a Point
+// With the LPBatcher the implied unit is a byte
+func WithBufferSize(size int) LPOption {
+	return func(b ByteEmittable) {
+		b.Size(size)
+	}
+}
+
+// WithCapacity changes the initial capacity of the internal buffer
+// With the standard Batcher implied unit is a Point
+// With the LPBatcher the implied unit is a byte
+func WithBufferCapacity(capacity int) LPOption {
+	return func(b ByteEmittable) {
+		b.Capacity(capacity)
+	}
+}
+
+// WithReadyCallback sets the function called when a new batch is ready. The
+// batcher will wait for the callback to finish, so please return as fast as
+// possible and move long-running processing to a  go-routine.
+func WithByteEmitReadyCallback(f func()) LPOption {
+	return func(b ByteEmittable) {
+		b.ReadyCallback(f)
+	}
+}
+
+func WithEmitBytesCallback(f func([]byte)) LPOption {
+	return func(b ByteEmittable) {
+		b.EmitBytesCallback(f)
+	}
+}
 
 type LPBatcher struct {
 	size     int
@@ -35,15 +73,11 @@ func (lpb *LPBatcher) ReadyCallback(f func()) {
 	lpb.callbackReady = f
 }
 
-func (lpb *LPBatcher) EmitCallback(f func([]*influxdb3.Point)) {
-	slog.Warn("EmitCallback([]*influxbb3.Point) not supported in LPBatcher")
-}
-
 func (lpb *LPBatcher) EmitBytesCallback(f func([]byte)) {
 	lpb.callbackByteEmit = f
 }
 
-func NewLPBatcher(options ...Option) *LPBatcher {
+func NewLPBatcher(options ...LPOption) *LPBatcher {
 	lpb := &LPBatcher{
 		size:     DefaultBufferSize,
 		capacity: DefaultBufferCapacity,

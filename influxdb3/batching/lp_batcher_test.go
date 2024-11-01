@@ -23,8 +23,8 @@ func TestLPCustomValues(t *testing.T) {
 	capacity := size * 2
 
 	lpb := NewLPBatcher(
-		WithSize(size),
-		WithCapacity(capacity),
+		WithBufferSize(size),
+		WithBufferCapacity(capacity),
 	)
 
 	assert.Equal(t, size, lpb.size)
@@ -41,8 +41,8 @@ func TestLPBatcherCreate(t *testing.T) {
 	var emittedBytes []byte
 
 	l := NewLPBatcher(
-		WithSize(size),
-		WithCapacity(capacity),
+		WithBufferSize(size),
+		WithBufferCapacity(capacity),
 		WithEmitBytesCallback(func(ba []byte) {
 			emitted = true
 			emittedBytes = ba
@@ -60,7 +60,7 @@ func TestLPBatcherCreate(t *testing.T) {
 func TestLPReady(t *testing.T) {
 	size := 10
 	capacity := size * 2
-	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
 	lpb.Add("0123456789ABCDEF")
 
 	assert.True(t, lpb.Ready(), "LPBatcher should be ready when the batch size is reached")
@@ -71,9 +71,9 @@ func TestLPReadyCallback(t *testing.T) {
 	capacity := size * 2
 	readyCalled := false
 
-	lpb := NewLPBatcher(WithSize(size),
-		WithCapacity(capacity),
-		WithReadyCallback(func() {
+	lpb := NewLPBatcher(WithBufferSize(size),
+		WithBufferCapacity(capacity),
+		WithByteEmitReadyCallback(func() {
 			readyCalled = true
 		}))
 
@@ -86,7 +86,7 @@ func TestEmitEmptyBatcher(t *testing.T) {
 	size := 256
 	capacity := size * 2
 
-	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
 
 	results := lpb.Emit()
 
@@ -97,7 +97,7 @@ func TestAddLineAppendsLF(t *testing.T) {
 	size := 256
 	capacity := size * 2
 
-	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
 	lines := []string{
 		"cpu,location=roswell,id=R2D2 fVal=3.14,iVal=42i",
 		"cpu,location=dyatlov,id=C3PO fVal=2.71,iVal=21i",
@@ -111,7 +111,7 @@ func TestAddLineAppendsLF(t *testing.T) {
 func TestAddLineAppendsNoLFWhenPresent(t *testing.T) {
 	size := 256
 	capacity := size * 2
-	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
 	lines := []string{
 		"cpu,location=roswell,id=R2D2 fVal=3.14,iVal=42i\n",
 		"cpu,location=dyatlov,id=C3PO fVal=2.71,iVal=21i\n",
@@ -140,8 +140,8 @@ func TestLPAddAndPartialEmit(t *testing.T) {
 	verify += "\n"
 
 	lpb := NewLPBatcher(
-		WithSize(size),
-		WithCapacity(capacity),
+		WithBufferSize(size),
+		WithBufferCapacity(capacity),
 		WithEmitBytesCallback(func(ba []byte) {
 			emitCount++
 			emittedBytes = append(emittedBytes, ba...)
@@ -168,9 +168,9 @@ func TestLPAddAndEmitCallBack(t *testing.T) {
 	lps2emit := make([]string, 100)
 
 	lpb := NewLPBatcher(
-		WithSize(batchSize),
-		WithCapacity(capacity),
-		WithReadyCallback(func() {
+		WithBufferSize(batchSize),
+		WithBufferCapacity(capacity),
+		WithByteEmitReadyCallback(func() {
 			readyCalled++
 		}),
 		WithEmitBytesCallback(func(b []byte) {
@@ -208,7 +208,7 @@ func TestLPBufferFlush(t *testing.T) {
 	size := 10
 	capacity := size * 2
 
-	lpb := NewLPBatcher(WithSize(size), WithCapacity(capacity))
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
 	testString := "0123456789ABCDEF\n"
 
 	assert.Equal(t, 0, lpb.CurrentLoadSize())
@@ -226,8 +226,8 @@ func TestLPThreadSafety(t *testing.T) {
 	emitCt := 0
 	testString := "123456789ABCDEF\n"
 
-	lpb := NewLPBatcher(WithSize(size),
-		WithCapacity(capacity),
+	lpb := NewLPBatcher(WithBufferSize(size),
+		WithBufferCapacity(capacity),
 		WithEmitBytesCallback(func(ba []byte) {
 			emitCt++
 		}))
@@ -264,8 +264,8 @@ func TestLPAddLargerThanSize(t *testing.T) {
 	emitCt := 0
 	resultBuffer := make([]byte, 0)
 	lpb := NewLPBatcher(
-		WithSize(batchSize),
-		WithCapacity(capacity),
+		WithBufferSize(batchSize),
+		WithBufferCapacity(capacity),
 		WithEmitBytesCallback(func(ba []byte) {
 			emitCt++
 			resultBuffer = append(resultBuffer, ba...)
