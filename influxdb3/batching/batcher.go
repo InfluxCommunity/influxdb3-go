@@ -38,14 +38,14 @@ const DefaultBatchSize = 1000
 const DefaultCapacity = 2 * DefaultBatchSize
 
 type Emittable interface {
-	Size(int)             // setsize
-	Capacity(int)         // set capacity
-	ReadyCallback(func()) // ready Callback
+	Size(s int)               // setsize
+	Capacity(c int)           // set capacity
+	ReadyCallback(rcb func()) // ready Callback
 }
 
 type PointEmittable interface {
 	Emittable
-	EmitCallback(func([]*influxdb3.Point)) // callback for emitting points
+	EmitCallback(epcb func([]*influxdb3.Point)) // callback for emitting points
 }
 
 type Option func(PointEmittable)
@@ -147,9 +147,7 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 		if b.callbackReady != nil {
 			b.callbackReady()
 		}
-		if b.callbackEmit != nil {
-			b.callbackEmit(b.emitPoints())
-		} else {
+		if b.callbackEmit == nil {
 			// no emitter callback
 			if b.CurrentLoadSize() >= (b.capacity - b.size) {
 				slog.Warn(
@@ -160,6 +158,7 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 			}
 			break
 		}
+		b.callbackEmit(b.emitPoints())
 	}
 }
 

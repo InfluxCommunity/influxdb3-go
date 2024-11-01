@@ -90,7 +90,7 @@ func TestEmitEmptyBatcher(t *testing.T) {
 
 	results := lpb.Emit()
 
-	assert.Equal(t, 0, len(results))
+	assert.Empty(t, results)
 }
 
 func TestAddLineAppendsLF(t *testing.T) {
@@ -154,8 +154,8 @@ func TestLPAddAndPartialEmit(t *testing.T) {
 
 	assert.Equal(t, verify, string(packet))
 	assert.Equal(t, 0, lpb.CurrentLoadSize())
-	assert.Equal(t, 0, emitCount)         // callback should not have been called
-	assert.Equal(t, 0, len(emittedBytes)) // callback should not have been called
+	assert.Equal(t, 0, emitCount) // callback should not have been called
+	assert.Empty(t, emittedBytes) // callback should not have been called
 }
 
 func TestLPAddAndEmitCallBack(t *testing.T) {
@@ -182,7 +182,7 @@ func TestLPAddAndEmitCallBack(t *testing.T) {
 		lps2emit[n] = fmt.Sprintf("lptest,foo=bar count=%di", n+1)
 	}
 
-	for i, _ := range lps2emit {
+	for i := range lps2emit {
 		if i > 0 && i%10 == 0 {
 			set := lps2emit[i-10 : i]
 			lpb.Add(set...)
@@ -199,7 +199,7 @@ func TestLPAddAndEmitCallBack(t *testing.T) {
 	emittedBytes = append(emittedBytes, lpb.Emit()...) // drain any leftovers
 
 	expectCall := len(emittedBytes) / batchSize
-	assert.Equal(t, int(expectCall), emitCount)
+	assert.Equal(t, expectCall, emitCount)
 	assert.Equal(t, verify, string(emittedBytes))
 	assert.Equal(t, expectCall, readyCalled)
 }
@@ -282,5 +282,4 @@ func TestLPAddLargerThanSize(t *testing.T) {
 	assert.Equal(t, checkBuffer, resultBuffer)
 	assert.Equal(t, len(remainBuffer), lpb.CurrentLoadSize())
 	assert.Equal(t, remainBuffer, lpb.buffer)
-
 }

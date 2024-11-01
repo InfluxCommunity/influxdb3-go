@@ -176,8 +176,8 @@ func TestAddLargerThanSize(t *testing.T) {
 	b.Add(pointSet...)
 	expectedCt := len(pointSet) / batchSize
 	assert.Equal(t, expectedCt, emitCt)
-	assert.Equal(t, loadFactor*batchSize, len(resultSet))
-	assert.Equal(t, remainder, len(b.points))
+	assert.Len(t, resultSet, loadFactor*batchSize)
+	assert.Len(t, b.points, remainder)
 	assert.Equal(t, pointSet[:len(pointSet)-remainder], resultSet)
 }
 
@@ -196,6 +196,6 @@ func TestFlush(t *testing.T) {
 	b.Add(pointSet...)
 	assert.Equal(t, batchSize*loadFactor, b.CurrentLoadSize())
 	flushed := b.Flush()
-	assert.Equal(t, batchSize*loadFactor, len(flushed))
+	assert.Len(t, flushed, batchSize*loadFactor)
 	assert.Equal(t, 0, b.CurrentLoadSize())
 }

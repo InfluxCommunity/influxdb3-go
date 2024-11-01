@@ -12,30 +12,28 @@ const DefaultBufferCapacity = DefaultBufferSize * 2
 
 type ByteEmittable interface {
 	Emittable
-	EmitBytesCallback(func([]byte)) // callback for emitting bytes
+	EmitBytesCallback(ebcb func([]byte)) // callback for emitting bytes
 }
 
 type LPOption func(ByteEmittable)
 
-// WithSize changes the batch-size emitted by the batcher
-// With the standard Batcher the implied unit is a Point
-// With the LPBatcher the implied unit is a byte
+// WithBufferSize changes the batch-size emitted by the LPbatcher
+// The unit is byte
 func WithBufferSize(size int) LPOption {
 	return func(b ByteEmittable) {
 		b.Size(size)
 	}
 }
 
-// WithCapacity changes the initial capacity of the internal buffer
-// With the standard Batcher implied unit is a Point
-// With the LPBatcher the implied unit is a byte
+// WithBufferCapacity changes the initial capacity of the internal buffer
+// The unit is byte
 func WithBufferCapacity(capacity int) LPOption {
 	return func(b ByteEmittable) {
 		b.Capacity(capacity)
 	}
 }
 
-// WithReadyCallback sets the function called when a new batch is ready. The
+// WithByteEmitReadyCallback sets the function called when a new batch is ready. The
 // batcher will wait for the callback to finish, so please return as fast as
 // possible and move long-running processing to a  go-routine.
 func WithByteEmitReadyCallback(f func()) LPOption {
@@ -93,84 +91,82 @@ func NewLPBatcher(options ...LPOption) *LPBatcher {
 	return lpb
 }
 
-func (l *LPBatcher) Add(lines ...string) {
-	l.Lock()
-	defer l.Unlock()
+func (lpb *LPBatcher) Add(lines ...string) {
+	lpb.Lock()
+	defer lpb.Unlock()
 
 	for _, line := range lines {
 		if len(line) != 0 { // ignore empty lines
-			l.buffer = append(l.buffer, line...)
-			if line[len(line)-1] != '\n' { //ensure newline demarcation
-				l.buffer = append(l.buffer, '\n')
+			lpb.buffer = append(lpb.buffer, line...)
+			if line[len(line)-1] != '\n' { // ensure newline demarcation
+				lpb.buffer = append(lpb.buffer, '\n')
 			}
 		}
 	}
 
-	for l.isReady() {
-		if l.callbackReady != nil {
-			l.callbackReady()
+	for lpb.isReady() {
+		if lpb.callbackReady != nil {
+			lpb.callbackReady()
 		}
-		if l.callbackByteEmit != nil {
-			l.callbackByteEmit(l.emitBytes())
-		} else {
+		if lpb.callbackByteEmit == nil {
 			// no emitter callback
-			if l.CurrentLoadSize() > (l.capacity - l.size) {
+			if lpb.CurrentLoadSize() > (lpb.capacity - lpb.size) {
 				slog.Warn(
 					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
 						"Batcher load is %d bytes waiting to be emitted.",
-						l.CurrentLoadSize()),
+						lpb.CurrentLoadSize()),
 				)
 			}
 			break
-
 		}
+		lpb.callbackByteEmit(lpb.emitBytes())
 	}
 }
 
-func (l *LPBatcher) Ready() bool {
-	l.Lock()
-	defer l.Unlock()
-	return l.isReady()
+func (lpb *LPBatcher) Ready() bool {
+	lpb.Lock()
+	defer lpb.Unlock()
+	return lpb.isReady()
 }
 
-func (l *LPBatcher) isReady() bool {
-	return len(l.buffer) >= l.size
+func (lpb *LPBatcher) isReady() bool {
+	return len(lpb.buffer) >= lpb.size
 }
 
 // Emit returns a new batch of bytes with the provided batch size or with the
 // remaining bytes. Please drain the bytes at the end of your processing to
 // get the remaining bytes not filling up a batch.
-func (l *LPBatcher) Emit() []byte {
-	l.Lock()
-	defer l.Unlock()
+func (lpb *LPBatcher) Emit() []byte {
+	lpb.Lock()
+	defer lpb.Unlock()
 
-	return l.emitBytes()
+	return lpb.emitBytes()
 }
 
-func (l *LPBatcher) emitBytes() []byte {
-	c := min(l.size, len(l.buffer))
+func (lpb *LPBatcher) emitBytes() []byte {
+	c := min(lpb.size, len(lpb.buffer))
 
 	if c == 0 { // i.e. buffer is empty
-		return l.buffer
+		return lpb.buffer
 	}
 
-	prepacket := l.buffer[:c]
+	prepacket := lpb.buffer[:c]
 	lastLF := bytes.LastIndexByte(prepacket, '\n') + 1
 
-	packet := l.buffer[:lastLF]
-	l.buffer = l.buffer[len(packet):]
+	packet := lpb.buffer[:lastLF]
+	lpb.buffer = lpb.buffer[len(packet):]
 
 	return packet
 }
 
 // Flush drains all bytes even if buffer currently larger than size
-func (l *LPBatcher) Flush() []byte {
-	slog.Info(fmt.Sprintf("Flushing all bytes (%d) from buffer.", l.CurrentLoadSize()))
-	packet := l.buffer
-	l.buffer = l.buffer[len(packet):]
+func (lpb *LPBatcher) Flush() []byte {
+	slog.Info(fmt.Sprintf("Flushing all bytes (%d) from buffer.", lpb.CurrentLoadSize()))
+	packet := lpb.buffer
+	lpb.buffer = lpb.buffer[len(packet):]
 	return packet
 }
 
-func (l *LPBatcher) CurrentLoadSize() int {
-	return len(l.buffer)
+func (lpb *LPBatcher) CurrentLoadSize() int {
+	return len(lpb.buffer)
 }
