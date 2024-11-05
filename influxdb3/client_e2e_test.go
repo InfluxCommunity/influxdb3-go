@@ -27,10 +27,14 @@ package influxdb3_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -369,9 +373,98 @@ func TestEscapedStringValues(t *testing.T) {
 	}
 }
 
+func PointFromLineProtocol(lp string) (*influxdb3.Point, error) {
+	groups := strings.Split(strings.TrimSpace(lp), " ")
+	head := strings.Split(groups[0], ",")
+	fieldLines := strings.Split(groups[1], ",")
+
+	if len(head) < 1 {
+		return nil, errors.New(fmt.Sprintf("invalid line format: %s", lp))
+	}
+
+	result := influxdb3.NewPointWithMeasurement(head[0])
+
+	if len(fieldLines) < 1 {
+		return nil, errors.New(fmt.Sprintf("LineProtocol has no fields: %s", lp))
+	}
+
+	if len(head) > 1 {
+		for i := 1; i < len(head); i++ {
+			tkv := strings.Split(head[i], "=")
+			result = result.SetTag(tkv[0], tkv[1])
+		}
+	}
+
+	for _, fl := range fieldLines {
+		fkv := strings.Split(fl, "=")
+		if strings.Contains(fkv[1], "\"") {
+			result.SetStringField(fkv[0], fkv[1])
+		} else if strings.Contains(fkv[1], "i") {
+			fkv[1] = strings.Replace(fkv[1], "i", "", -1)
+			ival, err := strconv.ParseInt(fkv[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			result = result.SetField(fkv[0], ival)
+		} else {
+			fval, err := strconv.ParseFloat(fkv[1], 64)
+			if err != nil {
+				return nil, err
+			}
+			result = result.SetField(fkv[0], fval)
+		}
+	}
+
+	if len(groups[2]) > 0 {
+		timestamp, err := strconv.ParseInt(groups[2], 10, 64)
+		nanoFactor := int64(19 - len(groups[2]))
+		timestamp = timestamp * int64(math.Pow(10.0, float64(nanoFactor)))
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("invalid time format: %s -> %s", lp, err))
+		}
+		result = result.SetTimestampWithEpoch(timestamp)
+		result = result.SetTimestamp(result.Values.Timestamp.UTC())
+	}
+
+	return result, nil
+}
+
+// LooseComparePointValues attempts to compare values only but not exact types
+// Some value types get coerced in client-server transactions
+func LooseEqualPointValues(pvA *influxdb3.PointValues, pvB *influxdb3.PointValues) bool {
+	if pvA.MeasurementName != pvB.MeasurementName {
+		return false
+	}
+	if pvA.Timestamp != pvB.Timestamp {
+		return false
+	}
+	for tagName := range pvA.Tags {
+		if pvA.Tags[tagName] != pvB.Tags[tagName] {
+			return false
+		}
+	}
+	for fieldName := range pvA.Fields {
+		switch pvA.Fields[fieldName].(type) {
+		case int, int16, int32, int64:
+			if pvA.Fields[fieldName].(int64) != pvB.Fields[fieldName].(int64) {
+				return false
+			}
+		case float32, float64:
+			if pvA.Fields[fieldName].(float64) != pvB.Fields[fieldName].(float64) {
+				return false
+			}
+		default: //compare as strings
+			if pvA.Fields[fieldName].(string) != pvB.Fields[fieldName].(string) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func TestLPBatcher(t *testing.T) {
 	SkipCheck(t)
-	// TODO add asserts
+
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
@@ -383,29 +476,41 @@ func TestLPBatcher(t *testing.T) {
 		Database: database,
 	})
 	require.NoError(t, err)
-	defer client.Close()
+	defer func(client *influxdb3.Client) {
+		err := client.Close()
+		if err != nil {
+			slog.Warn("Failed to close client correctly.")
+		}
+	}(client)
 
-	dataTemplate := "ibot,location=%s,id=%s fVal=%f,count=%di %d"
+	measurement := fmt.Sprintf("ibot%d", rnd.Int63n(99000)+1000)
+	dataTemplate := "%s,location=%s,id=%s fVal=%f,count=%di %d"
 	locations := []string{"akron", "dakar", "kyoto", "perth"}
 	ids := []string{"R2D2", "C3PO", "ROBBIE"}
 	lines := make([]string, 0)
 	now := time.Now().UnixMilli()
-	for n := range 2000 {
-		lines = append(lines, fmt.Sprintf(dataTemplate, locations[n%len(locations)],
+	estBytesCt := 0
+	lineCount := 2000
+	for n := range lineCount {
+		lines = append(lines, fmt.Sprintf(dataTemplate,
+			measurement,
+			locations[n%len(locations)],
 			ids[n%len(ids)],
 			(rnd.Float64()*100)-50.0, n+1, now-int64(n*1000)))
 		if n%2 == 0 {
-			lines[n] = lines[n] + "\n" // verify appending LF
+			lines[n] = lines[n] + "\n" // verify appending LF with every second rec
+		} else {
+			estBytesCt++ // LPBatcher appends missing "\n" on odd cases so increase estimate
 		}
+		estBytesCt += len([]byte(lines[n]))
 	}
-
-	fmt.Printf("DEBUG lines %+v\n", lines)
 
 	size := 4096
 	capacity := size * 2
 	readyCt := 0
 	emitCt := 0
 	results := make([]byte, 0)
+	lag := 0
 	lpb := batching.NewLPBatcher(
 		batching.WithBufferSize(size),
 		batching.WithBufferCapacity(capacity),
@@ -414,58 +519,72 @@ func TestLPBatcher(t *testing.T) {
 		}),
 		batching.WithEmitBytesCallback(func(ba []byte) {
 			emitCt++
+			// N.B. LPBatcher emits up to last '\n' in packet so will usually be less than `size`
+			// lag collects the difference for asserts below
+			lag += size - len(ba)
 			results = append(results, ba...)
 			err := client.Write(context.Background(), ba, influxdb3.WithPrecision(lineprotocol.Millisecond))
 			if err != nil {
-				fmt.Printf("ERROR %v\n", err)
+				assert.Fail(t, "Failed to write ba")
 			}
 		}))
-
-	//fmt.Printf("DEBUG type(lpb) %s\n", reflect.Type(lpb))
-	fmt.Printf("DEBUG lpb: %+v\n", lpb)
 
 	sent := 0
 	for n, _ := range lines {
 		if n%100 == 0 {
-			fmt.Printf("DEBUG sent %d\n", sent)
 			lpb.Add(lines[sent : sent+100]...)
 			sent += 100
 		}
 	}
 	lpb.Add(lines[sent:len(lines)]...) // add remainder
 
-	fmt.Printf("DEBUG readyCt: %d\n", readyCt)
-	fmt.Printf("DEBUG emitCt: %d\n", emitCt)
-	fmt.Printf("DEBUG lpb.buffer: %+v\n", lpb.CurrentLoadSize())
-	fmt.Printf("DEBUG getting rest\n")
+	// Check that collected emits make sense
+	assert.Equal(t, readyCt, emitCt)
+	assert.Equal(t, estBytesCt+lag, size*emitCt+lpb.CurrentLoadSize())
 
-	leftover := lpb.Emit() // emit anything left over
+	// emit anything left over
+	leftover := lpb.Emit()
+	assert.Zero(t, lpb.CurrentLoadSize())
 	err = client.Write(context.Background(), leftover, influxdb3.WithPrecision(lineprotocol.Millisecond))
 	if err != nil {
-		fmt.Printf("ERROR %v\n", err)
+		assert.Fail(t, "Failed to write leftover bytes from lpb - LPBatcher")
 	}
 	results = append(results, leftover...)
-	fmt.Printf("DEBUG results: %+v\n", string(results))
 
-	fmt.Printf("DEBUG last emit to string: %s\n", string(lpb.Emit()))
-	fmt.Printf("DEBUG loadsize %d\n", lpb.CurrentLoadSize())
+	// Retrieve and check results
+	query := fmt.Sprintf("SELECT * FROM \"%s\" WHERE time >= now() - interval '90 minutes' Order by count",
+		measurement)
 
-	query := "SELECT * FROM \"ibot\" WHERE time >= now() - interval '90 minutes' Order by count"
-
-	qResults, qerr := client.Query(context.Background(), query)
+	qiterator, qerr := client.Query(context.Background(), query)
 
 	if qerr != nil {
 		fmt.Printf("ERROR %v\n", qerr)
 	}
 
-	//for qResults.Next() {
-	qResults.Next()
-	json, merr := qResults.Raw().Record().MarshalJSON()
-	if merr != nil {
-		fmt.Printf("ERROR %v\n", merr)
-	} else {
-		fmt.Printf("DEBUG: %s\n", string(json))
+	var pvResults []*influxdb3.PointValues
+	for qiterator.Next() {
+		pvResults = append(pvResults, qiterator.AsPoints())
 	}
-	//}
 
+	// Check random retrieved samples match source LineProtocol
+	samples := 10
+	for n := range samples {
+		index := 0
+		if n > 0 { // always test first value
+			index = rnd.Intn(len(lines))
+		}
+		if n == (samples - 1) {
+			index = len(lines) - 1 // always test last value
+		}
+		point, cnvErr := PointFromLineProtocol(lines[index])
+		if cnvErr != nil {
+			assert.Failf(t, "Failed to deserialize point", "index: %d, line: %d", index, lines[index])
+		}
+		if point != nil {
+			point.Values.MeasurementName = ""
+			assert.True(t, LooseEqualPointValues(point.Values, pvResults[index]))
+		} else {
+			assert.Fail(t, "Nil returned on deserialize point", "index: %d, line: %d", index, lines[index])
+		}
+	}
 }

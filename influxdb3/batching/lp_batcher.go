@@ -66,22 +66,22 @@ type LPBatcher struct {
 	sync.Mutex
 }
 
-// Size sets the batch size of the batcher
+// SetSize sets the batch size of the batcher
 func (lpb *LPBatcher) SetSize(s int) {
 	lpb.size = s
 }
 
-// Capacity sets the initial capacity of the internal buffer
+// SetCapacity sets the initial capacity of the internal buffer
 func (lpb *LPBatcher) SetCapacity(c int) {
 	lpb.capacity = c
 }
 
-// ReadyCallback sets the ReadyCallback function
+// SetReadyCallback sets the ReadyCallback function
 func (lpb *LPBatcher) SetReadyCallback(f func()) {
 	lpb.callbackReady = f
 }
 
-// EmitBytesCallback sets the callbackByteEmit function
+// SetEmitBytesCallback sets the callbackByteEmit function
 func (lpb *LPBatcher) SetEmitBytesCallback(f func([]byte)) {
 	lpb.callbackByteEmit = f
 }

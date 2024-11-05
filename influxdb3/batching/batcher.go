@@ -98,22 +98,22 @@ type Batcher struct {
 	sync.Mutex
 }
 
-// Size sets the batch size.  Units are Points.
+// SetSize sets the batch size.  Units are Points.
 func (b *Batcher) SetSize(s int) {
 	b.size = s
 }
 
-// Capacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+// SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
 func (b *Batcher) SetCapacity(c int) {
 	b.capacity = c
 }
 
-// ReadyCallback sets the callbackReady function.
+// SetReadyCallback sets the callbackReady function.
 func (b *Batcher) SetReadyCallback(f func()) {
 	b.callbackReady = f
 }
 
-// EmitCallback sets the callbackEmit function.
+// SetEmitCallback sets the callbackEmit function.
 func (b *Batcher) SetEmitCallback(f func([]*influxdb3.Point)) {
 	b.callbackEmit = f
 }
