@@ -14,7 +14,7 @@ const DefaultBufferCapacity = DefaultByteBatchSize * 2
 // as a byte array (i.e. []byte).
 type ByteEmittable interface {
 	Emittable
-	EmitBytesCallback(ebcb func([]byte)) // callback for emitting bytes
+	SetEmitBytesCallback(ebcb func([]byte)) // callback for emitting bytes
 }
 
 type LPOption func(ByteEmittable)
@@ -23,7 +23,7 @@ type LPOption func(ByteEmittable)
 // The unit is byte
 func WithBufferSize(size int) LPOption {
 	return func(b ByteEmittable) {
-		b.Size(size)
+		b.SetSize(size)
 	}
 }
 
@@ -31,7 +31,7 @@ func WithBufferSize(size int) LPOption {
 // The unit is byte
 func WithBufferCapacity(capacity int) LPOption {
 	return func(b ByteEmittable) {
-		b.Capacity(capacity)
+		b.SetCapacity(capacity)
 	}
 }
 
@@ -40,7 +40,7 @@ func WithBufferCapacity(capacity int) LPOption {
 // possible and move long-running processing to a  go-routine.
 func WithByteEmitReadyCallback(f func()) LPOption {
 	return func(b ByteEmittable) {
-		b.ReadyCallback(f)
+		b.SetReadyCallback(f)
 	}
 }
 
@@ -49,7 +49,7 @@ func WithByteEmitReadyCallback(f func()) LPOption {
 // return as quickly as possible and move any long-running processing to a go routine.
 func WithEmitBytesCallback(f func([]byte)) LPOption {
 	return func(b ByteEmittable) {
-		b.EmitBytesCallback(f)
+		b.SetEmitBytesCallback(f)
 	}
 }
 
@@ -67,22 +67,22 @@ type LPBatcher struct {
 }
 
 // Size sets the batch size of the batcher
-func (lpb *LPBatcher) Size(s int) {
+func (lpb *LPBatcher) SetSize(s int) {
 	lpb.size = s
 }
 
 // Capacity sets the initial capacity of the internal buffer
-func (lpb *LPBatcher) Capacity(c int) {
+func (lpb *LPBatcher) SetCapacity(c int) {
 	lpb.capacity = c
 }
 
 // ReadyCallback sets the ReadyCallback function
-func (lpb *LPBatcher) ReadyCallback(f func()) {
+func (lpb *LPBatcher) SetReadyCallback(f func()) {
 	lpb.callbackReady = f
 }
 
 // EmitBytesCallback sets the callbackByteEmit function
-func (lpb *LPBatcher) EmitBytesCallback(f func([]byte)) {
+func (lpb *LPBatcher) SetEmitBytesCallback(f func([]byte)) {
 	lpb.callbackByteEmit = f
 }
 

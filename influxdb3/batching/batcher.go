@@ -41,16 +41,16 @@ const DefaultCapacity = 2 * DefaultBatchSize
 // that will collect and then emit data upon
 // reaching a ready state.
 type Emittable interface {
-	Size(s int)               // setsize
-	Capacity(c int)           // set capacity
-	ReadyCallback(rcb func()) // ready Callback
+	SetSize(s int)               // setsize
+	SetCapacity(c int)           // set capacity
+	SetReadyCallback(rcb func()) // ready Callback
 }
 
 // PointEmittable provides the basis for ant type emitting
 // Point arrays as []*influxdb3.Point
 type PointEmittable interface {
 	Emittable
-	EmitCallback(epcb func([]*influxdb3.Point)) // callback for emitting points
+	SetEmitCallback(epcb func([]*influxdb3.Point)) // callback for emitting points
 }
 
 type Option func(PointEmittable)
@@ -58,14 +58,14 @@ type Option func(PointEmittable)
 // WithSize changes the batch-size emitted by the batcher
 func WithSize(size int) Option {
 	return func(b PointEmittable) {
-		b.Size(size)
+		b.SetSize(size)
 	}
 }
 
 // WithCapacity changes the initial capacity of the internal buffer
 func WithCapacity(capacity int) Option {
 	return func(b PointEmittable) {
-		b.Capacity(capacity)
+		b.SetCapacity(capacity)
 	}
 }
 
@@ -74,7 +74,7 @@ func WithCapacity(capacity int) Option {
 // possible and move long-running processing to a  go-routine.
 func WithReadyCallback(f func()) Option {
 	return func(b PointEmittable) {
-		b.ReadyCallback(f)
+		b.SetReadyCallback(f)
 	}
 }
 
@@ -83,7 +83,7 @@ func WithReadyCallback(f func()) Option {
 // return as fast as possible and move long-running processing to a go-routine.
 func WithEmitCallback(f func([]*influxdb3.Point)) Option {
 	return func(b PointEmittable) {
-		b.EmitCallback(f)
+		b.SetEmitCallback(f)
 	}
 }
 
@@ -99,22 +99,22 @@ type Batcher struct {
 }
 
 // Size sets the batch size.  Units are Points.
-func (b *Batcher) Size(s int) {
+func (b *Batcher) SetSize(s int) {
 	b.size = s
 }
 
 // Capacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
-func (b *Batcher) Capacity(c int) {
+func (b *Batcher) SetCapacity(c int) {
 	b.capacity = c
 }
 
 // ReadyCallback sets the callbackReady function.
-func (b *Batcher) ReadyCallback(f func()) {
+func (b *Batcher) SetReadyCallback(f func()) {
 	b.callbackReady = f
 }
 
 // EmitCallback sets the callbackEmit function.
-func (b *Batcher) EmitCallback(f func([]*influxdb3.Point)) {
+func (b *Batcher) SetEmitCallback(f func([]*influxdb3.Point)) {
 	b.callbackEmit = f
 }
 
