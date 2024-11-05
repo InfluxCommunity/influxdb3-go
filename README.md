@@ -251,7 +251,9 @@ err = client.WriteData(context.Background(), data)
 
 ### Query
 
-Use SQL or InfluxQL to query an InfluxDB v3 database or (Cloud Serverless) bucket and retrieve data in Arrow Columnar format.
+Use SQL or InfluxQL to query an InfluxDB v3 database or Cloud Serverless bucket to retrieve data.
+The client can return query results in the following formats: structured `PointValues` object, key-value pairs, or Arrow Columnar Format.
+
 By default, the client sends the query as SQL.
 
 `influxdb3` provides an iterator for processing data rows--for example:
@@ -275,6 +277,8 @@ if err != nil {
 
 // Process the result.
 for iterator.Next() {
+    // The query iterator returns each row as a map[string]interface{}.
+    // The keys are the column names, allowing you to access the values by column name.
     value := iterator.Value()
 
     fmt.Printf("temperature in Paris is %f\n", value["temperature"])

@@ -39,7 +39,6 @@ import (
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
-	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -138,7 +137,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.Equal(t, uint64(800), value["uindex"])
 	assert.Equal(t, true, value["valid"])
 	assert.Equal(t, "a1", value["text"])
-	assert.Equal(t, now, value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+	assert.Equal(t, now, value["time"])
 
 	// row #2
 
@@ -151,7 +150,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.Equal(t, uint64(150), value["uindex"])
 	assert.Equal(t, false, value["valid"])
 	assert.Equal(t, "b1", value["text"])
-	assert.Equal(t, now.Add(1*time.Second), value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+	assert.Equal(t, now.Add(1*time.Second), value["time"])
 
 	assert.False(t, iterator.Done())
 
@@ -233,7 +232,7 @@ func TestQueryWithParameters(t *testing.T) {
 	assert.Equal(t, uint64(800), value["uindex"])
 	assert.Equal(t, true, value["valid"])
 	assert.Equal(t, "a1", value["text"])
-	assert.Equal(t, now, value["time"].(arrow.Timestamp).ToTime(arrow.Nanosecond))
+	assert.Equal(t, now, value["time"])
 
 	assert.False(t, iterator.Done())
 	assert.False(t, iterator.Next())

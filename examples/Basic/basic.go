@@ -100,6 +100,8 @@ func main() {
 		panic(err)
 	}
 	for iterator.Next() {
+		// The query iterator returns each row as a map[string]interface{}.
+		// The keys are the column names, allowing you to access the values by column name.
 		value := iterator.Value()
 		fmt.Printf("%s at %v:\n", value["location"],
 			(value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC822))

@@ -24,16 +24,30 @@ package influxdb3
 
 import (
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
 )
 
+type responseColumnType byte
+
+const (
+	responseColumnTypeUnknown responseColumnType = iota
+	responseColumnTypeTimestamp
+	responseColumnTypeField
+	responseColumnTypeTag
+)
+
 // QueryIterator is a custom query iterator that encapsulates and simplifies the logic for
 // the flight reader. It provides methods such as Next, Value, and Index to consume the flight reader,
 // or users can use the underlying reader directly with the Raw method.
+//
+// The QueryIterator can return responses as one of the following data types:
+//   - iterator.Value() returns map[string]interface{} object representing the current row
+//   - iterator.AsPoints() returns *PointValues object representing the current row
+//   - iterator.Raw() returns the underlying *flight.Reader object
 type QueryIterator struct {
 	reader *flight.Reader
 	// Current record
@@ -77,13 +91,13 @@ func (i *QueryIterator) Next() bool {
 		i.indexInRecord = 0
 	}
 
-	schema := i.reader.Schema()
+	readerSchema := i.reader.Schema()
 	obj := make(map[string]interface{}, len(i.record.Columns()))
 
 	for ci, col := range i.record.Columns() {
-		name := schema.Field(ci).Name
-		value, err := getArrowValue(col, i.indexInRecord)
-
+		field := readerSchema.Field(ci)
+		name := field.Name
+		value, _, err := getArrowValue(col, field, i.indexInRecord)
 		if err != nil {
 			panic(err)
 		}
@@ -95,15 +109,15 @@ func (i *QueryIterator) Next() bool {
 	return true
 }
 
-// AsPoints return data from InfluxDB IOx into PointValues structure.
+// AsPoints return data from InfluxDB v3 into PointValues structure.
 func (i *QueryIterator) AsPoints() *PointValues {
 	readerSchema := i.reader.Schema()
 	p := NewPointValues("")
 
 	for ci, col := range i.record.Columns() {
-		schema := readerSchema.Field(ci)
-		name := schema.Name
-		value, err := getArrowValue(col, i.indexInRecord)
+		field := readerSchema.Field(ci)
+		name := field.Name
+		value, columnType, err := getArrowValue(col, field, i.indexInRecord)
 		if err != nil {
 			panic(err)
 		}
@@ -111,31 +125,24 @@ func (i *QueryIterator) AsPoints() *PointValues {
 			continue
 		}
 
-		metadataType, hasMetadataType := schema.Metadata.GetValue("iox::column::type")
-
 		if stringValue, isString := value.(string); ((name == "measurement") || (name == "iox::measurement")) && isString {
 			p.SetMeasurement(stringValue)
 			continue
 		}
 
-		if !hasMetadataType {
+		switch {
+		case columnType == responseColumnTypeUnknown:
 			if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && name == "time" {
 				p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
 			} else {
 				p.SetField(name, value)
 			}
-			continue
-		}
-
-		parts := strings.Split(metadataType, "::")
-		_, _, valueType := parts[0], parts[1], parts[2]
-
-		if valueType == "field" {
+		case columnType == responseColumnTypeField:
 			p.SetField(name, value)
-		} else if stringValue, isString := value.(string); isString && valueType == "tag" {
-			p.SetTag(name, stringValue)
-		} else if timestampValue, isTimestamp := value.(arrow.Timestamp); isTimestamp && valueType == "timestamp" {
-			p.SetTimestamp(timestampValue.ToTime(arrow.Nanosecond))
+		case columnType == responseColumnTypeTag:
+			p.SetTag(name, value.(string))
+		case columnType == responseColumnTypeTimestamp:
+			p.SetTimestamp(value.(time.Time))
 		}
 	}
 
@@ -144,6 +151,16 @@ func (i *QueryIterator) AsPoints() *PointValues {
 
 // Value returns the current value from the flight reader as a map object.
 // The map contains the fields and tags as key-value pairs.
+//
+// The current value types respect metadata provided by InfluxDB v3 metadata query response.
+// Tags are mapped as a "string", timestamp as "time.Time", and fields as their respective types.
+//
+// Field are mapped to the following types:
+//   - iox::column_type::field::integer: => int64
+//   - iox::column_type::field::uinteger: => uint64
+//   - iox::column_type::field::float: => float64
+//   - iox::column_type::field::string: => string
+//   - iox::column_type::field::boolean: => bool
 //
 // Returns:
 //   - A map[string]interface{} object representing the current value.
@@ -177,90 +194,118 @@ func (i *QueryIterator) Raw() *flight.Reader {
 	return i.reader
 }
 
-func getArrowValue(arrayNoType arrow.Array, i int) (interface{}, error) {
+func getArrowValue(arrayNoType arrow.Array, field arrow.Field, i int) (any, responseColumnType, error) {
+	var columnType = responseColumnTypeUnknown
 	if arrayNoType.IsNull(i) {
-		return nil, nil
+		return nil, columnType, nil
 	}
+	var value any
 	switch arrayNoType.DataType().ID() {
 	case arrow.NULL:
-		return nil, nil
+		value = nil
 	case arrow.BOOL:
-		return arrayNoType.(*array.Boolean).Value(i), nil
+		value = arrayNoType.(*array.Boolean).Value(i)
 	case arrow.UINT8:
-		return arrayNoType.(*array.Uint8).Value(i), nil
+		value = arrayNoType.(*array.Uint8).Value(i)
 	case arrow.INT8:
-		return arrayNoType.(*array.Int8).Value(i), nil
+		value = arrayNoType.(*array.Int8).Value(i)
 	case arrow.UINT16:
-		return arrayNoType.(*array.Uint16).Value(i), nil
+		value = arrayNoType.(*array.Uint16).Value(i)
 	case arrow.INT16:
-		return arrayNoType.(*array.Int16).Value(i), nil
+		value = arrayNoType.(*array.Int16).Value(i)
 	case arrow.UINT32:
-		return arrayNoType.(*array.Uint32).Value(i), nil
+		value = arrayNoType.(*array.Uint32).Value(i)
 	case arrow.INT32:
-		return arrayNoType.(*array.Int32).Value(i), nil
+		value = arrayNoType.(*array.Int32).Value(i)
 	case arrow.UINT64:
-		return arrayNoType.(*array.Uint64).Value(i), nil
+		value = arrayNoType.(*array.Uint64).Value(i)
 	case arrow.INT64:
-		return arrayNoType.(*array.Int64).Value(i), nil
+		value = arrayNoType.(*array.Int64).Value(i)
 	case arrow.FLOAT16:
-		return arrayNoType.(*array.Float16).Value(i), nil
+		value = arrayNoType.(*array.Float16).Value(i)
 	case arrow.FLOAT32:
-		return arrayNoType.(*array.Float32).Value(i), nil
+		value = arrayNoType.(*array.Float32).Value(i)
 	case arrow.FLOAT64:
-		return arrayNoType.(*array.Float64).Value(i), nil
+		value = arrayNoType.(*array.Float64).Value(i)
 	case arrow.STRING:
-		return arrayNoType.(*array.String).Value(i), nil
+		value = arrayNoType.(*array.String).Value(i)
 	case arrow.BINARY:
-		return arrayNoType.(*array.Binary).Value(i), nil
+		value = arrayNoType.(*array.Binary).Value(i)
 	case arrow.FIXED_SIZE_BINARY:
-		return arrayNoType.(*array.FixedSizeBinary).Value(i), nil
+		value = arrayNoType.(*array.FixedSizeBinary).Value(i)
 	case arrow.DATE32:
-		return arrayNoType.(*array.Date32).Value(i), nil
+		value = arrayNoType.(*array.Date32).Value(i)
 	case arrow.DATE64:
-		return arrayNoType.(*array.Date64).Value(i), nil
+		value = arrayNoType.(*array.Date64).Value(i)
 	case arrow.TIMESTAMP:
-		return arrayNoType.(*array.Timestamp).Value(i), nil
+		value = arrayNoType.(*array.Timestamp).Value(i)
 	case arrow.TIME32:
-		return arrayNoType.(*array.Time32).Value(i), nil
+		value = arrayNoType.(*array.Time32).Value(i)
 	case arrow.TIME64:
-		return arrayNoType.(*array.Time64).Value(i), nil
+		value = arrayNoType.(*array.Time64).Value(i)
 	case arrow.INTERVAL_MONTHS:
-		return arrayNoType.(*array.MonthInterval).Value(i), nil
+		value = arrayNoType.(*array.MonthInterval).Value(i)
 	case arrow.INTERVAL_DAY_TIME:
-		return arrayNoType.(*array.DayTimeInterval).Value(i), nil
+		value = arrayNoType.(*array.DayTimeInterval).Value(i)
 	case arrow.DECIMAL128:
-		return arrayNoType.(*array.Decimal128).Value(i), nil
+		value = arrayNoType.(*array.Decimal128).Value(i)
 	case arrow.DECIMAL256:
-		return arrayNoType.(*array.Decimal256).Value(i), nil
-	// case arrow.LIST:
-	// 	return arrayNoType.(*array.List).Value(i), nil
-	// case arrow.STRUCT:
-	// 	return arrayNoType.(*array.Struct).Value(i), nil
-	// case arrow.SPARSE_UNION:
-	// 	return arrayNoType.(*array.SparseUnion).Value(i), nil
-	// case arrow.DENSE_UNION:
-	// 	return arrayNoType.(*array.DenseUnion).Value(i), nil
-	// case arrow.DICTIONARY:
-	// 	return arrayNoType.(*array.Dictionary).Value(i), nil
-	// case arrow.MAP:
-	// 	return arrayNoType.(*array.Map).Value(i), nil
-	// case arrow.EXTENSION:
-	// 	return arrayNoType.(*array.ExtensionArrayBase).Value(i), nil
-	// case arrow.FIXED_SIZE_LIST:
-	// 	return arrayNoType.(*array.FixedSizeList).Value(i), nil
+		value = arrayNoType.(*array.Decimal256).Value(i)
 	case arrow.DURATION:
-		return arrayNoType.(*array.Duration).Value(i), nil
+		value = arrayNoType.(*array.Duration).Value(i)
 	case arrow.LARGE_STRING:
-		return arrayNoType.(*array.LargeString).Value(i), nil
+		value = arrayNoType.(*array.LargeString).Value(i)
 	case arrow.LARGE_BINARY:
-		return arrayNoType.(*array.LargeBinary).Value(i), nil
-	// case arrow.LARGE_LIST:
-	// 	return arrayNoType.(*array.LargeList).Value(i), nil
+		value = arrayNoType.(*array.LargeBinary).Value(i)
 	case arrow.INTERVAL_MONTH_DAY_NANO:
-		return arrayNoType.(*array.MonthDayNanoInterval).Value(i), nil
-	// case arrow.RUN_END_ENCODED:
-	// 	return arrayNoType.(*array.RunEndEncoded).Value(i), nil
+		value = arrayNoType.(*array.MonthDayNanoInterval).Value(i)
 	default:
-		return nil, fmt.Errorf("not supported data type: %s", arrayNoType.DataType().ID().String())
+		return nil, columnType, fmt.Errorf("not supported data type: %s", arrayNoType.DataType().ID().String())
 	}
+
+	if metadata, hasMetadata := field.Metadata.GetValue("iox::column::type"); hasMetadata {
+		value, columnType = getMetadataType(metadata, value, columnType)
+	}
+	return value, columnType, nil
+}
+
+func getMetadataType(metadata string, value any, columnType responseColumnType) (any, responseColumnType) {
+	switch metadata {
+	case "iox::column_type::field::integer":
+		if intValue, ok := value.(int64); ok {
+			value = intValue
+			columnType = responseColumnTypeField
+		}
+	case "iox::column_type::field::uinteger":
+		if uintValue, ok := value.(uint64); ok {
+			value = uintValue
+			columnType = responseColumnTypeField
+		}
+	case "iox::column_type::field::float":
+		if floatValue, ok := value.(float64); ok {
+			value = floatValue
+			columnType = responseColumnTypeField
+		}
+	case "iox::column_type::field::string":
+		if stringValue, ok := value.(string); ok {
+			value = stringValue
+			columnType = responseColumnTypeField
+		}
+	case "iox::column_type::field::boolean":
+		if boolValue, ok := value.(bool); ok {
+			value = boolValue
+			columnType = responseColumnTypeField
+		}
+	case "iox::column_type::tag":
+		if stringValue, ok := value.(string); ok {
+			value = stringValue
+			columnType = responseColumnTypeTag
+		}
+	case "iox::column_type::timestamp":
+		if timestampValue, ok := value.(arrow.Timestamp); ok {
+			value = timestampValue.ToTime(arrow.Nanosecond)
+			columnType = responseColumnTypeTimestamp
+		}
+	}
+	return value, columnType
 }
