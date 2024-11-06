@@ -1,5 +1,9 @@
 ## 0.14.0 [unreleased]
 
+### Bug Fixes
+
+1. [#113](https://github.com/InfluxCommunity/influxdb3-go/pull/113): Honor struct tags on WriteData, avoid panic for unexported fields
+
 ## 0.13.0 [2024-10-22]
 
 ### Features
