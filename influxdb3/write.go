@@ -289,42 +289,40 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	}
 
 	for _, f := range fields {
-		name := f.Name
-		if tag, ok := f.Tag.Lookup("lp"); ok {
-			if tag == "-" {
-				continue
+		tag, ok := f.Tag.Lookup("lp")
+		if !ok || tag == "-" {
+			continue
+		}
+		parts := strings.Split(tag, ",")
+		if len(parts) > 2 {
+			return nil, errors.New("multiple tag attributes are not supported")
+		}
+		typ, name := parts[0], f.Name
+		if len(parts) == 2 {
+			name = parts[1]
+		}
+		field := v.FieldByIndex(f.Index)
+		switch typ {
+		case "measurement":
+			if point.GetMeasurement() != "" {
+				return nil, errors.New("multiple measurement fields")
 			}
-			parts := strings.Split(tag, ",")
-			if len(parts) > 2 {
-				return nil, errors.New("multiple tag attributes are not supported")
+			point.SetMeasurement(field.String())
+		case "tag":
+			point.SetTag(name, field.String())
+		case "field":
+			fieldVal, err := fieldValue(name, f, field, t)
+			if err != nil {
+				return nil, err
 			}
-			typ := parts[0]
-			if len(parts) == 2 {
-				name = parts[1]
+			point.SetField(name, fieldVal)
+		case "timestamp":
+			if f.Type != timeType {
+				return nil, fmt.Errorf("cannot use field '%s' as a timestamp", f.Name)
 			}
-			field := v.FieldByIndex(f.Index)
-			switch typ {
-			case "measurement":
-				if point.GetMeasurement() != "" {
-					return nil, errors.New("multiple measurement fields")
-				}
-				point.SetMeasurement(field.String())
-			case "tag":
-				point.SetTag(name, field.String())
-			case "field":
-				fieldVal, err := fieldValue(name, f, field, t)
-				if err != nil {
-					return nil, err
-				}
-				point.SetField(name, fieldVal)
-			case "timestamp":
-				if f.Type != timeType {
-					return nil, fmt.Errorf("cannot use field '%s' as a timestamp", f.Name)
-				}
-				point.SetTimestamp(field.Interface().(time.Time))
-			default:
-				return nil, fmt.Errorf("invalid tag %s", typ)
-			}
+			point.SetTimestamp(field.Interface().(time.Time))
+		default:
+			return nil, fmt.Errorf("invalid tag %s", typ)
 		}
 	}
 	if point.GetMeasurement() == "" {
