@@ -46,7 +46,7 @@ type Emittable interface {
 	SetReadyCallback(rcb func()) // ready Callback
 }
 
-// PointEmittable provides the basis for ant type emitting
+// PointEmittable provides the basis for any type emitting
 // Point arrays as []*influxdb3.Point
 type PointEmittable interface {
 	Emittable

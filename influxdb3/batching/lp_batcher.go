@@ -150,7 +150,7 @@ func (lpb *LPBatcher) isReady() bool {
 	return len(lpb.buffer) >= lpb.size
 }
 
-// Emit returns a new batch of bytes with the upto to the provided batch size
+// Emit returns a new batch of bytes with upto to the provided batch size
 // depending on when the last newline character in the potential batch is met, or
 // with all the remaining bytes. Please drain the bytes at the end of your
 // processing to get the remaining bytes not filling up a batch.
