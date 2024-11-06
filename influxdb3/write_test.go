@@ -96,9 +96,9 @@ func TestEncode(t *testing.T) {
 				Sensor      string    `lp:"tag,sensor"`
 				ID          string    `lp:"tag,device_id"`
 				Temp        float64   `lp:"field,temperature"`
-				hum         int64     `lp:"field,humidity"`
+				Hum         int64     `lp:"field,humidity"`
 				Time        time.Time `lp:"timestamp"`
-				description string    `lp:"-"`
+				Description string    `lp:"-"`
 			}{
 				"air",
 				"SHT31",

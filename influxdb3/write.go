@@ -312,24 +312,9 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 			case "tag":
 				point.SetTag(name, field.String())
 			case "field":
-				var fieldVal interface{}
-				if f.IsExported() {
-					fieldVal = field.Interface()
-				} else {
-					switch field.Kind() {
-					case reflect.Bool:
-						fieldVal = field.Bool()
-					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						fieldVal = field.Int()
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-						fieldVal = field.Uint()
-					case reflect.Float32, reflect.Float64:
-						fieldVal = field.Float()
-					case reflect.String:
-						fieldVal = field.String()
-					default:
-						return nil, fmt.Errorf("cannot use field '%s' of type '%v' as a field", name, t)
-					}
+				fieldVal, err := fieldValue(name, f, field, t)
+				if err != nil {
+					return nil, err
 				}
 				point.SetField(name, fieldVal)
 			case "timestamp":
@@ -350,4 +335,27 @@ func encode(x interface{}, options *WriteOptions) ([]byte, error) {
 	}
 
 	return point.MarshalBinaryWithDefaultTags(options.Precision, options.DefaultTags)
+}
+
+func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.Type) (interface{}, error) {
+	var fieldVal interface{}
+	if f.IsExported() {
+		fieldVal = v.Interface()
+	} else {
+		switch v.Kind() {
+		case reflect.Bool:
+			fieldVal = v.Bool()
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			fieldVal = v.Int()
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			fieldVal = v.Uint()
+		case reflect.Float32, reflect.Float64:
+			fieldVal = v.Float()
+		case reflect.String:
+			fieldVal = v.String()
+		default:
+			return nil, fmt.Errorf("cannot use field '%s' of type '%v' as a field", name, t)
+		}
+	}
+	return fieldVal, nil
 }
