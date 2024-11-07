@@ -36,6 +36,7 @@ import (
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 func TestEncode(t *testing.T) {
@@ -45,27 +46,28 @@ func TestEncode(t *testing.T) {
 		s     interface{}
 		line  string
 		error string
-	}{{
-		name: "test normal structure",
-		s: struct {
-			Measurement string    `lp:"measurement"`
-			Sensor      string    `lp:"tag,sensor"`
-			ID          string    `lp:"tag,device_id"`
-			Temp        float64   `lp:"field,temperature"`
-			Hum         int       `lp:"field,humidity"`
-			Time        time.Time `lp:"timestamp"`
-			Description string    `lp:"-"`
-		}{
-			"air",
-			"SHT31",
-			"10",
-			23.5,
-			55,
-			now,
-			"Room temp",
+	}{
+		{
+			name: "test normal structure",
+			s: struct {
+				Measurement string    `lp:"measurement"`
+				Sensor      string    `lp:"tag,sensor"`
+				ID          string    `lp:"tag,device_id"`
+				Temp        float64   `lp:"field,temperature"`
+				Hum         int       `lp:"field,humidity"`
+				Time        time.Time `lp:"timestamp"`
+				Description string    `lp:"-"`
+			}{
+				"air",
+				"SHT31",
+				"10",
+				23.5,
+				55,
+				now,
+				"Room temp",
+			},
+			line: fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()),
 		},
-		line: fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()),
-	},
 		{
 			name: "test pointer to normal structure",
 			s: &struct {
@@ -86,7 +88,53 @@ func TestEncode(t *testing.T) {
 				"Room temp",
 			},
 			line: fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()),
-		}, {
+		},
+		{
+			name: "test normal structure with unexported field",
+			s: struct {
+				Measurement string    `lp:"measurement"`
+				Sensor      string    `lp:"tag,sensor"`
+				ID          string    `lp:"tag,device_id"`
+				Temp        float64   `lp:"field,temperature"`
+				Hum         int64     `lp:"field,humidity"`
+				Time        time.Time `lp:"timestamp"`
+				Description string    `lp:"-"`
+			}{
+				"air",
+				"SHT31",
+				"10",
+				23.5,
+				55,
+				now,
+				"Room temp",
+			},
+			line: fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()),
+		},
+		{
+			name: "test protobuf structure",
+			s: struct {
+				Measurement   string    `lp:"measurement"`
+				Sensor        string    `lp:"tag,sensor"`
+				ID            string    `lp:"tag,device_id"`
+				Temp          float64   `lp:"field,temperature"`
+				Hum           int64     `lp:"field,humidity"`
+				Time          time.Time `lp:"timestamp"`
+				Description   string    `lp:"-"`
+				state         protoimpl.MessageState
+				sizeCache     protoimpl.SizeCache
+				unknownFields protoimpl.UnknownFields
+			}{
+				Measurement: "air",
+				Sensor:      "SHT31",
+				ID:          "10",
+				Temp:        23.5,
+				Hum:         55,
+				Time:        now,
+				Description: "Room temp",
+			},
+			line: fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano()),
+		},
+		{
 			name: "test no tag, no timestamp",
 			s: &struct {
 				Measurement string  `lp:"measurement"`

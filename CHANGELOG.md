@@ -1,11 +1,15 @@
 ## 0.14.0 [unreleased]
 
+### Bug Fixes
+
+1. [#113](https://github.com/InfluxCommunity/influxdb3-go/pull/113): Honor struct tags on WriteData, avoid panic for unexported fields
+
 ## 0.13.0 [2024-10-22]
 
 ### Features
 
 1. [#108](https://github.com/InfluxCommunity/influxdb3-go/pull/108): Allow Request.GetBody to be set when writing gzipped data to make calls more resilient.
-1. [#111](https://github.com/InfluxCommunity/influxdb3-go/pull/111): Support tabs in tag values.   
+1. [#111](https://github.com/InfluxCommunity/influxdb3-go/pull/111): Support tabs in tag values.
 
 ## 0.12.0 [2024-10-02]
 
