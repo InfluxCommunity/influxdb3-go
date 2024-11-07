@@ -202,7 +202,7 @@ func (b *Batcher) emitPoints() []*influxdb3.Point {
 func (b *Batcher) Flush() []*influxdb3.Point {
 	slog.Info(fmt.Sprintf("Flushing all points (%d) from buffer.", b.CurrentLoadSize()))
 	points := b.points
-	b.points = b.points[len(points):]
+	b.points = b.points[:0]
 	return points
 }
 

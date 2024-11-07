@@ -32,14 +32,14 @@ func main() {
 	syncLocations := []string{"nice", "split", "goa", "cancun"}
 
 	// Instantiate a client using your credentials.
-	client, cErr := influxdb3.New(influxdb3.ClientConfig{
+	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
 		Token:    token,
 		Database: database,
 	})
 
-	if cErr != nil {
-		panic(cErr)
+	if err != nil {
+		panic(err)
 	}
 
 	defer func(client *influxdb3.Client) {
@@ -54,7 +54,6 @@ func main() {
 	// create a new Line Protocol Batcher
 	syncLpb := batching.NewLPBatcher(batching.WithBufferSize(4096)) // Set buffer size
 	t := time.Now().Add(-LineCount * time.Second)
-	var wErr error
 
 	// add new data into the batcher
 	for range LineCount {
@@ -70,17 +69,17 @@ func main() {
 
 		// if ready state reached, emit a batch
 		if syncLpb.Ready() {
-			wErr = client.Write(context.Background(), syncLpb.Emit())
-			if wErr != nil {
-				slog.Error(wErr.Error())
+			err = client.Write(context.Background(), syncLpb.Emit())
+			if err != nil {
+				slog.Error(err.Error())
 			}
 		}
 	}
 
 	// Write final batch to client
-	wErr = client.Write(context.Background(), syncLpb.Emit())
-	if wErr != nil {
-		slog.Error(wErr.Error())
+	err = client.Write(context.Background(), syncLpb.Emit())
+	if err != nil {
+		slog.Error(err.Error())
 	}
 	fmt.Printf("Sync Writes Done.  %d Bytes remaining in batcher buffer\n",
 		syncLpb.CurrentLoadSize())
@@ -100,9 +99,9 @@ func main() {
 	asyncLpb := batching.NewLPBatcher(batching.WithBufferSize(4096), // Set buffer size
 		batching.WithByteEmitReadyCallback(func() { fmt.Println("|-- ready to emit -->") }), // Set ready callback
 		batching.WithEmitBytesCallback(func(bytes []byte) { // Set Callback to handle emitted bytes
-			wErr = client.Write(context.Background(), bytes)
-			if wErr != nil {
-				slog.Error(wErr.Error())
+			err = client.Write(context.Background(), bytes)
+			if err != nil {
+				slog.Error(err.Error())
 			}
 		}))
 
@@ -121,9 +120,9 @@ func main() {
 	}
 
 	// Write the remaining batch records to the client
-	wErr = client.Write(context.Background(), asyncLpb.Emit())
-	if wErr != nil {
-		slog.Error(wErr.Error())
+	err = client.Write(context.Background(), asyncLpb.Emit())
+	if err != nil {
+		slog.Error(err.Error())
 	}
 	fmt.Printf("Async Writes Done.  %d Bytes remaining in batcher buffer\n",
 		asyncLpb.CurrentLoadSize())
