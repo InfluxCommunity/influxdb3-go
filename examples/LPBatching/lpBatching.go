@@ -50,7 +50,6 @@ func main() {
 	}(client)
 
 	// SYNC WRITE BATCHES
-
 	// create a new Line Protocol Batcher
 	syncLpb := batching.NewLPBatcher(batching.WithBufferSize(4096)) // Set buffer size
 	t := time.Now().Add(-LineCount * time.Second)
@@ -84,17 +83,6 @@ func main() {
 	fmt.Printf("Sync Writes Done.  %d Bytes remaining in batcher buffer\n",
 		syncLpb.CurrentLoadSize())
 
-	//prepare SQL query
-	queryTemplate := "SELECT * FROM \"uasv\"" +
-		"\nWHERE time >= now() - interval '2 minutes'\n" +
-		"AND location IN ('%s','%s')\norder by time"
-
-	fmt.Println("Show selected values written by sync")
-	DumpQueryResults(client.Query(context.Background(),
-		fmt.Sprintf(queryTemplate, syncLocations[2], syncLocations[3])))
-
-	fmt.Println()
-
 	// ASYNC WRITE BATCHES
 	asyncLpb := batching.NewLPBatcher(batching.WithBufferSize(4096), // Set buffer size
 		batching.WithByteEmitReadyCallback(func() { fmt.Println("|-- ready to emit -->") }), // Set ready callback
@@ -127,32 +115,29 @@ func main() {
 	fmt.Printf("Async Writes Done.  %d Bytes remaining in batcher buffer\n",
 		asyncLpb.CurrentLoadSize())
 
-	fmt.Println("Show selected values written by async")
-	DumpQueryResults(client.Query(context.Background(),
-		fmt.Sprintf(queryTemplate, asyncLocations[0], asyncLocations[1])))
-
-}
-
-func DumpQueryResults(qiter *influxdb3.QueryIterator, err error) {
+	// Prepare an SQL query
+	query := `
+    SELECT *
+    FROM uasv
+    WHERE time >= now() - interval '5 minutes'
+    AND location IN ('cancun', 'dubai', 'ibiza')
+    ORDER BY time DESC
+  `
+	iterator, err := client.Query(context.Background(), query)
 	if err != nil {
 		slog.Error(err.Error())
 	}
 	tw := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	defer func(tw *tabwriter.Writer) {
-		err := tw.Flush()
-		if err != nil {
-
-		}
-	}(tw)
+	defer tw.Flush()
 
 	fmt.Fprintln(tw, "\nTime\tid\tlocation\tspeed\tbearing\tticks")
-	for qiter.Next() {
-		value := qiter.Value()
+	for iterator.Next() {
+		value := iterator.Value()
 		t := (value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC3339)
-		_, werr := fmt.Fprintf(tw, "%v\t%s\t%s\t%.1f\t%.2f\t%d\n", t,
+		_, err := fmt.Fprintf(tw, "%v\t%s\t%s\t%.1f\t%.2f\t%d\n", t,
 			value["id"], value["location"], value["speed"], value["bearing"], value["ticks"])
-		if werr != nil {
-			slog.Error(werr.Error())
+		if err != nil {
+			slog.Error(err.Error())
 		}
 	}
 }
