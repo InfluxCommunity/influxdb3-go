@@ -24,45 +24,12 @@ THE SOFTWARE.
 package batching
 
 import (
+	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 )
-
-// Option to adapt properties of a batcher
-type Option func(*Batcher)
-
-// WithSize changes the batch-size emitted by the batcher
-func WithSize(size int) Option {
-	return func(b *Batcher) {
-		b.size = size
-	}
-}
-
-// WithCapacity changes the initial capacity of the points buffer
-func WithCapacity(capacity int) Option {
-	return func(b *Batcher) {
-		b.capacity = capacity
-	}
-}
-
-// WithReadyCallback sets the function called when a new batch is ready. The
-// batcher will wait for the callback to finish, so please return as fast as
-// possible and move long-running processing to a  go-routine.
-func WithReadyCallback(f func()) Option {
-	return func(b *Batcher) {
-		b.callbackReady = f
-	}
-}
-
-// WithEmitCallback sets the function called when a new batch is ready with the
-// batch of points. The batcher will wait for the callback to finish, so please
-// return as fast as possible and move long-running processing to a go-routine.
-func WithEmitCallback(f func([]*influxdb3.Point)) Option {
-	return func(b *Batcher) {
-		b.callbackEmit = f
-	}
-}
 
 // DefaultBatchSize is the default number of points emitted
 const DefaultBatchSize = 1000
@@ -70,16 +37,85 @@ const DefaultBatchSize = 1000
 // DefaultCapacity is the default initial capacity of the point buffer
 const DefaultCapacity = 2 * DefaultBatchSize
 
+// Emittable provides the base for any type
+// that will collect and then emit data upon
+// reaching a ready state.
+type Emittable interface {
+	SetSize(s int)               // setsize
+	SetCapacity(c int)           // set capacity
+	SetReadyCallback(rcb func()) // ready Callback
+}
+
+// PointEmittable provides the basis for any type emitting
+// Point arrays as []*influxdb3.Point
+type PointEmittable interface {
+	Emittable
+	SetEmitCallback(epcb func([]*influxdb3.Point)) // callback for emitting points
+}
+
+type Option func(PointEmittable)
+
+// WithSize changes the batch-size emitted by the batcher
+func WithSize(size int) Option {
+	return func(b PointEmittable) {
+		b.SetSize(size)
+	}
+}
+
+// WithCapacity changes the initial capacity of the internal buffer
+func WithCapacity(capacity int) Option {
+	return func(b PointEmittable) {
+		b.SetCapacity(capacity)
+	}
+}
+
+// WithReadyCallback sets the function called when a new batch is ready. The
+// batcher will wait for the callback to finish, so please return as fast as
+// possible and move long-running processing to a  go-routine.
+func WithReadyCallback(f func()) Option {
+	return func(b PointEmittable) {
+		b.SetReadyCallback(f)
+	}
+}
+
+// WithEmitCallback sets the function called when a new batch is ready with the
+// batch of points. The batcher will wait for the callback to finish, so please
+// return as fast as possible and move long-running processing to a go-routine.
+func WithEmitCallback(f func([]*influxdb3.Point)) Option {
+	return func(b PointEmittable) {
+		b.SetEmitCallback(f)
+	}
+}
+
 // Batcher collects points and emits them as batches
 type Batcher struct {
-	size     int
-	capacity int
-
+	size          int
+	capacity      int
 	callbackReady func()
 	callbackEmit  func([]*influxdb3.Point)
 
 	points []*influxdb3.Point
 	sync.Mutex
+}
+
+// SetSize sets the batch size.  Units are Points.
+func (b *Batcher) SetSize(s int) {
+	b.size = s
+}
+
+// SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+func (b *Batcher) SetCapacity(c int) {
+	b.capacity = c
+}
+
+// SetReadyCallback sets the callbackReady function.
+func (b *Batcher) SetReadyCallback(f func()) {
+	b.callbackReady = f
+}
+
+// SetEmitCallback sets the callbackEmit function.
+func (b *Batcher) SetEmitCallback(f func([]*influxdb3.Point)) {
+	b.callbackEmit = f
 }
 
 // NewBatcher creates and initializes a new Batcher instance applying the
@@ -97,7 +133,7 @@ func NewBatcher(options ...Option) *Batcher {
 		o(b)
 	}
 
-	// Setup the internal data
+	// setup internal data
 	b.points = make([]*influxdb3.Point, 0, b.capacity)
 
 	return b
@@ -112,13 +148,22 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 	b.points = append(b.points, p...)
 
 	// Call callbacks if a new batch is ready
-	if b.isReady() {
+	for b.isReady() {
 		if b.callbackReady != nil {
 			b.callbackReady()
 		}
-		if b.callbackEmit != nil {
-			b.callbackEmit(b.emitPoints())
+		if b.callbackEmit == nil {
+			// no emitter callback
+			if b.CurrentLoadSize() >= (b.capacity - b.size) {
+				slog.Warn(
+					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
+						"Batcher load is %d points waiting to be emitted.",
+						b.CurrentLoadSize()),
+				)
+			}
+			break
 		}
+		b.callbackEmit(b.emitPoints())
 	}
 }
 
@@ -150,4 +195,16 @@ func (b *Batcher) emitPoints() []*influxdb3.Point {
 	b.points = b.points[l:]
 
 	return points
+}
+
+// Flush drains all points even if the internal buffer is currently larger than size.
+// It does not call the callbackEmit method
+func (b *Batcher) Flush() []*influxdb3.Point {
+	points := b.points
+	b.points = b.points[:0]
+	return points
+}
+
+func (b *Batcher) CurrentLoadSize() int {
+	return len(b.points)
 }

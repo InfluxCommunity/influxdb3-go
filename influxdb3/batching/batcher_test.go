@@ -25,6 +25,7 @@ package batching
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func TestCustomValues(t *testing.T) {
 	assert.Equal(t, capacity, cap(b.points))
 }
 
-func TestAddAndEmit(t *testing.T) {
+func TestAddAndCallBackEmit(t *testing.T) {
 	batchSize := 5
 	emitted := false
 	var emittedPoints []*influxdb3.Point
@@ -149,4 +150,52 @@ func TestThreadSafety(t *testing.T) {
 	points := b.Emit()
 	assert.Equal(t, 20, emits, "All points should have been emitted")
 	assert.Empty(t, points, "Remaining points should be emitted correctly")
+}
+
+func TestAddLargerThanSize(t *testing.T) {
+	batchSize := 5
+	emitCt := 0
+	loadFactor := 10
+	remainder := 3
+	pointSet := make([]*influxdb3.Point, (batchSize*loadFactor)+remainder)
+	for ct := range pointSet {
+		pointSet[ct] = influxdb3.NewPoint("test",
+			map[string]string{"foo": "bar"},
+			map[string]interface{}{"count": ct + 1},
+			time.Now())
+	}
+
+	resultSet := make([]*influxdb3.Point, 0)
+	b := NewBatcher(WithSize(batchSize),
+		WithCapacity(batchSize*3),
+		WithEmitCallback(func(points []*influxdb3.Point) {
+			resultSet = append(resultSet, points...)
+			emitCt++
+		}))
+
+	b.Add(pointSet...)
+	expectedCt := len(pointSet) / batchSize
+	assert.Equal(t, expectedCt, emitCt)
+	assert.Len(t, resultSet, loadFactor*batchSize)
+	assert.Len(t, b.points, remainder)
+	assert.Equal(t, pointSet[:len(pointSet)-remainder], resultSet)
+}
+
+func TestFlush(t *testing.T) {
+	batchSize := 5
+	loadFactor := 3
+	pointSet := make([]*influxdb3.Point, batchSize*loadFactor)
+	for ct := range pointSet {
+		pointSet[ct] = influxdb3.NewPoint("test",
+			map[string]string{"foo": "bar"},
+			map[string]interface{}{"count": ct + 1},
+			time.Now())
+	}
+
+	b := NewBatcher(WithSize(batchSize), WithCapacity(batchSize*2))
+	b.Add(pointSet...)
+	assert.Equal(t, batchSize*loadFactor, b.CurrentLoadSize())
+	flushed := b.Flush()
+	assert.Len(t, flushed, batchSize*loadFactor)
+	assert.Equal(t, 0, b.CurrentLoadSize())
 }

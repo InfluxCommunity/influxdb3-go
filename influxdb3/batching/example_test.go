@@ -123,3 +123,93 @@ func Example_batcher() {
 		log.Fatal(err)
 	}
 }
+
+func Example_lineProtocol_batcher() {
+	// Create a random number generator
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// initialize data
+	dataTemplate := "cpu,host=%s load=%.3f,reg=%d %d"
+	syncHosts := []string{"r2d2", "c3po", "robbie"}
+	const recordCount = 200
+
+	var wErr error
+
+	// Instantiate a client using your credentials.
+	client, err := influxdb3.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(client *influxdb3.Client) {
+		err = client.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(client)
+
+	// SYNCHRONOUS USAGE
+	// create a new Line Protocol Batcher with a batch size of 4096 bytes
+	slpb := batching.NewLPBatcher(batching.WithBufferSize(4096)) // Set buffer size
+
+	// Simulate delay of a second
+	t := time.Now().Add(-recordCount * time.Second)
+
+	// create and emit records
+	for range recordCount {
+		slpb.Add(fmt.Sprintf(dataTemplate,
+			syncHosts[rnd.Intn(len(syncHosts))],
+			rnd.Float64()*150,
+			rnd.Intn(32),
+			t))
+
+		t = t.Add(time.Second)
+
+		if slpb.Ready() {
+			wErr = client.Write(context.Background(), slpb.Emit())
+			if wErr != nil {
+				log.Fatal(wErr)
+			}
+		}
+	}
+
+	// write any remaining records in batcher to client
+	wErr = client.Write(context.Background(), slpb.Emit())
+	if wErr != nil {
+		log.Fatal(wErr)
+	}
+
+	// ASYNCHRONOUS USAGE
+	asyncHosts := []string{"Z80", "C64", "i8088"}
+	// create a new Line Protocol Batcher with a batch size of 4096 bytes
+	// ... a callback to handle when ready state reached and
+	// ... a callback to handle emits of bytes
+	alpb := batching.NewLPBatcher(batching.WithBufferSize(4096),
+		batching.WithByteEmitReadyCallback(func() { fmt.Println("ready") }),
+		batching.WithEmitBytesCallback(func(bytes []byte) {
+			wErr := client.Write(context.Background(), bytes)
+			if wErr != nil {
+				log.Fatal(wErr)
+			}
+		}))
+
+	// Simulate delay of a second
+	t = time.Now().Add(-recordCount * time.Second)
+
+	// create and add data to the batcher
+	for range recordCount {
+		alpb.Add(fmt.Sprintf(dataTemplate,
+			asyncHosts[rnd.Intn(len(asyncHosts))],
+			rnd.Float64()*150,
+			rnd.Intn(32),
+			t))
+
+		// update time
+		t = t.Add(time.Second)
+	}
+
+	// write any remaining records in batcher to client
+	wErr = client.Write(context.Background(), alpb.Emit())
+	if wErr != nil {
+		log.Fatal(wErr)
+	}
+}

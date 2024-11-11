@@ -1,5 +1,9 @@
 ## 0.14.0 [unreleased]
 
+### Features
+
+1. [#112](https://github.com/InfluxCommunity/influxdb3-go/pull/112): Adds `LPBatcher` for lineprotocol batching following the model of the Point `Batcher`.
+
 ### Bug Fixes
 
 1. [#113](https://github.com/InfluxCommunity/influxdb3-go/pull/113): Honor struct tags on WriteData, avoid panic for unexported fields
