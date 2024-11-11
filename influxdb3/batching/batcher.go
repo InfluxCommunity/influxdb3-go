@@ -200,7 +200,6 @@ func (b *Batcher) emitPoints() []*influxdb3.Point {
 // Flush drains all points even if the internal buffer is currently larger than size.
 // It does not call the callbackEmit method
 func (b *Batcher) Flush() []*influxdb3.Point {
-	slog.Info(fmt.Sprintf("Flushing all points (%d) from buffer.", b.CurrentLoadSize()))
 	points := b.points
 	b.points = b.points[:0]
 	return points

@@ -179,7 +179,6 @@ func (lpb *LPBatcher) emitBytes() []byte {
 
 // Flush drains all bytes even if buffer currently larger than size
 func (lpb *LPBatcher) Flush() []byte {
-	slog.Info(fmt.Sprintf("Flushing all bytes (%d) from buffer.", lpb.CurrentLoadSize()))
 	packet := lpb.buffer
 	lpb.buffer = lpb.buffer[:0]
 	return packet
