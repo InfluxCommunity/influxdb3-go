@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
 	"github.com/stretchr/testify/assert"
 )
 

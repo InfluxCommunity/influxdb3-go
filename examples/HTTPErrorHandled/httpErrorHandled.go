@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
 )
 
 // Demonstrates working with HTTP response headers in ServerError

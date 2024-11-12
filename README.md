@@ -79,7 +79,7 @@ import (
   "fmt"
   "os"
 
-  "github.com/InfluxCommunity/influxdb3-go/influxdb3"
+  "github.com/InfluxCommunity/influxdb3-go/influxdb3/v1"
 )
 ```
 

@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/apache/arrow/go/v15/arrow"
 	"os"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
 )
 
 func main() {
@@ -96,10 +96,10 @@ func main() {
 	for iterator.Next() {
 		row := iterator.AsPoints()
 		timestamp := (row.GetField("window_start").(arrow.Timestamp)).ToTime(arrow.Nanosecond)
-		location := row.GetStringField("location")
+		location, _ := row.GetTag("location")
 		avgValue := row.GetDoubleField("avg")
 		maxValue := row.GetDoubleField("max")
-		fmt.Printf("%s %s temperature: avg %.2f, max %.2f\n", timestamp.Format(time.RFC822), *location, *avgValue, *maxValue)
+		fmt.Printf("%s %s temperature: avg %.2f, max %.2f\n", timestamp.Format(time.RFC822), location, *avgValue, *maxValue)
 
 		//
 		// Write back downsampled data.
@@ -114,7 +114,7 @@ func main() {
 		downsampledPoint = downsampledPoint.
 			RemoveField("window_start").
 			SetTimestampWithEpoch(timestamp.UnixNano())
-		
+
 		// Write the downsampled Point to the database.
 		err = client.WritePoints(context.Background(), []*influxdb3.Point{downsampledPoint})
 		if err != nil {
