@@ -74,20 +74,20 @@ func (c *Client) setQueryClient(flightClient flight.Client) {
 // QueryParameters is a type for query parameters.
 type QueryParameters = map[string]any
 
-// Query queries data from InfluxDB IOx.
+// Query queries data from InfluxDB v3.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - query: The query string to execute.
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A custom iterator (*QueryIterator).
+//   - A result iterator (*QueryIterator).
 //   - An error, if any.
 func (c *Client) Query(ctx context.Context, query string, options ...QueryOption) (*QueryIterator, error) {
 	return c.query(ctx, query, nil, newQueryOptions(&DefaultQueryOptions, options))
 }
 
-// QueryWithParameters queries data from InfluxDB IOx with parameterized query.
+// QueryWithParameters queries data from InfluxDB v3 with parameterized query.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - query: The query string to execute.
@@ -95,21 +95,21 @@ func (c *Client) Query(ctx context.Context, query string, options ...QueryOption
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A custom iterator (*QueryIterator).
+//   - A result iterator (*QueryIterator).
 //   - An error, if any.
 func (c *Client) QueryWithParameters(ctx context.Context, query string, parameters QueryParameters,
 	options ...QueryOption) (*QueryIterator, error) {
 	return c.query(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
-// QueryWithOptions Query data from InfluxDB IOx with query options.
+// QueryWithOptions Query data from InfluxDB v3 with query options.
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - options: Query options (query type, optional database).
 //   - query: The query string to execute.
 //
 // Returns:
-//   - A custom iterator (*QueryIterator) that can also be used to get raw flightsql reader.
+//   - A result iterator (*QueryIterator).
 //   - An error, if any.
 //
 // Deprecated: use Query with variadic QueryOption options.

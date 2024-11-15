@@ -9,9 +9,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3/batching"
 )
 
 const LineCount = 100
@@ -133,7 +132,7 @@ func main() {
 	fmt.Fprintln(tw, "\nTime\tid\tlocation\tspeed\tbearing\tticks")
 	for iterator.Next() {
 		value := iterator.Value()
-		t := (value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC3339)
+		t := (value["time"].(time.Time)).Format(time.RFC3339)
 		_, err := fmt.Fprintf(tw, "%v\t%s\t%s\t%.1f\t%.2f\t%d\n", t,
 			value["id"], value["location"], value["speed"], value["bearing"], value["ticks"])
 		if err != nil {

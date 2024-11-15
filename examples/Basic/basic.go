@@ -6,8 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
 )
 
 func main() {
@@ -100,9 +99,11 @@ func main() {
 		panic(err)
 	}
 	for iterator.Next() {
+		// The query iterator returns each row as a map[string]interface{}.
+		// The keys are the column names, allowing you to access the values by column name.
 		value := iterator.Value()
 		fmt.Printf("%s at %v:\n", value["location"],
-			(value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC822))
+			(value["time"].(time.Time)).Format(time.RFC822))
 		fmt.Printf("  temperature: %f\n", value["temperature"])
 		fmt.Printf("  humidity   : %d%%\n", value["humidity"])
 	}

@@ -8,9 +8,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3/batching"
 )
 
 const NumPoints = 54
@@ -142,7 +141,7 @@ func main() {
 	// Process the data
 	for iterator.Next() {
 		value := iterator.Value()
-		t := (value["time"].(arrow.Timestamp)).ToTime(arrow.Nanosecond).Format(time.RFC3339)
+		t := (value["time"].(time.Time)).Format(time.RFC3339)
 		fmt.Fprintf(w, "%v\t%s\t%.1f\t%d\n", t, value["location"], value["temperature"], value["humidity"])
 	}
 }

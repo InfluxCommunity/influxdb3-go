@@ -29,8 +29,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3/batching"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3/batching"
 )
 
 func Example_batcher() {
