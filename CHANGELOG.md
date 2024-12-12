@@ -7,6 +7,7 @@
 > Previously, the Query API did not respect the metadata type for columns returned from InfluxDB v3. This release fixes this issue. As a result, the type of some columns may differ from previous versions. For example, the timestamp column will now be `time.Time` instead of `arrow.Timestamp`.
 
 Update steps:
+
 1. Update library: `go get github.com/influxdata/influxdb3-go/v2`
 1. Update import path in Go files to `github.com/influxdata/influxdb3-go/v2/influxdb3`.
 
@@ -19,7 +20,7 @@ Update steps:
    - iox::column_type::field::float: => float64
    - iox::column_type::field::string: => string
    - iox::column_type::field::boolean: => bool
-   
+
 ## 1.0.0 [2024-11-15]
 
 ### Breaking Changes
