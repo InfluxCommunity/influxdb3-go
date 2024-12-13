@@ -23,6 +23,8 @@ Update steps:
 
 ## 1.0.0 [2024-11-15]
 
+:warning: **The v1.0.0 release had a malformed module path regarding the [Go Module Requirements](https://go.dev/ref/mod#major-version-suffixes). For a Go Module project, you need to use version 2 of the client.**
+
 ### Breaking Changes
 
 :warning: **This is a breaking change release.**
