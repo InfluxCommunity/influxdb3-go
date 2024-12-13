@@ -9,8 +9,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3"
-	"github.com/InfluxCommunity/influxdb3-go/v1/influxdb3/batching"
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/batching"
 )
 
 const LineCount = 100

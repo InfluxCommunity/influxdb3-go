@@ -59,7 +59,7 @@ To use this client, you'll need the following credentials for writing and queryi
 <!--pytest-codeblocks:cont-->
 
    ```sh
-   go get github.com/InfluxCommunity/influxdb3-go
+   go get github.com/InfluxCommunity/influxdb3-go/v2
    ```
 
 ### Outside a module (standalone)
@@ -79,7 +79,7 @@ import (
   "fmt"
   "os"
 
-  "github.com/InfluxCommunity/influxdb3-go/influxdb3/v1"
+  "github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 )
 ```
 

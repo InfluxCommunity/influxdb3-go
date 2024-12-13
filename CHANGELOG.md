@@ -1,6 +1,29 @@
-## 1.1.0 [unreleased]
+## 2.0.0 [unreleased]
+
+### Breaking Changes
+
+:warning: **This is a breaking change release.**
+
+> Previously, the Query API did not respect the metadata type for columns returned from InfluxDB v3. This release fixes this issue. As a result, the type of some columns may differ from previous versions. For example, the timestamp column will now be `time.Time` instead of `arrow.Timestamp`.
+
+Update steps:
+
+1. Update library: `go get github.com/influxdata/influxdb3-go/v2`
+1. Update import path in Go files to `github.com/influxdata/influxdb3-go/v2/influxdb3`.
+
+### Features
+
+1. [#114](https://github.com/InfluxCommunity/influxdb3-go/pull/114): Query API respects metadata types for columns returned from InfluxDB v3.
+   Tags are mapped as a "string", timestamp as "time.Time", and fields as their respective types:
+   - iox::column_type::field::integer: => int64
+   - iox::column_type::field::uinteger: => uint64
+   - iox::column_type::field::float: => float64
+   - iox::column_type::field::string: => string
+   - iox::column_type::field::boolean: => bool
 
 ## 1.0.0 [2024-11-15]
+
+:warning: **The v1.0.0 release had a malformed module path regarding the [Go Module Requirements](https://go.dev/ref/mod#major-version-suffixes). For a Go Module project, you need to use version 2 of the client.**
 
 ### Breaking Changes
 
