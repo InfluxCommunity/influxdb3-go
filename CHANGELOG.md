@@ -1,4 +1,4 @@
-## 2.0.0 [unreleased]
+## 2.0.0 [2024-12-13]
 
 ### Breaking Changes
 
