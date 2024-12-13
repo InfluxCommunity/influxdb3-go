@@ -1,3 +1,5 @@
+## 2.1.0 [unreleased]
+
 ## 2.0.0 [2024-12-13]
 
 ### Breaking Changes
@@ -8,8 +10,8 @@
 
 Update steps:
 
-1. Update library: `go get github.com/influxdata/influxdb3-go/v2`
-1. Update import path in Go files to `github.com/influxdata/influxdb3-go/v2/influxdb3`.
+1. Update library: `go get github.com/InfluxCommunity/influxdb3-go/v2/influxdb3`
+1. Update import path in Go files to `github.com/InfluxCommunity/influxdb3-go/v2/influxdb3`.
 
 ### Features
 
