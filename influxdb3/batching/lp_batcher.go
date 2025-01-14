@@ -172,14 +172,6 @@ func (lpb *LPBatcher) emitBytes() []byte {
 		return lpb.buffer
 	}
 
-	// with no '\n' record separator
-	// just emit whole buffer
-	if firstLF == -1 {
-		packet = lpb.buffer
-		lpb.buffer = lpb.buffer[:0]
-		return packet
-	}
-
 	// With first line larger than defined size
 	// just emit first line
 	if firstLF > lpb.size {
