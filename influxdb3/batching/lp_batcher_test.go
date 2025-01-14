@@ -283,3 +283,28 @@ func TestLPAddLargerThanSize(t *testing.T) {
 	assert.Equal(t, len(remainBuffer), lpb.CurrentLoadSize())
 	assert.Equal(t, remainBuffer, lpb.buffer)
 }
+
+// see EAR 5762
+func TestLPAddLinesLargerThanSize(t *testing.T) {
+	batchSize := 16
+	loadFactor := 10
+	capacity := batchSize * loadFactor
+
+	linesWithCRLF := []string{
+		"0123456789ABCDEFZZ", // len 18
+		"ZZFEDCBA9876543210", // len 18
+	}
+
+	emitCt := 0
+	resultBuffer := make([]byte, 0)
+	lpb := NewLPBatcher(
+		WithBufferSize(batchSize),
+		WithBufferCapacity(capacity),
+		WithEmitBytesCallback(func(ba []byte) {
+			emitCt++
+			resultBuffer = append(resultBuffer, ba...)
+		}))
+	lpb.Add(linesWithCRLF...)
+	assert.Equal(t, 2, emitCt, "Emit should be called correct number of times")
+	assert.Equal(t, strings.Join(linesWithCRLF, ""), string(resultBuffer))
+}

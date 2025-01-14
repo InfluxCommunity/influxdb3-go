@@ -162,16 +162,38 @@ func (lpb *LPBatcher) Emit() []byte {
 }
 
 func (lpb *LPBatcher) emitBytes() []byte {
+	firstLF := bytes.IndexByte(lpb.buffer, '\n')
+
+	var packet []byte
+
 	c := min(lpb.size, len(lpb.buffer))
 
 	if c == 0 { // i.e. buffer is empty
 		return lpb.buffer
 	}
 
+	// with no '\n' record separator
+	// just emit whole buffer
+	if firstLF == -1 {
+		packet = lpb.buffer
+		lpb.buffer = lpb.buffer[:0]
+		return packet
+	}
+
+	// With first line larger than defined size
+	// just emit first line
+	if firstLF > lpb.size {
+		packet = lpb.buffer[:firstLF]
+		lpb.buffer = lpb.buffer[len(packet)+1:] // remove trailing '\n'
+		return packet
+	}
+
+	// otherwise: process buffer where len(buffer) > size with multiple lines
+
 	prepacket := lpb.buffer[:c]
 	lastLF := bytes.LastIndexByte(prepacket, '\n') + 1
 
-	packet := lpb.buffer[:lastLF]
+	packet = lpb.buffer[:lastLF]
 	lpb.buffer = lpb.buffer[len(packet):]
 
 	return packet
