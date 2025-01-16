@@ -1,5 +1,9 @@
 ## 2.1.0 [unreleased]
 
+### Bug fixes
+
+1. [#127](https://github.com/InfluxCommunity/influxdb3-go/pull/127): LPBatcher now returns first line of the internal buffer when the line length exceeds the batch size.
+
 ## 2.0.0 [2024-12-13]
 
 ### Breaking Changes
