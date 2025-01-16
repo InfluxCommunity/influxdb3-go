@@ -55,6 +55,21 @@ func WithEmitBytesCallback(f func([]byte)) LPOption {
 
 // LPBatcher collects line protocol strings storing them
 // to a byte buffer and then emitting them as []byte.
+//
+// Lines are added to the LPBatcher using the `Add()` method.
+// Lines in the internal buffer are delimited by a '\n' byte,
+// which is added automatically, if not already used to terminate
+// a line.
+//
+// As lines are added to LPBatcher a check is made to determine
+// whether the `size` property has been exceeded.  At that point
+// the function `callbackByteEmit()` is automatically called using
+// the internal `emitBytes()` method.
+//
+// In the most common use case, a response batch packet of lines
+// is emitted up to but not exceeding the `size` property.
+// When the first line in the buffer exceeds this property,
+// only that line is emitted.
 type LPBatcher struct {
 	size     int
 	capacity int
