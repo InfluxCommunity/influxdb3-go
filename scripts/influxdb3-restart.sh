@@ -36,6 +36,8 @@ restart() {
   then
     generate_tokens
   fi
+
+  # shellcheck disable=SC1091
   source "${SCRIPT_PATH}/influxdb3_current.token"
   echo Token for accessing the api: "${INFLUXDB_TOKEN}"
   make_data_dir
