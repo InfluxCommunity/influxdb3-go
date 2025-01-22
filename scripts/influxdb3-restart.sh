@@ -7,7 +7,7 @@ INFLUXDB_V3_IMAGE=${DOCKER_REPOSITORY}/influxdb3-core:${INFLUXDB_V3_VERSION}
 CONTAINER_NAME="${INFLUX_CONTAINER_NAME:-influxdb_v3}"
 NETWORK_NAME=influxdb3_network
 
-SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+SCRIPT_PATH="$( cd "$(dirname "$0")" || exit ; pwd -P )"
 PROJECT_PATH="$(dirname "${SCRIPT_PATH}")"
 DATA_DIR="${INFLUXDB3_DATA_DIR:-${PROJECT_PATH}/temp/data}"
 HOST_NAME=$(uname -n)
@@ -31,12 +31,12 @@ make_data_dir(){
 }
 
 restart() {
-  echo using image ${INFLUXDB_V3_IMAGE}
+  echo using image "${INFLUXDB_V3_IMAGE}"
   if [ ! -f "${SCRIPT_PATH}"/influxdb3_current.token ]
   then
     generate_tokens
   fi
-  source "${SCRIPT_PATH}"/influxdb3_current.token
+  source "${SCRIPT_PATH}/influxdb3_current.token"
   echo Token for accessing the api: "${INFLUXDB_TOKEN}"
   make_data_dir
 
@@ -50,7 +50,7 @@ restart() {
   #
   docker pull "${INFLUXDB_V3_IMAGE}" || true
 
-  echo running ${INFLUXDB_V3_IMAGE} as ${CONTAINER_NAME}
+  echo running "${INFLUXDB_V3_IMAGE}" as "${CONTAINER_NAME}"
 
   docker run \
     --detach \
