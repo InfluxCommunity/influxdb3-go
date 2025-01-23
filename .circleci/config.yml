@@ -72,7 +72,10 @@ jobs:
     docker:
       - image: quay.io/influxdb/influxdb3-core:latest
     steps:
-      - checkout
+      - run:
+          name: docker container check
+          command: |
+            docker ps -a
 
 workflows:
   version: 2
