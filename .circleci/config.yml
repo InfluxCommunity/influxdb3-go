@@ -68,9 +68,16 @@ jobs:
           command: |
             golangci-lint run -v
 
+  oss:
+    docker:
+      - image: quay.io/influxdb/influxdb3-core:latest
+    steps:
+      - checkout
+
 workflows:
   version: 2
   build:
     jobs:
+      - oss
       - tests-go
       - lint
