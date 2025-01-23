@@ -10,6 +10,10 @@ jobs:
       - image: << parameters.go-image >>
     steps:
       - checkout
+      - run:
+          name: Start OSS server
+          command: |
+            scripts/influxdb3-restart.sh
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
@@ -67,15 +71,6 @@ jobs:
           name: Lint go code
           command: |
             golangci-lint run -v
-
-  oss:
-    docker:
-      - image: quay.io/influxdb/influxdb3-core:latest
-    steps:
-      - run:
-          name: docker container check
-          command: |
-            docker ps -a
 
 workflows:
   version: 2
