@@ -1,5 +1,9 @@
 ## 2.2.0 [unreleased]
 
+### Bug fixes
+
+1. [#134](https://github.com/InfluxCommunity/influxdb3-go/pull/134): Reduce minimal Go version to 1.22, remove unnecessary toolchain constraints.
+
 ## 2.1.0 [2025-01-16]
 
 ### Bug fixes
