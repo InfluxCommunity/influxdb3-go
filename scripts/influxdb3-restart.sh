@@ -25,8 +25,10 @@ generate_tokens() {
 }
 
 make_data_dir(){
+   echo making data directory ${DATA_DIR}
    mkdir -p "${DATA_DIR}"
    chmod 777 "${DATA_DIR}"
+   ls -al ${DATA_DIR}
    echo File based data will be written to "$DATA_DIR"
 }
 
