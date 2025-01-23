@@ -30,6 +30,26 @@ make_data_dir(){
    echo File based data will be written to "$DATA_DIR"
 }
 
+listening_check(){
+  echo Waiting for OSS3 server response at port 8181
+  NOW=$(date +%s)
+  TTL=$((NOW+30))
+  while (( NOW < TTL )) && ! echo test | nc localhost 8181 > /dev/null
+  do
+    printf "."
+    sleep 5
+    NOW=$((NOW+5))
+  done
+  if ((NOW >= TTL))
+  then
+    echo
+    echo failed to get response from 8181 in 30 seconds
+    echo OSS3 server may not be available
+  else
+    echo OSS3 server responded on port 8181
+  fi
+}
+
 restart() {
   echo using image "${INFLUXDB_V3_IMAGE}"
   if [ ! -f "${SCRIPT_PATH}"/influxdb3_current.token ]
@@ -67,6 +87,7 @@ restart() {
     --data-dir /var/lib/influxdb3 \
     --bearer-token "${INFLUXDB_TOKEN_HASH}"
 
+  listening_check
 }
 
 help(){
