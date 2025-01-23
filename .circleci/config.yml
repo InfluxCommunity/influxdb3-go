@@ -10,6 +10,7 @@ jobs:
       - image: << parameters.go-image >>
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Start OSS server
           command: |
