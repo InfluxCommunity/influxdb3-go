@@ -73,7 +73,6 @@ jobs:
       image: ubuntu-2204:current
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: Start OSS server
           command: |
