@@ -11,12 +11,6 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run:
-          name: Start OSS server
-          command: |
-            scripts/influxdb3-restart.sh
-            docker ps -a
-            netstat -tlnp
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
@@ -74,6 +68,18 @@ jobs:
           name: Lint go code
           command: |
             golangci-lint run -v
+  oss:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Start OSS server
+          command: |
+            scripts/influxdb3-restart.sh
+            docker ps -a
+            netstat -tlnp
 
 workflows:
   version: 2
