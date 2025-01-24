@@ -84,7 +84,7 @@ restart() {
     --publish 8181:8181 \
     "${INFLUXDB_V3_IMAGE}" \
     serve \
-    --writer-id "${WRITER_ID}" \
+    --node-id "${WRITER_ID}" \
     --object-store file \
     --data-dir /var/lib/influxdb3 \
     --bearer-token "${INFLUXDB_TOKEN_HASH}"
@@ -111,5 +111,6 @@ help(){
 case $1 in
    tokens) generate_tokens;;
    help|--help|-h|-?|?) help;;
+   check) listening_check;;
    *) restart;;
 esac
