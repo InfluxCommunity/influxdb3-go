@@ -172,53 +172,53 @@ func TestPointValueIterator(t *testing.T) {
 
 	assert.True(t, slices.Equal([]int64{0, 0}, resultSet0))
 
-	assert.Equal(t, resultSet1[0], uint8(1))
-	assert.Equal(t, resultSet1[1], uint8(1))
+	assert.Equal(t, uint8(1), resultSet1[0])
+	assert.Equal(t, uint8(1), resultSet1[1])
 
-	assert.Equal(t, resultSet2[0], int8(2))
-	assert.Equal(t, resultSet2[1], int8(2))
+	assert.Equal(t, int8(2), resultSet2[0])
+	assert.Equal(t, int8(2), resultSet2[1])
 
-	assert.Equal(t, resultSet3[0], uint16(3))
-	assert.Equal(t, resultSet3[1], uint16(3))
+	assert.Equal(t, uint16(3), resultSet3[0])
+	assert.Equal(t, uint16(3), resultSet3[1])
 
-	assert.Equal(t, resultSet4[0], int16(4))
-	assert.Equal(t, resultSet4[1], int16(4))
+	assert.Equal(t, int16(4), resultSet4[0])
+	assert.Equal(t, int16(4), resultSet4[1])
 
-	assert.Equal(t, resultSet5[0], uint32(5))
-	assert.Equal(t, resultSet5[1], uint32(5))
+	assert.Equal(t, uint32(5), resultSet5[0])
+	assert.Equal(t, uint32(5), resultSet5[1])
 
-	assert.Equal(t, resultSet6[0].([]uint8)[0], uint8(6))
-	assert.Equal(t, resultSet6[1].([]uint8)[0], uint8(6))
+	assert.Equal(t, uint8(6), resultSet6[0].([]uint8)[0])
+	assert.Equal(t, uint8(6), resultSet6[1].([]uint8)[0])
 
-	assert.Equal(t, resultSet7[0], "7")
-	assert.Equal(t, resultSet7[1], "7")
+	assert.Equal(t, "7", resultSet7[0])
+	assert.Equal(t, "7", resultSet7[1])
 
-	assert.Equal(t, resultSet8[0].([]uint8)[0], uint8(8))
-	assert.Equal(t, resultSet8[1].([]uint8)[0], uint8(8))
+	assert.Equal(t, uint8(8), resultSet8[0].([]uint8)[0])
+	assert.Equal(t, uint8(8), resultSet8[1].([]uint8)[0])
 
-	assert.Equal(t, resultSet9[0], arrow.Date32(int32(9)))
-	assert.Equal(t, resultSet9[1], arrow.Date32(int32(9)))
+	assert.Equal(t, arrow.Date32(int32(9)), resultSet9[0])
+	assert.Equal(t, arrow.Date32(int32(9)), resultSet9[1])
 
-	assert.Equal(t, resultSet10[0], arrow.Date64(int64(10)))
-	assert.Equal(t, resultSet10[1], arrow.Date64(int64(10)))
+	assert.Equal(t, arrow.Date64(int64(10)), resultSet10[0])
+	assert.Equal(t, arrow.Date64(int64(10)), resultSet10[1])
 
-	assert.Equal(t, resultSet11[0].(float16.Num).Uint16(), 18816)
-	assert.Equal(t, resultSet11[1].(float16.Num).Uint16(), 18816)
+	assert.Equal(t, uint16(18816), resultSet11[0].(float16.Num).Uint16())
+	assert.Equal(t, uint16(18816), resultSet11[1].(float16.Num).Uint16())
 
-	assert.Equal(t, resultSet12[0], float32(12))
-	assert.Equal(t, resultSet12[1], float32(12))
+	assert.InEpsilon(t, resultSet12[0], float32(12), 0.01)
+	assert.InEpsilon(t, resultSet12[1], float32(12), 0.01)
 
-	assert.Equal(t, resultSet13[0], arrow.Time32(int32(13)))
-	assert.Equal(t, resultSet13[1], arrow.Time32(int32(13)))
+	assert.Equal(t, arrow.Time32(int32(13)), resultSet13[0])
+	assert.Equal(t, arrow.Time32(int32(13)), resultSet13[1])
 
-	assert.Equal(t, resultSet14[0], arrow.Time64(int64(14)))
-	assert.Equal(t, resultSet14[1], arrow.Time64(int64(14)))
+	assert.Equal(t, arrow.Time64(int64(14)), resultSet14[0])
+	assert.Equal(t, arrow.Time64(int64(14)), resultSet14[1])
 
-	assert.Equal(t, resultSet15[0], arrow.MonthInterval(int32(15)))
-	assert.Equal(t, resultSet15[1], arrow.MonthInterval(int32(15)))
+	assert.Equal(t, arrow.MonthInterval(int32(15)), resultSet15[0])
+	assert.Equal(t, arrow.MonthInterval(int32(15)), resultSet15[1])
 
-	assert.Equal(t, resultSet16[0], nil)
-	assert.Equal(t, resultSet16[1], nil)
+	assert.Nil(t, resultSet16[0])
+	assert.Nil(t, resultSet16[1])
 
 	assert.Equal(t, resultSet17[0], arrow.Duration(int64(17)))
 	assert.Equal(t, resultSet17[1], arrow.Duration(int64(17)))
