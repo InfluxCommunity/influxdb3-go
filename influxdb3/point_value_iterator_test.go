@@ -221,7 +221,7 @@ func TestPointValueIterator(t *testing.T) {
 	assert.True(t, resultSet16[1] == nil)
 
 	assert.True(t, resultSet17[0] == arrow.Duration(int64(17)))
-	assert.True(t, resultSet17[0] == arrow.Duration(int64(17)))
+	assert.True(t, resultSet17[1] == arrow.Duration(int64(17)))
 
 	pointValues, err := it.Next()
 	assert.Equal(t, 2, it.Index())
