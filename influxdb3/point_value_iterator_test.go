@@ -54,6 +54,9 @@ func TestPointValueIterator(t *testing.T) {
 		{Name: "f12", Type: arrow.PrimitiveTypes.Float32},
 		{Name: "f13", Type: arrow.FixedWidthTypes.Time32s},
 		{Name: "f14", Type: arrow.FixedWidthTypes.Time64us},
+		{Name: "f15", Type: arrow.FixedWidthTypes.MonthInterval},
+		{Name: "f16", Type: arrow.FixedWidthTypes.DayTimeInterval},
+		{Name: "f17", Type: arrow.FixedWidthTypes.Duration_s},
 	}, nil)
 
 	var buf bytes.Buffer
@@ -80,6 +83,9 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(12).(*array.Float32Builder).Append(float32(12))
 	rb.Field(13).(*array.Time32Builder).Append(arrow.Time32(int32(13)))
 	rb.Field(14).(*array.Time64Builder).Append(arrow.Time64(int64(14)))
+	rb.Field(15).(*array.MonthIntervalBuilder).Append(arrow.MonthInterval(int32(15)))
+	rb.Field(16).(*array.DayTimeIntervalBuilder).AppendNull()
+	rb.Field(17).(*array.DurationBuilder).Append(arrow.Duration(int64(17)))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -99,6 +105,9 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(12).(*array.Float32Builder).Append(float32(12))
 	rb.Field(13).(*array.Time32Builder).Append(arrow.Time32(int32(13)))
 	rb.Field(14).(*array.Time64Builder).Append(arrow.Time64(int64(14)))
+	rb.Field(15).(*array.MonthIntervalBuilder).Append(arrow.MonthInterval(int32(15)))
+	rb.Field(16).(*array.DayTimeIntervalBuilder).AppendNull()
+	rb.Field(17).(*array.DurationBuilder).Append(arrow.Duration(int64(17)))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -129,6 +138,9 @@ func TestPointValueIterator(t *testing.T) {
 	var resultSet12 []interface{}
 	var resultSet13 []interface{}
 	var resultSet14 []interface{}
+	var resultSet15 []interface{}
+	var resultSet16 []interface{}
+	var resultSet17 []interface{}
 
 	for {
 		pointValues, err := it.Next()
@@ -153,6 +165,9 @@ func TestPointValueIterator(t *testing.T) {
 		resultSet12 = append(resultSet12, pointValues.GetField("f12"))
 		resultSet13 = append(resultSet13, pointValues.GetField("f13"))
 		resultSet14 = append(resultSet14, pointValues.GetField("f14"))
+		resultSet15 = append(resultSet15, pointValues.GetField("f15"))
+		resultSet16 = append(resultSet16, pointValues.GetField("f16"))
+		resultSet17 = append(resultSet17, pointValues.GetField("f17"))
 	}
 
 	assert.True(t, slices.Equal([]int64{0, 0}, resultSet0))
@@ -198,6 +213,15 @@ func TestPointValueIterator(t *testing.T) {
 
 	assert.True(t, resultSet14[0] == arrow.Time64(int64(14)))
 	assert.True(t, resultSet14[1] == arrow.Time64(int64(14)))
+
+	assert.True(t, resultSet15[0] == arrow.MonthInterval(int32(15)))
+	assert.True(t, resultSet15[1] == arrow.MonthInterval(int32(15)))
+
+	assert.True(t, resultSet16[0] == nil)
+	assert.True(t, resultSet16[1] == nil)
+
+	assert.True(t, resultSet17[0] == arrow.Duration(int64(17)))
+	assert.True(t, resultSet17[0] == arrow.Duration(int64(17)))
 
 	pointValues, err := it.Next()
 	assert.Equal(t, 2, it.Index())
