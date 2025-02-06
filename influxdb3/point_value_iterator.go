@@ -29,8 +29,7 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/flight"
 )
 
-//nolint:all
-var Done = errors.New("no more items in iterator")
+var Done = errors.New("no more items in iterator") //nolint:all
 
 // PointValueIterator is a custom query iterator that encapsulates and simplifies the logic for
 // the flight reader. It provides method Next to consume the flight reader,
