@@ -205,8 +205,8 @@ func TestPointValueIterator(t *testing.T) {
 	assert.Equal(t, uint16(18816), resultSet11[0].(float16.Num).Uint16())
 	assert.Equal(t, uint16(18816), resultSet11[1].(float16.Num).Uint16())
 
-	assert.InEpsilon(t, resultSet12[0], float32(12), 0.01)
-	assert.InEpsilon(t, resultSet12[1], float32(12), 0.01)
+	assert.InEpsilon(t, float32(12), resultSet12[0], 0.01)
+	assert.InEpsilon(t, float32(12), resultSet12[1], 0.01)
 
 	assert.Equal(t, arrow.Time32(int32(13)), resultSet13[0])
 	assert.Equal(t, arrow.Time32(int32(13)), resultSet13[1])
