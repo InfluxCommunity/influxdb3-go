@@ -52,6 +52,8 @@ func TestPointValueIterator(t *testing.T) {
 		{Name: "f10", Type: arrow.PrimitiveTypes.Date64},
 		{Name: "f11", Type: arrow.FixedWidthTypes.Float16},
 		{Name: "f12", Type: arrow.PrimitiveTypes.Float32},
+		{Name: "f13", Type: arrow.FixedWidthTypes.Time32s},
+		{Name: "f14", Type: arrow.FixedWidthTypes.Time64us},
 	}, nil)
 
 	var buf bytes.Buffer
@@ -76,6 +78,8 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(10).(*array.Date64Builder).Append(arrow.Date64(int64(10)))
 	rb.Field(11).(*array.Float16Builder).Append(float16.New(11))
 	rb.Field(12).(*array.Float32Builder).Append(float32(12))
+	rb.Field(13).(*array.Time32Builder).Append(arrow.Time32(int32(13)))
+	rb.Field(14).(*array.Time64Builder).Append(arrow.Time64(int64(14)))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -93,6 +97,8 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(10).(*array.Date64Builder).Append(arrow.Date64(int64(10)))
 	rb.Field(11).(*array.Float16Builder).Append(float16.New(11))
 	rb.Field(12).(*array.Float32Builder).Append(float32(12))
+	rb.Field(13).(*array.Time32Builder).Append(arrow.Time32(int32(13)))
+	rb.Field(14).(*array.Time64Builder).Append(arrow.Time64(int64(14)))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -121,6 +127,8 @@ func TestPointValueIterator(t *testing.T) {
 	var resultSet10 []interface{}
 	var resultSet11 []interface{}
 	var resultSet12 []interface{}
+	var resultSet13 []interface{}
+	var resultSet14 []interface{}
 
 	for {
 		pointValues, err := it.Next()
@@ -143,6 +151,8 @@ func TestPointValueIterator(t *testing.T) {
 		resultSet10 = append(resultSet10, pointValues.GetField("f10"))
 		resultSet11 = append(resultSet11, pointValues.GetField("f11"))
 		resultSet12 = append(resultSet12, pointValues.GetField("f12"))
+		resultSet13 = append(resultSet13, pointValues.GetField("f13"))
+		resultSet14 = append(resultSet14, pointValues.GetField("f14"))
 	}
 
 	assert.True(t, slices.Equal([]int64{0, 0}, resultSet0))
@@ -182,6 +192,12 @@ func TestPointValueIterator(t *testing.T) {
 
 	assert.True(t, resultSet12[0] == float32(12))
 	assert.True(t, resultSet12[1] == float32(12))
+
+	assert.True(t, resultSet13[0] == arrow.Time32(int32(13)))
+	assert.True(t, resultSet13[1] == arrow.Time32(int32(13)))
+
+	assert.True(t, resultSet14[0] == arrow.Time64(int64(14)))
+	assert.True(t, resultSet14[1] == arrow.Time64(int64(14)))
 
 	pointValues, err := it.Next()
 	assert.Equal(t, 2, it.Index())
