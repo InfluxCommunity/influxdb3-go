@@ -31,6 +31,7 @@ import (
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
+	"github.com/apache/arrow/go/v15/arrow/float16"
 	"github.com/apache/arrow/go/v15/arrow/ipc"
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,8 @@ func TestPointValueIterator(t *testing.T) {
 		{Name: "f8", Type: arrow.BinaryTypes.Binary},
 		{Name: "f9", Type: arrow.PrimitiveTypes.Date32},
 		{Name: "f10", Type: arrow.PrimitiveTypes.Date64},
+		{Name: "f11", Type: arrow.FixedWidthTypes.Float16},
+		{Name: "f12", Type: arrow.PrimitiveTypes.Float32},
 	}, nil)
 
 	var buf bytes.Buffer
@@ -71,6 +74,8 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(8).(*array.BinaryBuilder).Append([]byte{8})
 	rb.Field(9).(*array.Date32Builder).Append(arrow.Date32(int32(9)))
 	rb.Field(10).(*array.Date64Builder).Append(arrow.Date64(int64(10)))
+	rb.Field(11).(*array.Float16Builder).Append(float16.New(11))
+	rb.Field(12).(*array.Float32Builder).Append(float32(12))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -86,6 +91,8 @@ func TestPointValueIterator(t *testing.T) {
 	rb.Field(8).(*array.BinaryBuilder).Append([]byte{8})
 	rb.Field(9).(*array.Date32Builder).Append(arrow.Date32(int32(9)))
 	rb.Field(10).(*array.Date64Builder).Append(arrow.Date64(int64(10)))
+	rb.Field(11).(*array.Float16Builder).Append(float16.New(11))
+	rb.Field(12).(*array.Float32Builder).Append(float32(12))
 
 	rec = rb.NewRecord()
 	_ = writer.Write(rec)
@@ -112,6 +119,8 @@ func TestPointValueIterator(t *testing.T) {
 	var resultSet8 []interface{}
 	var resultSet9 []interface{}
 	var resultSet10 []interface{}
+	var resultSet11 []interface{}
+	var resultSet12 []interface{}
 
 	for {
 		pointValues, err := it.Next()
@@ -132,6 +141,8 @@ func TestPointValueIterator(t *testing.T) {
 		resultSet8 = append(resultSet8, pointValues.GetField("f8"))
 		resultSet9 = append(resultSet9, pointValues.GetField("f9"))
 		resultSet10 = append(resultSet10, pointValues.GetField("f10"))
+		resultSet11 = append(resultSet11, pointValues.GetField("f11"))
+		resultSet12 = append(resultSet12, pointValues.GetField("f12"))
 	}
 
 	assert.True(t, slices.Equal([]int64{0, 0}, resultSet0))
@@ -165,6 +176,12 @@ func TestPointValueIterator(t *testing.T) {
 
 	assert.True(t, resultSet10[0] == arrow.Date64(int64(10)))
 	assert.True(t, resultSet10[1] == arrow.Date64(int64(10)))
+
+	assert.True(t, resultSet11[0].(float16.Num).Uint16() == 18816)
+	assert.True(t, resultSet11[1].(float16.Num).Uint16() == 18816)
+
+	assert.True(t, resultSet12[0] == float32(12))
+	assert.True(t, resultSet12[1] == float32(12))
 
 	pointValues, err := it.Next()
 	assert.Equal(t, 2, it.Index())
