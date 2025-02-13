@@ -320,7 +320,7 @@ func TestNewFromEnv(t *testing.T) {
 	}
 	setEnv := func(vars map[string]string) {
 		for k, v := range vars {
-			os.Setenv(k, v)
+			t.Setenv(k, v)
 		}
 	}
 	for _, tc := range testCases {
