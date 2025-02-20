@@ -1,4 +1,9 @@
-## 2.3.0 [unreleased]
+## 2.3.0 [2025-02-20]
+
+### Features
+
+1. [#131](https://github.com/InfluxCommunity/influxdb3-go/pull/131): Add new PointValueIterator based on google
+   guidelines [Guidelines](https://github.com/googleapis/google-cloud-go/wiki/Iterator-Guidelines)
 
 ## 2.2.0 [2025-02-03]
 
@@ -11,11 +16,6 @@
 ### Bug fixes
 
 1. [#127](https://github.com/InfluxCommunity/influxdb3-go/pull/127): LPBatcher now returns first line of the internal buffer when the line length exceeds the batch size.
-
-### Features
-
-1. [#131](https://github.com/InfluxCommunity/influxdb3-go/pull/131): Add new PointValueIterator based on google
-   guidelines [Guidelines](https://github.com/googleapis/google-cloud-go/wiki/Iterator-Guidelines)
 
 ## 2.0.0 [2024-12-13]
 
