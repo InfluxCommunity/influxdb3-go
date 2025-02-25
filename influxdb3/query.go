@@ -28,6 +28,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/apache/arrow/go/v15/arrow/flight"
@@ -39,17 +42,12 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func (c *Client) initializeQueryClient() error {
-	url, safe := ReplaceURLProtocolWithPort(c.config.Host)
+func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPool, proxyURL *url.URL) error {
 
 	var transport grpc.DialOption
 
-	if safe == nil || *safe {
-		pool, err := x509.SystemCertPool()
-		if err != nil {
-			return fmt.Errorf("x509: %w", err)
-		}
-		transport = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(pool, ""))
+	if certPool != nil {
+		transport = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPool, ""))
 	} else {
 		transport = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
@@ -58,7 +56,26 @@ func (c *Client) initializeQueryClient() error {
 		transport,
 	}
 
-	client, err := flight.NewClientWithMiddleware(url, nil, nil, opts...)
+	if proxyURL != nil {
+		// Configure the grpc-go client to use a proxy by setting the HTTPS_PROXY environment variable.
+		// This approach is generally safer than implementing a custom Dialer because it leverages built-in
+		// proxy handling, reducing the risk of introducing vulnerabilities or misconfigurations.
+		// More info: https://github.com/grpc/grpc-go/blob/master/Documentation/proxy.md
+		prevHttpsProxy := os.Getenv("HTTPS_PROXY")
+		if prevHttpsProxy != "" && prevHttpsProxy != proxyURL.String() {
+			slog.Warn(
+				fmt.Sprintf("Environment variable HTTPS_PROXY is already set, "+
+					"it's value will be overridden with: %s", proxyURL.String()),
+			)
+
+		}
+		err := os.Setenv("HTTPS_PROXY", proxyURL.String())
+		if err != nil {
+			return fmt.Errorf("setenv HTTPS_PROXY: %w", err)
+		}
+	}
+
+	client, err := flight.NewClientWithMiddleware(hostPortURL, nil, nil, opts...)
 	if err != nil {
 		return fmt.Errorf("flight: %w", err)
 	}

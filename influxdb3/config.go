@@ -89,6 +89,12 @@ type ClientConfig struct {
 
 	// Default HTTP headers to be included in requests
 	Headers http.Header
+
+	// SSL root certificates file path
+	SSLRootsFilePath string
+
+	// Proxy URL
+	Proxy string
 }
 
 // validate validates the config.
