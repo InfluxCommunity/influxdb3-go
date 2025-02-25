@@ -43,7 +43,6 @@ import (
 )
 
 func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPool, proxyURL *url.URL) error {
-
 	var transport grpc.DialOption
 
 	if certPool != nil {
@@ -61,13 +60,12 @@ func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPo
 		// This approach is generally safer than implementing a custom Dialer because it leverages built-in
 		// proxy handling, reducing the risk of introducing vulnerabilities or misconfigurations.
 		// More info: https://github.com/grpc/grpc-go/blob/master/Documentation/proxy.md
-		prevHttpsProxy := os.Getenv("HTTPS_PROXY")
-		if prevHttpsProxy != "" && prevHttpsProxy != proxyURL.String() {
+		prevHTTPSProxy := os.Getenv("HTTPS_PROXY")
+		if prevHTTPSProxy != "" && prevHTTPSProxy != proxyURL.String() {
 			slog.Warn(
 				fmt.Sprintf("Environment variable HTTPS_PROXY is already set, "+
 					"it's value will be overridden with: %s", proxyURL.String()),
 			)
-
 		}
 		err := os.Setenv("HTTPS_PROXY", proxyURL.String())
 		if err != nil {

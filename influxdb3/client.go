@@ -116,7 +116,7 @@ func New(config ClientConfig) (*Client, error) {
 			}
 			ok := certPool.AppendCertsFromPEM(certs)
 			if !ok {
-				slog.Warn(fmt.Sprintf("No valid certificates found in %s", config.SSLRootsFilePath))
+				slog.Warn("No valid certificates found in " + config.SSLRootsFilePath)
 			}
 		}
 	}
@@ -172,7 +172,10 @@ func setHTTPClientProxy(httpClient *http.Client, proxyURL *url.URL) {
 func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool) {
 	ensureTransportSet(httpClient)
 	if transport, ok := httpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig = &tls.Config{RootCAs: certPool}
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    certPool,
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 }
 
