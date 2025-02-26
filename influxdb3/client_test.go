@@ -28,6 +28,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -86,6 +87,79 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "my-database", c.config.Database)
 	assert.Equal(t, "my-org", c.config.Organization)
 	assert.EqualValues(t, DefaultWriteOptions, *c.config.WriteOptions)
+}
+
+func TestNewWithCertificates(t *testing.T) {
+	// Valid certificates.
+	certFilePath := filepath.Join("testdata", "valid_certs.pem")
+	c, err := New(ClientConfig{
+		Host:             "https://localhost:8086",
+		Token:            "my-token",
+		SSLRootsFilePath: certFilePath,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, certFilePath, c.config.SSLRootsFilePath)
+
+	// Invalid certificates.
+	certFilePath = filepath.Join("testdata", "invalid_certs.pem")
+	c, err = New(ClientConfig{
+		Host:             "https://localhost:8086",
+		Token:            "my-token",
+		SSLRootsFilePath: certFilePath,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, certFilePath, c.config.SSLRootsFilePath)
+
+	// Missing certificates file.
+	certFilePath = filepath.Join("testdata", "non-existing-file")
+	c, err = New(ClientConfig{
+		Host:             "https://localhost:8086",
+		Token:            "my-token",
+		SSLRootsFilePath: certFilePath,
+	})
+	assert.Nil(t, c)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "error reading testdata/non-existing-file")
+}
+
+func TestNewWithProxy(t *testing.T) {
+	defer func() {
+		// Cleanup: unset proxy.
+		os.Unsetenv("HTTPS_PROXY")
+	}()
+
+	// Invalid proxy url.
+	c, err := New(ClientConfig{
+		Host:  "http://localhost:8086",
+		Token: "my-token",
+		Proxy: "http://proxy:invalid-port",
+	})
+	assert.Nil(t, c)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "parsing proxy URL")
+
+	// Valid proxy url.
+	c, err = New(ClientConfig{
+		Host:  "http://localhost:8086",
+		Token: "my-token",
+		Proxy: "http://proxy:8888",
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "http://proxy:8888", c.config.Proxy)
+
+	// Valid proxy url with HTTPS_PROXY env already set.
+	t.Setenv("HTTPS_PROXY", "http://another-proxy:8888")
+	c, err = New(ClientConfig{
+		Host:  "http://localhost:8086",
+		Token: "my-token",
+		Proxy: "http://proxy:8888",
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "http://proxy:8888", c.config.Proxy)
 }
 
 func TestURLs(t *testing.T) {
