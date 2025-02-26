@@ -132,7 +132,8 @@ func New(config ClientConfig) (*Client, error) {
 
 	// Prepare HTTP client
 	if c.config.HTTPClient == nil {
-		c.config.HTTPClient = http.DefaultClient
+		var copied = *http.DefaultClient
+		c.config.HTTPClient = &copied
 	}
 	if certPool != nil {
 		setHTTPClientCertPool(c.config.HTTPClient, certPool)
@@ -158,7 +159,7 @@ func New(config ClientConfig) (*Client, error) {
 
 func ensureTransportSet(httpClient *http.Client) {
 	if httpClient.Transport == nil {
-		httpClient.Transport = http.DefaultTransport
+		httpClient.Transport = http.DefaultTransport.(*http.Transport).Clone()
 	}
 }
 
