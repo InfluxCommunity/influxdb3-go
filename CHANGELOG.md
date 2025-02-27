@@ -1,5 +1,9 @@
 ## 2.4.0 [unreleased]
 
+### Features
+
+1. [#141](https://github.com/InfluxCommunity/influxdb3-go/pull/141): Add proxy and custom SSL root certificate support.
+
 ## 2.3.0 [2025-02-20]
 
 ### Features

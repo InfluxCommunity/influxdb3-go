@@ -25,12 +25,16 @@ package influxdb3
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -94,9 +98,48 @@ func New(config ClientConfig) (*Client, error) {
 	}
 	c.authorization = fmt.Sprintf("%s %s", authScheme, c.config.Token)
 
+	// Prepare SSL certificate pool (if host URL is secure)
+	var certPool *x509.CertPool
+	hostPortURL, safe := ReplaceURLProtocolWithPort(c.config.Host)
+	if safe == nil || *safe {
+		// Use the system certificate pool
+		certPool, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("x509: %w", err)
+		}
+
+		// Set additional SSL root certificates (if configured)
+		if config.SSLRootsFilePath != "" {
+			certs, err := os.ReadFile(config.SSLRootsFilePath)
+			if err != nil {
+				return nil, fmt.Errorf("error reading %s: %w", config.SSLRootsFilePath, err)
+			}
+			ok := certPool.AppendCertsFromPEM(certs)
+			if !ok {
+				slog.Warn("No valid certificates found in " + config.SSLRootsFilePath)
+			}
+		}
+	}
+
+	// Prepare proxy (if configured)
+	var proxyURL *url.URL
+	if config.Proxy != "" {
+		proxyURL, err = url.Parse(config.Proxy)
+		if err != nil {
+			return nil, fmt.Errorf("parsing proxy URL: %w", err)
+		}
+	}
+
 	// Prepare HTTP client
 	if c.config.HTTPClient == nil {
-		c.config.HTTPClient = http.DefaultClient
+		var copied = *http.DefaultClient
+		c.config.HTTPClient = &copied
+	}
+	if certPool != nil {
+		setHTTPClientCertPool(c.config.HTTPClient, certPool)
+	}
+	if proxyURL != nil {
+		setHTTPClientProxy(c.config.HTTPClient, proxyURL)
 	}
 
 	// Use default write option if not set
@@ -106,12 +149,35 @@ func New(config ClientConfig) (*Client, error) {
 	}
 
 	// Init FlightSQL client
-	err = c.initializeQueryClient()
+	err = c.initializeQueryClient(hostPortURL, certPool, proxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("flight client: %w", err)
 	}
 
 	return c, nil
+}
+
+func ensureTransportSet(httpClient *http.Client) {
+	if httpClient.Transport == nil {
+		httpClient.Transport = http.DefaultTransport.(*http.Transport).Clone()
+	}
+}
+
+func setHTTPClientProxy(httpClient *http.Client, proxyURL *url.URL) {
+	ensureTransportSet(httpClient)
+	if transport, ok := httpClient.Transport.(*http.Transport); ok {
+		transport.Proxy = http.ProxyURL(proxyURL)
+	}
+}
+
+func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool) {
+	ensureTransportSet(httpClient)
+	if transport, ok := httpClient.Transport.(*http.Transport); ok {
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    certPool,
+			MinVersion: tls.VersionTLS12,
+		}
+	}
 }
 
 // NewFromConnectionString creates new Client from the specified connection string.

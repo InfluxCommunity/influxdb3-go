@@ -14,12 +14,18 @@ func main() {
 	url := os.Getenv("INFLUX_URL")
 	token := os.Getenv("INFLUX_TOKEN")
 	database := os.Getenv("INFLUX_DATABASE")
+	// (optional) Custom SSL root certificates file path
+	sslRootsFilePath := os.Getenv("INFLUX_SSL_ROOTS_FILE_PATH")
+	// (optional) Proxy URL
+	proxyURL := os.Getenv("INFLUX_PROXY_URL")
 
 	// Instantiate a client using your credentials.
 	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:     url,
-		Token:    token,
-		Database: database,
+		Host:             url,
+		Token:            token,
+		Database:         database,
+		SSLRootsFilePath: sslRootsFilePath,
+		Proxy:            proxyURL,
 	})
 	if err != nil {
 		panic(err)
