@@ -28,9 +28,11 @@ import (
 
 func ExampleNew() {
 	client, err := New(ClientConfig{
-		Host:     "https://us-east-1-1.aws.cloud2.influxdata.com",
-		Token:    "my-token",
-		Database: "my-database",
+		Host:             "https://us-east-1-1.aws.cloud2.influxdata.com",
+		Token:            "my-token",
+		Database:         "my-database",
+		SSLRootsFilePath: "/path/to/certificates.pem",
+		Proxy:            "http://localhost:8888",
 	})
 	if err != nil {
 		log.Fatal(err)
