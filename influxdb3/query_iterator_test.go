@@ -3,7 +3,6 @@ package influxdb3
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/apache/arrow/go/v15/arrow"
@@ -93,7 +92,6 @@ func (emmr *ErrorMessageMockReader) Release() {}
 func (emmr *ErrorMessageMockReader) Retain() {}
 
 func TestQueryIteratorError(t *testing.T) {
-
 	errorMessage := "TEST ERROR"
 
 	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&ErrorMessageMockReader{errorMessage: errorMessage})
@@ -106,6 +104,5 @@ func TestQueryIteratorError(t *testing.T) {
 
 	testIT := newQueryIterator(fReader)
 	assert.False(t, testIT.Next(), "iterator should have no next record")
-	assert.Equal(t, testIT.Err().Error(), errorMessage,
-		fmt.Sprintf("iterator should have an err message: %s", errorMessage))
+	assert.Equal(t, testIT.Err().Error(), errorMessage)
 }
