@@ -2,6 +2,7 @@ package influxdb3
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -84,7 +85,7 @@ func (emmr *ErrorMessageMockReader) Message() (*ipc.Message, error) {
 		reader := ipc.NewMessageReader(&buf)
 		return reader.Message()
 	}
-	return nil, fmt.Errorf(emmr.errorMessage)
+	return nil, errors.New(emmr.errorMessage)
 }
 
 func (emmr *ErrorMessageMockReader) Release() {}
@@ -98,7 +99,6 @@ func TestQueryIteratorError(t *testing.T) {
 	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&ErrorMessageMockReader{errorMessage: errorMessage})
 
 	if newMsgErr != nil {
-		fmt.Printf("\nDEBUG newMsgErr %+v\n", newMsgErr)
 		t.Fatal(newMsgErr)
 	}
 
