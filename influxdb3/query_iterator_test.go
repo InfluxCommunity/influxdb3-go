@@ -64,43 +64,48 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
+type ErrorMessageMockReader struct {
+	counter      int
+	errorMessage string
+}
+
+func (emmr *ErrorMessageMockReader) Message() (*ipc.Message, error) {
+	if emmr.counter == 0 {
+		emmr.counter++
+		// return schema message
+		schema := arrow.NewSchema([]arrow.Field{
+			{Name: "f1", Type: arrow.PrimitiveTypes.Int32},
+		}, nil)
+		var buf bytes.Buffer
+		writer := ipc.NewWriter(&buf, ipc.WithSchema(schema))
+		if err := writer.Close(); err != nil {
+			return nil, err
+		}
+		reader := ipc.NewMessageReader(&buf)
+		return reader.Message()
+	}
+	return nil, fmt.Errorf(emmr.errorMessage)
+}
+
+func (emmr *ErrorMessageMockReader) Release() {}
+
+func (emmr *ErrorMessageMockReader) Retain() {}
+
 func TestQueryIteratorError(t *testing.T) {
-	schema := arrow.NewSchema([]arrow.Field{
-		{Name: "f1", Type: arrow.PrimitiveTypes.Int32},
-	}, nil)
-	var buf bytes.Buffer
-	// buf := bytes.NewBuffer(make([]byte, 64))
-	//buf := make([]byte, 4)
-	// test_err := errors.New("test error")
-	writer := ipc.NewWriter(&buf, ipc.WithSchema(schema))
-	rb := array.NewRecordBuilder(memory.DefaultAllocator, schema)
-	rec := rb.NewRecord() // first record is empty
-	err := writer.Write(rec)
-	assert.NoError(t, err)
 
-	rb.Field(0).(*array.Int32Builder).AppendValues([]int32{42, 3, 21}, nil)
-	rec = rb.NewRecord() // second record is not empty
-	err = writer.Write(rec)
-	assert.NoError(t, err)
+	errorMessage := "TEST ERROR"
 
-	// rb.Field(0).(*array.Int32Builder).AppendValues([]int32{21}, nil)
-	// rec2 := rb.NewRecord() // second record is not empty
-	// err = writer.Write(rec2)
-	// assert.NoError(t, err)
+	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&ErrorMessageMockReader{errorMessage: errorMessage})
 
-	reader := ipc.NewMessageReader(&buf)
+	if newMsgErr != nil {
+		fmt.Printf("\nDEBUG newMsgErr %+v\n", newMsgErr)
+		t.Fatal(newMsgErr)
+	}
 
-	ipcReader, err := ipc.NewReaderFromMessageReader(
-		&testMessagesReader{
-			r: reader,
-		})
-	assert.NoError(t, err)
+	fReader := &flight.Reader{Reader: mockReader}
 
-	fReader := &flight.Reader{Reader: ipcReader}
-	it := newQueryIterator(fReader)
-	fmt.Printf("\nDEBUG it.Next() %v\n", it.Next())
-	fmt.Printf("\nDEBUG it %+v\n", it)
-	fmt.Printf("\nDEBUG it.Next() %v\n", it.Next())
-	fmt.Printf("\nDEBUG it %+v\n", it)
-
+	testIT := newQueryIterator(fReader)
+	assert.False(t, testIT.Next(), "iterator should have no next record")
+	assert.Equal(t, testIT.Err().Error(), errorMessage,
+		fmt.Sprintf("iterator should have an err message: %s", errorMessage))
 }

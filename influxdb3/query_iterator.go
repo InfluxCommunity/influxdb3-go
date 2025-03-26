@@ -52,8 +52,8 @@ type QueryIterator struct {
 	reader *flight.Reader
 	// Current record
 	record arrow.Record
-	// The first error that might occur
-	error error
+	// The first err that might occur
+	err error
 	// Index of row of current object in current record
 	indexInRecord int
 	// Total index of current object
@@ -68,7 +68,7 @@ func newQueryIterator(reader *flight.Reader) *QueryIterator {
 	return &QueryIterator{
 		reader:        reader,
 		record:        nil,
-		error:         nil,
+		err:           nil,
 		indexInRecord: -1,
 		i:             -1,
 		current:       nil,
@@ -88,7 +88,7 @@ func (i *QueryIterator) Next() bool {
 	for i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
 		if !i.reader.Next() {
 			if i.reader.Err() != nil {
-				i.error = i.reader.Err()
+				i.err = i.reader.Err()
 			}
 			i.done = true
 			return false
@@ -194,11 +194,11 @@ func (i *QueryIterator) Done() bool {
 	return i.done
 }
 
-// Error returns the first error that might have occurred during iteration
+// Err returns the first err that might have occurred during iteration
 //
 // Returns:
-//   - the error or nil if no error occurred
-func (i *QueryIterator) Error() error { return i.error }
+//   - the err or nil if no err occurred
+func (i *QueryIterator) Err() error { return i.err }
 
 // Raw returns the underlying flight.Reader associated with the QueryIterator.
 // WARNING: It is imperative to use either the Raw method or the Value and Next functions, but not both at the same time,
