@@ -2,6 +2,7 @@ package influxdb3
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/apache/arrow/go/v15/arrow"
@@ -61,4 +62,45 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 		count++
 	}
 	assert.Equal(t, 1, count)
+}
+
+func TestQueryIteratorError(t *testing.T) {
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "f1", Type: arrow.PrimitiveTypes.Int32},
+	}, nil)
+	var buf bytes.Buffer
+	// buf := bytes.NewBuffer(make([]byte, 64))
+	//buf := make([]byte, 4)
+	// test_err := errors.New("test error")
+	writer := ipc.NewWriter(&buf, ipc.WithSchema(schema))
+	rb := array.NewRecordBuilder(memory.DefaultAllocator, schema)
+	rec := rb.NewRecord() // first record is empty
+	err := writer.Write(rec)
+	assert.NoError(t, err)
+
+	rb.Field(0).(*array.Int32Builder).AppendValues([]int32{42, 3, 21}, nil)
+	rec = rb.NewRecord() // second record is not empty
+	err = writer.Write(rec)
+	assert.NoError(t, err)
+
+	// rb.Field(0).(*array.Int32Builder).AppendValues([]int32{21}, nil)
+	// rec2 := rb.NewRecord() // second record is not empty
+	// err = writer.Write(rec2)
+	// assert.NoError(t, err)
+
+	reader := ipc.NewMessageReader(&buf)
+
+	ipcReader, err := ipc.NewReaderFromMessageReader(
+		&testMessagesReader{
+			r: reader,
+		})
+	assert.NoError(t, err)
+
+	fReader := &flight.Reader{Reader: ipcReader}
+	it := newQueryIterator(fReader)
+	fmt.Printf("\nDEBUG it.Next() %v\n", it.Next())
+	fmt.Printf("\nDEBUG it %+v\n", it)
+	fmt.Printf("\nDEBUG it.Next() %v\n", it.Next())
+	fmt.Printf("\nDEBUG it %+v\n", it)
+
 }
