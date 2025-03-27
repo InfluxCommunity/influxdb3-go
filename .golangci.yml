@@ -1,150 +1,115 @@
-run:
-  # Timeout for analysis, e.g. 30s, 5m.
-  # Default: 1m
-  timeout: 90s
-
+version: "2"
+output:
+  formats:
+    tab:
+      path: stdout
+      colors: false
 linters:
-  enable-all: true
+  default: all
   disable:
     - cyclop
     - depguard
+    - errcheck
     - err113
-    - exhaustruct
     - exhaustive
+    - exhaustruct
     - forcetypeassert
     - funlen
-    - godot
     - gochecknoglobals
-    - gofumpt
-    - gomnd
+    - godot
     - mnd
     - nilnil
     - nlreturn
+    - staticcheck
     - tagliatelle
+    - testifylint
     - varnamelen
     - whitespace
     - wrapcheck
     - wsl
-
-linters-settings:
-  gosec:
-    excludes:
-      - G104
-  lll:
-    # Max line length, lines longer will be reported.
-    # '\t' is counted as 1 character by default, and can be changed with the tab-width option.
-    # Default: 120.
-    line-length: 160
-  nestif:
-    min-complexity: 7
-  revive:
-    # Enable all available rules.
-    # Default: false
-    enable-all-rules: true
+  settings:
+    gosec:
+      excludes:
+        - G104
+    lll:
+      line-length: 160
+    nestif:
+      min-complexity: 7
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: add-constant
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: confusing-naming
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: flag-parameter
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        - name: nested-structs
+          disabled: true
+        - name: unhandled-error
+          disabled: true
+        - name: unused-receiver
+          disabled: true
+        - name: use-any
+          disabled: true
+  exclusions:
+    generated: lax
     rules:
-      - name: add-constant
-        disabled: true
-      - name: cognitive-complexity
-        disabled: true
-      - name: confusing-naming
-        disabled: true
-      - name: cyclomatic
-        disabled: true
-      - name: exported
-        disabled: true
-      - name: flag-parameter
-        disabled: true
-      - name: function-length
-        disabled: true
-      # same as lll
-      - name: line-length-limit
-        disabled: true
-      - name: max-public-structs
-        disabled: true
-      - name: nested-structs
-        disabled: true
-      # same as errcheck
-      - name: unhandled-error
-        disabled: true
-      - name: unused-receiver
-        disabled: true
-      - name: use-any
-        disabled: true
-  tenv:
-    # The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.
-    # Otherwise, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
-    # Default: false
-    all: true
-
+      - linters:
+          - gocyclo
+        path: influxdb3/query_iterator\.go,influxdb3/point_value_iterator\.go
+      - linters:
+          - goconst
+          - paralleltest
+          - tagalign
+          - testableexamples
+          - testpackage
+          - thelper
+          - tparallel
+          - unparam
+        path: _test\.go
+      - path: _test\.go
+        text: Error return value of .((os.)?std(out|err)..*|.*Close.*|.*Flush|.*Disconnect|.*Clear|os.Remove(All)?|.*print(f|ln)?|os.(Un)?Setenv). is not checked
+      - path: _test\.go
+        text: 'G404: Use of weak random number generator'
+      - path: _test\.go
+        text: 'unused-parameter:'
+      - path: _test\.go
+        text: 'require-error:'
+      - path: _test\.go
+        text: 'go-require:'
+      - path: .*example(_.*)?_test\.go$
+        text: 'exitAfterDefer:'
+      - path: .*example(_.*)?_test\.go$
+        text: 'deep-exit:'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-rules:
-    # Some code is just exceptional. Review whenever the code is changed.
-    - path: influxdb3/query_iterator\.go,influxdb3/point_value_iterator\.go
-      linters:
-        - gocyclo
-    # Exclude some linters from running on tests files.
-    - path: _test\.go
-      linters:
-        - goconst
-        - gofmt
-        - paralleltest
-        - tagalign
-        - testableexamples
-        - testpackage
-        - thelper
-        - tparallel
-        - unparam
-    - path: _test\.go
-      text: "Error return value of .((os.)?std(out|err)..*|.*Close.*|.*Flush|.*Disconnect|.*Clear|os.Remove(All)?|.*print(f|ln)?|os.(Un)?Setenv). is not checked"
-    - path: _test\.go
-      text: "G404: Use of weak random number generator" #gosec:G404
-    - path: _test\.go
-      text: "unused-parameter:" #revive:unused-parameter
-    - path: _test\.go
-      text: "require-error:" #testifylint:require-error
-    - path: _test\.go
-      text: "go-require:" #testifylint:go-require
-    # Relax some specific check for examples (for now, we should have really nice examples) - they are not executed in CI.
-    - path: .*example(_.*)?_test\.go$
-      text: "exitAfterDefer:" #gocritic:exitAfterDefer
-    - path: .*example(_.*)?_test\.go$
-      text: "deep-exit:" #revive:deep-exit
-
-  # Independently of option `exclude` we use default exclude patterns,
-  # it can be disabled by this option.
-  # To list all excluded by default patterns execute `golangci-lint run --help`.
-  # Default: true
-  exclude-use-default: false
-
-  # Maximum issues count per one linter.
-  # Set to 0 to disable.
-  # Default: 50
   max-issues-per-linter: 0
-
-  # Maximum count of issues with the same text.
-  # Set to 0 to disable.
-  # Default: 3
   max-same-issues: 0
-
-output:
-  # The formats used to render issues.
-  # Default:
-  #   formats:
-  #     - format: colored-line-number
-  #       path: stdout
-  formats:
-    - format: tab
-      path: stdout
-
-  # Make issues output unique by line.
-  # Default: true
-  uniq-by-line: false
-
-  # Sort results by the order defined in `sort-order`.
-  # Default: false
-  sort-results: true
-
-  # Show statistics per linter.
-  # Default: false
-  show-stats: true
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - _test\.go
