@@ -1,5 +1,9 @@
 ## 2.5.0 [unreleased]
 
+### Features
+
+1. [#146](https://github.com/InfluxCommunity/influxdb3-go/pull/146): Add error field to QueryIterator to hold first possible error encountered when retrieving records from the flight Reader.
+
 ## 2.4.0 [2025-03-26]
 
 ### Features

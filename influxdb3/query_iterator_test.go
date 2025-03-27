@@ -10,6 +10,8 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/ipc"
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 )
 
 type testMessagesReader struct {
@@ -61,4 +63,20 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 		count++
 	}
 	assert.Equal(t, 1, count)
+}
+
+func TestQueryIteratorError(t *testing.T) {
+	errorMessage := "TEST ERROR"
+
+	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&testutil.ErrorMessageMockReader{ErrorMessage: errorMessage})
+
+	if newMsgErr != nil {
+		t.Fatal(newMsgErr)
+	}
+
+	fReader := &flight.Reader{Reader: mockReader}
+
+	testIT := newQueryIterator(fReader)
+	assert.False(t, testIT.Next(), "iterator should have no next record")
+	assert.Equal(t, testIT.Err().Error(), errorMessage)
 }
