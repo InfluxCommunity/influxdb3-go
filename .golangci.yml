@@ -95,9 +95,9 @@ linters:
       - path: .*example(_.*)?_test\.go$
         text: 'deep-exit:'
     paths:
-      - third_party$
-      - builtin$
-      - examples$
+      - third_party/...
+      - builtin/...
+      - examples/...
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
