@@ -28,6 +28,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
@@ -227,4 +228,24 @@ func TestPointValueIterator(t *testing.T) {
 	assert.Equal(t, 2, it.Index())
 	assert.Equal(t, err, Done)
 	assert.Nil(t, pointValues)
+}
+
+func TestPointValueIteratorError(t *testing.T) {
+	errorMessage := "TEST ERROR"
+
+	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&testutil.ErrorMessageMockReader{ErrorMessage: errorMessage})
+
+	if newMsgErr != nil {
+		t.Fatal(newMsgErr)
+	}
+
+	fReader := &flight.Reader{Reader: mockReader}
+
+	it := newPointValueIterator(fReader)
+
+	values, err := it.Next()
+
+	assert.Nil(t, values)
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), errorMessage)
 }
