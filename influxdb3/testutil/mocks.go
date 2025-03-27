@@ -1,4 +1,5 @@
-package util
+// Package testutil provides basic utilities for testing the client.
+package testutil
 
 import (
 	"bytes"

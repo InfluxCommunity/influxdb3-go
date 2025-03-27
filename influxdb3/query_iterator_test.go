@@ -11,7 +11,7 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/util"
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 )
 
 type testMessagesReader struct {
@@ -68,7 +68,7 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 func TestQueryIteratorError(t *testing.T) {
 	errorMessage := "TEST ERROR"
 
-	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&util.ErrorMessageMockReader{ErrorMessage: errorMessage})
+	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&testutil.ErrorMessageMockReader{ErrorMessage: errorMessage})
 
 	if newMsgErr != nil {
 		t.Fatal(newMsgErr)
