@@ -2,7 +2,6 @@ package influxdb3
 
 import (
 	"bytes"
-	"errors"
 	"testing"
 
 	"github.com/apache/arrow/go/v15/arrow"
@@ -11,6 +10,8 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/ipc"
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/util"
 )
 
 type testMessagesReader struct {
@@ -64,37 +65,10 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
-type ErrorMessageMockReader struct {
-	counter      int
-	errorMessage string
-}
-
-func (emmr *ErrorMessageMockReader) Message() (*ipc.Message, error) {
-	if emmr.counter == 0 {
-		emmr.counter++
-		// return schema message
-		schema := arrow.NewSchema([]arrow.Field{
-			{Name: "f1", Type: arrow.PrimitiveTypes.Int32},
-		}, nil)
-		var buf bytes.Buffer
-		writer := ipc.NewWriter(&buf, ipc.WithSchema(schema))
-		if err := writer.Close(); err != nil {
-			return nil, err
-		}
-		reader := ipc.NewMessageReader(&buf)
-		return reader.Message()
-	}
-	return nil, errors.New(emmr.errorMessage)
-}
-
-func (emmr *ErrorMessageMockReader) Release() {}
-
-func (emmr *ErrorMessageMockReader) Retain() {}
-
 func TestQueryIteratorError(t *testing.T) {
 	errorMessage := "TEST ERROR"
 
-	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&ErrorMessageMockReader{errorMessage: errorMessage})
+	mockReader, newMsgErr := ipc.NewReaderFromMessageReader(&util.ErrorMessageMockReader{ErrorMessage: errorMessage})
 
 	if newMsgErr != nil {
 		t.Fatal(newMsgErr)
