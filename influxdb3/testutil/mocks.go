@@ -50,7 +50,7 @@ func (emmr *ErrorMessageMockReader) Release() {}
 
 func (emmr *ErrorMessageMockReader) Retain() {}
 
-var BlobSize int64 = 4098
+var BlobSize int64 = 4096
 
 var Records = make(map[string][]arrow.Record)
 
