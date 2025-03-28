@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestQueryOptions(t *testing.T) {
@@ -57,6 +59,24 @@ func TestQueryOptions(t *testing.T) {
 				Headers: http.Header{
 					"header-a": {"value-a"},
 					"header-b": {"value-b"},
+				},
+			},
+		},
+		{
+			name: "add grpc option",
+			opts: va(WithGrpcCallOption(grpc.MaxCallRecvMsgSize(16)),
+				WithGrpcCallOption(grpc.MaxCallSendMsgSize(16)),
+				WithGrpcCallOption(grpc.WaitForReady(true)),
+				WithGrpcCallOption(grpc.StaticMethod()),
+				WithGrpcCallOption(grpc.Header(&metadata.MD{"meta-key": []string{"meta-value1", "meta-value2"}})),
+			),
+			want: &QueryOptions{
+				GrpcCallOptions: []grpc.CallOption{
+					grpc.MaxCallRecvMsgSize(16),
+					grpc.MaxCallSendMsgSize(16),
+					grpc.WaitForReady(true),
+					grpc.StaticMethod(),
+					grpc.Header(&metadata.MD{"meta-key": []string{"meta-value1", "meta-value2"}}),
 				},
 			},
 		},

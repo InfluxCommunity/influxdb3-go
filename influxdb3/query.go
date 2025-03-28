@@ -226,7 +226,13 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 	}
 
 	ticket := &flight.Ticket{Ticket: ticketJSON}
-	stream, err := c.queryClient.DoGet(ctx, ticket)
+
+	grpcCallOptions := make([]grpc.CallOption, 0)
+	if options.GrpcCallOptions != nil {
+		grpcCallOptions = append(grpcCallOptions, options.GrpcCallOptions...)
+	}
+
+	stream, err := c.queryClient.DoGet(ctx, ticket, grpcCallOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("flight do get: %w", err)
 	}

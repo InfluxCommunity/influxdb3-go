@@ -24,9 +24,12 @@ package influxdb3
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
 	"github.com/apache/arrow/go/v15/arrow/flight"
@@ -147,6 +150,59 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
 	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
+}
+
+func TestQueryWithLargeResponseFail(t *testing.T) {
+	s := testutil.StartMockServer(t)
+	origBlobSize := testutil.BlobSize
+	testutil.BlobSize = 4194314
+	defer func() {
+		testutil.BlobSize = origBlobSize
+		s.Shutdown()
+	}()
+
+	client, err := New(ClientConfig{
+		Host:     fmt.Sprintf("http://%s", s.Addr().String()),
+		Token:    "my_secret_token",
+		Database: "explore",
+	})
+	require.NoError(t, err)
+	qIter, qErr := client.Query(context.Background(),
+		"SELECT * FROM examples")
+
+	require.NoError(t, qErr)
+	assert.False(t, qIter.Next())
+	assert.Regexp(t, regexp.MustCompile("^rpc error.*received message larger than max.*"), qIter.Err())
+}
+
+func TestQueryWithLargeResponsePass(t *testing.T) {
+	s := testutil.StartMockServer(t)
+	origBlobSize := testutil.BlobSize
+	testutil.BlobSize = 4194314
+	defer func() {
+		testutil.BlobSize = origBlobSize
+		s.Shutdown()
+	}()
+
+	client, err := New(ClientConfig{
+		Host:     fmt.Sprintf("http://%s", s.Addr().String()),
+		Token:    "my_secret_token",
+		Database: "explore",
+	})
+	require.NoError(t, err)
+	qIter, qErr := client.Query(context.Background(),
+		"SELECT * FROM examples",
+		WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
+	)
+
+	require.NoError(t, qErr)
+	assert.True(t, qIter.Next())
+	count := int64(1)
+	for qIter.Next() {
+		count++
+	}
+	assert.Equal(t, testutil.BlobSize, count)
+	assert.Nil(t, qIter.Err())
 }
 
 // fake Flight server implementation

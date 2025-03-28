@@ -26,6 +26,7 @@ import (
 	"net/http"
 
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"google.golang.org/grpc"
 )
 
 // QueryOptions holds options for query
@@ -38,6 +39,9 @@ type QueryOptions struct {
 
 	// Headers to be included in requests. Use to add or override headers in `ClientConfig`.
 	Headers http.Header
+
+	// GRPC call options to be added
+	GrpcCallOptions []grpc.CallOption
 }
 
 // WriteOptions holds options for write
@@ -128,6 +132,15 @@ func WithGzipThreshold(gzipThreshold int) Option {
 func WithDefaultTags(tags map[string]string) Option {
 	return func(o *options) {
 		o.DefaultTags = tags
+	}
+}
+
+func WithGrpcCallOption(grpcCallOption grpc.CallOption) Option {
+	return func(o *options) {
+		if o.QueryOptions.GrpcCallOptions == nil {
+			o.QueryOptions.GrpcCallOptions = make([]grpc.CallOption, 0)
+		}
+		o.QueryOptions.GrpcCallOptions = append(o.QueryOptions.GrpcCallOptions, grpcCallOption)
 	}
 }
 
