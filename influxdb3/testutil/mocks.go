@@ -55,15 +55,7 @@ var BlobSize int64 = 4098
 var Records = make(map[string][]arrow.Record)
 
 type MockFlightServer struct {
-	mem memory.Allocator
 	flight.BaseFlightServer
-}
-
-func (f *MockFlightServer) getmem() memory.Allocator {
-	if f.mem == nil {
-		f.mem = memory.NewGoAllocator()
-	}
-	return f.mem
 }
 
 func writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
@@ -82,16 +74,16 @@ func writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
 }
 
 func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
-	bt, bt_err := BlobTicketFromJsonBytes(tkt.GetTicket())
-	if bt_err == nil {
+	bt, btErr := BlobTicketFromJSONBytes(tkt.GetTicket())
+	if btErr == nil {
 		if bt.Name == "blob" {
 			return writeBlob(fs, bt.Size)
 		}
 	}
 
-	_, qt_err := SqlQueryTicketFromJsonBytes(tkt.GetTicket())
+	_, qtErr := SQLQueryTicketFromJSONBytes(tkt.GetTicket())
 
-	if qt_err == nil {
+	if qtErr == nil {
 		return writeBlob(fs, BlobSize)
 	}
 
@@ -111,7 +103,8 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 	return nil
 }
 
-func StartMockServer(t *testing.T) flight.Server {
+//nolint:all
+func StartMockServer(t *testing.T) *flight.Server {
 	mockServer := MockFlightServer{}
 	s := flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
 	err := s.Init("localhost:0")
@@ -127,7 +120,7 @@ func StartMockServer(t *testing.T) flight.Server {
 		}
 	}()
 
-	return s
+	return &s
 }
 
 type BlobTicket struct {
@@ -139,16 +132,16 @@ func NewBlobTicket(size int64) *BlobTicket {
 	return &BlobTicket{Name: "blob", Size: size}
 }
 
-func (bt *BlobTicket) ToJsonString() string {
+func (bt *BlobTicket) ToJSONString() string {
 	return fmt.Sprintf(`{"Name": %q,"Size":%d}`, bt.Name, bt.Size)
 }
 
-func (bt *BlobTicket) ToJsonBytes() []byte {
-	return []byte(bt.ToJsonString())
+func (bt *BlobTicket) ToJSONBytes() []byte {
+	return []byte(bt.ToJSONString())
 }
 
-func BlobTicketFromJsonBytes(bytes []byte) (*BlobTicket, error) {
-	s := string(bytes)
+func BlobTicketFromJSONBytes(jsBytes []byte) (*BlobTicket, error) {
+	s := string(jsBytes)
 	m := map[string]any{}
 	err := json.Unmarshal([]byte(s), &m)
 	if err != nil {
@@ -162,22 +155,25 @@ func BlobTicketFromJsonBytes(bytes []byte) (*BlobTicket, error) {
 		return nil, errors.New("BlobTicket from json does not contain a name")
 	}
 
-	f := m["Size"].(float64)
+	f, ok := m["Size"].(float64)
+	if !ok {
+		f = -1.0
+	}
 	return &BlobTicket{Name: m["Name"].(string), Size: int64(int(f))}, nil
 }
 
-type SqlQueryTicket struct {
+type SQLQueryTicket struct {
 	Database  string
 	QueryType string
-	SqlQuery  string
+	SQLQuery  string
 }
 
-func NewSqlQueryTicket(database string, queryType string, query string) *SqlQueryTicket {
-	return &SqlQueryTicket{Database: database, QueryType: queryType, SqlQuery: query}
+func NewSQLQueryTicket(database string, queryType string, query string) *SQLQueryTicket {
+	return &SQLQueryTicket{Database: database, QueryType: queryType, SQLQuery: query}
 }
 
-func SqlQueryTicketFromJsonBytes(bytes []byte) (*SqlQueryTicket, error) {
-	s := string(bytes)
+func SQLQueryTicketFromJSONBytes(jsBytes []byte) (*SQLQueryTicket, error) {
+	s := string(jsBytes)
 	m := map[string]any{}
 	err := json.Unmarshal([]byte(s), &m)
 	if err != nil {
@@ -185,20 +181,20 @@ func SqlQueryTicketFromJsonBytes(bytes []byte) (*SqlQueryTicket, error) {
 	}
 
 	if m["database"] == nil {
-		return nil, errors.New("SqlQueryTicket from json does not contain a database")
+		return nil, errors.New("SQLQueryTicket from json does not contain a database")
 	}
 
 	if m["query_type"] == nil {
-		return nil, errors.New("SqlQueryTicket from json does not contain a query_type")
+		return nil, errors.New("SQLQueryTicket from json does not contain a query_type")
 	}
 
 	if m["sql_query"] == nil {
-		return nil, errors.New("SqlQueryTicket from json does not contain a sql_query")
+		return nil, errors.New("SQLQueryTicket from json does not contain a sql_query")
 	}
 
-	return &SqlQueryTicket{Database: m["database"].(string),
+	return &SQLQueryTicket{Database: m["database"].(string),
 			QueryType: m["query_type"].(string),
-			SqlQuery:  m["sql_query"].(string)},
+			SQLQuery:  m["sql_query"].(string)},
 		nil
 }
 
@@ -240,6 +236,7 @@ func MakeBlobRecords(name string, size int64) []arrow.Record {
 	mask := make([]bool, size)
 
 	for i := range data {
+		//nolint:all
 		data[i] = byte(rand.Intn(256))
 		mask[i] = true
 	}
@@ -302,11 +299,11 @@ func MakeConstantRecords() []arrow.Record {
 
 	Records["constants"] = recs
 	return recs
-
 }
 
 // copied from arrow-go/flight/flight_test.go
 
+//nolint:all
 func arrayOf(mem memory.Allocator, a interface{}, valids []bool) arrow.Array {
 	if mem == nil {
 		mem = memory.NewGoAllocator()

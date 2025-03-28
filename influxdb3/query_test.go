@@ -24,7 +24,6 @@ package influxdb3
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
 	"testing"
@@ -153,7 +152,7 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 }
 
 func TestQueryWithLargeResponseFail(t *testing.T) {
-	s := testutil.StartMockServer(t)
+	s := *testutil.StartMockServer(t)
 	origBlobSize := testutil.BlobSize
 	testutil.BlobSize = 4194314
 	defer func() {
@@ -162,7 +161,7 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 	}()
 
 	client, err := New(ClientConfig{
-		Host:     fmt.Sprintf("http://%s", s.Addr().String()),
+		Host:     "http://" + s.Addr().String(),
 		Token:    "my_secret_token",
 		Database: "explore",
 	})
@@ -176,7 +175,7 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 }
 
 func TestQueryWithLargeResponsePass(t *testing.T) {
-	s := testutil.StartMockServer(t)
+	s := *testutil.StartMockServer(t)
 	origBlobSize := testutil.BlobSize
 	testutil.BlobSize = 4194314
 	defer func() {
@@ -185,7 +184,7 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 	}()
 
 	client, err := New(ClientConfig{
-		Host:     fmt.Sprintf("http://%s", s.Addr().String()),
+		Host:     "http://" + s.Addr().String(),
 		Token:    "my_secret_token",
 		Database: "explore",
 	})
