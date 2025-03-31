@@ -174,6 +174,7 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
 ### Configure connection
 
 The `influxdb3.Client` internally uses 2 client libraries to communicate with an InfluxDB v3 instance:
+
 - `http.Client` (`net/http`) - HTTP client for write operations
 - `flight.Client` (`github.com/apache/arrow/go/v15/arrow/flight`) - GRPC client for query operations
 
