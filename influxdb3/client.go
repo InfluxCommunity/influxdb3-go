@@ -137,24 +137,7 @@ func New(config ClientConfig) (*Client, error) {
 		c.config.HTTPClient = newHTTPClient(config)
 	} else {
 		// HTTPClient provided by the user.
-		httpClient := c.config.HTTPClient
-		if config.isTimeoutSet() {
-			httpClient.Timeout = config.getTimeoutOrDefault()
-		}
-		if config.isIdleConnectionTimeoutSet() {
-			ensureTransportSet(httpClient, config)
-			if transport, ok := httpClient.Transport.(*http.Transport); ok {
-				transport.IdleConnTimeout = config.getIdleConnectionTimeoutOrDefault()
-			}
-		}
-		if config.isMaxIdleConnectionsSet() {
-			ensureTransportSet(httpClient, config)
-			if transport, ok := httpClient.Transport.(*http.Transport); ok {
-				maxIdleConnections := config.getMaxIdleConnectionsOrDefault()
-				transport.MaxIdleConns = maxIdleConnections
-				transport.MaxIdleConnsPerHost = maxIdleConnections
-			}
-		}
+		configureHTTPClient(c.config.HTTPClient, config)
 	}
 	if certPool != nil {
 		setHTTPClientCertPool(c.config.HTTPClient, certPool, config)
@@ -205,6 +188,27 @@ func newHTTPClient(config ClientConfig) *http.Client {
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: newHTTPTransport(config),
+	}
+}
+
+// configureHTTPClient configures existing HTTPClient based on ClientConfig.
+func configureHTTPClient(httpClient *http.Client, config ClientConfig) {
+	if config.isTimeoutSet() {
+		httpClient.Timeout = config.getTimeoutOrDefault()
+	}
+	if config.isIdleConnectionTimeoutSet() {
+		ensureTransportSet(httpClient, config)
+		if transport, ok := httpClient.Transport.(*http.Transport); ok {
+			transport.IdleConnTimeout = config.getIdleConnectionTimeoutOrDefault()
+		}
+	}
+	if config.isMaxIdleConnectionsSet() {
+		ensureTransportSet(httpClient, config)
+		if transport, ok := httpClient.Transport.(*http.Transport); ok {
+			maxIdleConnections := config.getMaxIdleConnectionsOrDefault()
+			transport.MaxIdleConns = maxIdleConnections
+			transport.MaxIdleConnsPerHost = maxIdleConnections
+		}
 	}
 }
 

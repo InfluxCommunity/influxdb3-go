@@ -979,7 +979,10 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 			return
 		}
 		requestCount++
-		addr := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		addr, ok := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		if !ok {
+			t.Errorf("could not get local address from context: %v", addr)
+		}
 		_, loaded := addrMap.LoadOrStore(addr, true)
 		if !loaded {
 			uniqueConnectionCount++
