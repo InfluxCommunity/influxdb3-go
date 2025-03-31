@@ -93,7 +93,7 @@ Choose one of the following ways to provide your InfluxDB credentials (URL, toke
 - [Instantiate using a connection string](#instantiate-using-a-connection-string)
 - [Instantiate using environment variables](#instantiate-using-environment-variables)
 
-### Instantiate using a configuration object
+#### Instantiate using a configuration object
 
 Call the `influxdb3.New(config influxdb3.ClientConfig)` function with a `ClientConfig` struct that contains your [credentials](#influxdb-v3-credentials)--for example:
 
@@ -113,7 +113,7 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
 - `DATABASE_NAME`: the name of your InfluxDB database or bucket
   Alternatively, you can use `WriteOptions` or `QueryOptions` to specify the database name.
 
-### Instantiate using a connection string
+#### Instantiate using a connection string
 
 Call the `influxdb3.NewFromConnectionString(connectionString string)` function with a connection string that contains your credentials in URL format--for example:
 
@@ -131,7 +131,7 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
 - `DATABASE_NAME`: the name of your InfluxDB database or bucket
   Alternatively, you can use `WriteOptions` or `QueryOptions` to specify the database name.
 
-### Instantiate using environment variables
+#### Instantiate using environment variables
 
 1. Set the following environment variables to store your InfluxDB credentials:
 
@@ -170,6 +170,21 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
    // Create a new client using INFLUX_* environment variables.
    client, err := influxdb3.NewFromEnv()
    ```
+
+### Configure connection
+
+The `influxdb3.Client` internally uses 2 client libraries to communicate with an InfluxDB v3 instance:
+- `http.Client` (`net/http`) - HTTP client for write operations
+- `flight.Client` (`github.com/apache/arrow/go/v15/arrow/flight`) - GRPC client for query operations
+
+#### Configuration of http.Client
+
+| ClientConfig Key        | Description                                                                                                                                     |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `HTTPClient`            | A custom configured `http.Client` instance can be provided. If set this client instance will be used for write operations.                      |  
+| `Timeout`               | The overall time limit for requests made by the Client. A negative value means no timeout. Default value: 10 seconds.                           |
+| `IdleConnectionTimeout` | Maximum amount of time an idle connection will remain idle before closing itself. A negative value means no timeout. Default value: 90 seconds. |
+| `MaxIdleConnections`    | Maximum number of idle connections. A negative value means no limit. Default value: 100.                                                        |
 
 ### Close the client
 
@@ -258,6 +273,8 @@ By default, the client sends the query as SQL.
 
 `influxdb3` provides an iterator for processing data rows--for example:
 
+#### Query with SQL
+
 ```go
 // Query using SQL.
 query := `
@@ -268,9 +285,13 @@ query := `
         AND
         location IN ('Paris')
 `
+// Configure client timeout via context.
+clientTimeout := 10 * time.Second
+ctx, cancel := context.WithTimeout(context.Background(), clientTimeout)
+defer cancel()
 
-iterator, err := client.Query(context.Background(), query)
-
+// Run query.
+iterator, err := client.Query(ctx, query)
 if err != nil {
     panic(err)
 }
@@ -286,6 +307,8 @@ for iterator.Next() {
 }
 ```
 
+#### Query with InfluxQL
+
 To query with InfluxQL, call the `Query()` function and specify the `influxdb3.WithQueryType(influxdb3.InfluxQL)` option--for example:
 
 ```go
@@ -300,7 +323,7 @@ query := `
 `
 
 // Specify the InfluxQL QueryType in options.
-iterator, err := client.Query(context.Background(), query, influxdb3.WithQueryType(influxdb3.InfluxQL))
+iterator, err := client.Query(ctx, query, influxdb3.WithQueryType(influxdb3.InfluxQL))
 
 if err != nil {
     panic(err)
@@ -312,7 +335,7 @@ if err != nil {
 To use parameterized queries with SQL or InfluxQL,
 call the `QueryWithParameters()` function and pass the query text and a `QueryParameters` struct that defines parameter name-value pairs.
 
-### Parameterized query with SQL
+#### Parameterized query with SQL
 
 ```go
 // Specify $parameter placeholders in WHERE predicate expressions.
@@ -330,7 +353,7 @@ parameters := influxdb3.QueryParameters{
     "location": "Paris",
 }
 
-iterator, err := client.QueryWithParameters(context.Background(), query, parameters)
+iterator, err := client.QueryWithParameters(ctx, query, parameters)
 
 // Process the result.
 ```
@@ -356,7 +379,7 @@ parameters := influxdb3.QueryParameters{
 }
 
 // Specify the query type for an InfluxQL query.
-iterator, err := client.QueryWithParameters(context.Background(), query, parameters,
+iterator, err := client.QueryWithParameters(ctx, query, parameters,
  influxdb3.WithQueryType(influxdb3.InfluxQL))
 
 // Process the result.
