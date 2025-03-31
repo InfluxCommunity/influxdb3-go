@@ -31,6 +31,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
@@ -160,6 +161,145 @@ func TestNewWithProxy(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "http://proxy:8888", c.config.Proxy)
+}
+
+func TestNewWithDefaults(t *testing.T) {
+	// Test default timeout.
+	c, err := New(ClientConfig{
+		Host:  "http://localhost:8086",
+		Token: "my-token",
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, defaultTimeout, c.config.HTTPClient.Timeout)
+	transport, ok := c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, defaultIdleConnectionTimeout, transport.IdleConnTimeout)
+	assert.Equal(t, defaultMaxIdleConnections, transport.MaxIdleConns)
+	assert.Equal(t, defaultMaxIdleConnections, transport.MaxIdleConnsPerHost)
+}
+
+func TestNewWithTimeout(t *testing.T) {
+	// Test no timeout.
+	c, err := New(ClientConfig{
+		Host:    "http://localhost:8086",
+		Token:   "my-token",
+		Timeout: -1, // no timeout
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, time.Duration(0), c.config.HTTPClient.Timeout)
+
+	// Test Timeout set.
+	timeout := 123 * time.Second
+	c, err = New(ClientConfig{
+		Host:    "http://localhost:8086",
+		Token:   "my-token",
+		Timeout: timeout,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, timeout, c.config.HTTPClient.Timeout)
+
+	// Test Timeout set with custom client.
+	customClient := http.Client{Timeout: 456 * time.Second}
+	c, err = New(ClientConfig{
+		Host:       "http://localhost:8086",
+		Token:      "my-token",
+		HTTPClient: &customClient,
+		Timeout:    timeout,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, timeout, c.config.HTTPClient.Timeout)
+}
+
+func TestNewWithIdleConnectionTimeout(t *testing.T) {
+	// Test no IdleConnectionTimeout.
+	c, err := New(ClientConfig{
+		Host:                  "http://localhost:8086",
+		Token:                 "my-token",
+		IdleConnectionTimeout: -1, // no timeout
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok := c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, time.Duration(0), transport.IdleConnTimeout)
+
+	// Test IdleConnectionTimeout set.
+	timeout := 123 * time.Second
+	c, err = New(ClientConfig{
+		Host:                  "http://localhost:8086",
+		Token:                 "my-token",
+		IdleConnectionTimeout: timeout,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok = c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, timeout, transport.IdleConnTimeout)
+
+	// Test IdleConnectionTimeout set with custom client.
+	customClient := http.Client{Timeout: 456 * time.Second}
+	c, err = New(ClientConfig{
+		Host:                  "http://localhost:8086",
+		Token:                 "my-token",
+		HTTPClient:            &customClient,
+		IdleConnectionTimeout: timeout,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok = c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, timeout, transport.IdleConnTimeout)
+}
+
+func TestNewWithMaxIdleConnections(t *testing.T) {
+	// Test no MaxIdleConnections.
+	c, err := New(ClientConfig{
+		Host:               "http://localhost:8086",
+		Token:              "my-token",
+		MaxIdleConnections: -1, // no limit
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok := c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, 0, transport.MaxIdleConns)
+	assert.Equal(t, 0, transport.MaxIdleConnsPerHost)
+
+	// Test MaxIdleConnections set.
+	value := 123
+	c, err = New(ClientConfig{
+		Host:               "http://localhost:8086",
+		Token:              "my-token",
+		MaxIdleConnections: value,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok = c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, value, transport.MaxIdleConns)
+	assert.Equal(t, value, transport.MaxIdleConnsPerHost)
+
+	// Test  set with custom client.
+	customClient := http.Client{Transport: &http.Transport{
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+	}}
+	c, err = New(ClientConfig{
+		Host:               "http://localhost:8086",
+		Token:              "my-token",
+		HTTPClient:         &customClient,
+		MaxIdleConnections: value,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	transport, ok = c.config.HTTPClient.Transport.(*http.Transport)
+	assert.True(t, ok)
+	assert.Equal(t, value, transport.MaxIdleConns)
+	assert.Equal(t, value, transport.MaxIdleConnsPerHost)
 }
 
 func TestURLs(t *testing.T) {

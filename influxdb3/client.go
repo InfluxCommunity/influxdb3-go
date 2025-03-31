@@ -32,12 +32,14 @@ import (
 	"io"
 	"log/slog"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apache/arrow/go/v15/arrow/flight"
 )
@@ -132,14 +134,33 @@ func New(config ClientConfig) (*Client, error) {
 
 	// Prepare HTTP client
 	if c.config.HTTPClient == nil {
-		var copied = *http.DefaultClient
-		c.config.HTTPClient = &copied
+		c.config.HTTPClient = newHTTPClient(config)
+	} else {
+		// HTTPClient provided by the user.
+		httpClient := c.config.HTTPClient
+		if config.isTimeoutSet() {
+			httpClient.Timeout = config.getTimeoutOrDefault()
+		}
+		if config.isIdleConnectionTimeoutSet() {
+			ensureTransportSet(httpClient, config)
+			if transport, ok := httpClient.Transport.(*http.Transport); ok {
+				transport.IdleConnTimeout = config.getIdleConnectionTimeoutOrDefault()
+			}
+		}
+		if config.isMaxIdleConnectionsSet() {
+			ensureTransportSet(httpClient, config)
+			if transport, ok := httpClient.Transport.(*http.Transport); ok {
+				maxIdleConnections := config.getMaxIdleConnectionsOrDefault()
+				transport.MaxIdleConns = maxIdleConnections
+				transport.MaxIdleConnsPerHost = maxIdleConnections
+			}
+		}
 	}
 	if certPool != nil {
-		setHTTPClientCertPool(c.config.HTTPClient, certPool)
+		setHTTPClientCertPool(c.config.HTTPClient, certPool, config)
 	}
 	if proxyURL != nil {
-		setHTTPClientProxy(c.config.HTTPClient, proxyURL)
+		setHTTPClientProxy(c.config.HTTPClient, proxyURL, config)
 	}
 
 	// Use default write option if not set
@@ -157,21 +178,51 @@ func New(config ClientConfig) (*Client, error) {
 	return c, nil
 }
 
-func ensureTransportSet(httpClient *http.Client) {
-	if httpClient.Transport == nil {
-		httpClient.Transport = http.DefaultTransport.(*http.Transport).Clone()
+// newHTTPTransport creates a new http.Transport based on ClientConfig.
+func newHTTPTransport(config ClientConfig) *http.Transport {
+	timeout := config.getTimeoutOrDefault()
+	idleConnectionTimeout := config.getIdleConnectionTimeoutOrDefault()
+	maxIdleConnections := config.getMaxIdleConnectionsOrDefault()
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.IdleConnTimeout = idleConnectionTimeout
+	transport.MaxIdleConns = maxIdleConnections
+	transport.MaxIdleConnsPerHost = maxIdleConnections
+
+	dialer := &net.Dialer{
+		Timeout:   timeout,          // connection timeout
+		KeepAlive: 30 * time.Second, // unchanged default from http.DefaultTransport
+	}
+	transport.DialContext = dialer.DialContext
+
+	return transport
+}
+
+// newHTTPClient creates a new HTTPClient based on ClientConfig.
+func newHTTPClient(config ClientConfig) *http.Client {
+	timeout := config.getTimeoutOrDefault()
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: newHTTPTransport(config),
 	}
 }
 
-func setHTTPClientProxy(httpClient *http.Client, proxyURL *url.URL) {
-	ensureTransportSet(httpClient)
+func ensureTransportSet(httpClient *http.Client, config ClientConfig) {
+	if httpClient.Transport == nil {
+		httpClient.Transport = newHTTPTransport(config)
+	}
+}
+
+func setHTTPClientProxy(httpClient *http.Client, proxyURL *url.URL, config ClientConfig) {
+	ensureTransportSet(httpClient, config)
 	if transport, ok := httpClient.Transport.(*http.Transport); ok {
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 }
 
-func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool) {
-	ensureTransportSet(httpClient)
+func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, config ClientConfig) {
+	ensureTransportSet(httpClient, config)
 	if transport, ok := httpClient.Transport.(*http.Transport); ok {
 		transport.TLSClientConfig = &tls.Config{
 			RootCAs:    certPool,
