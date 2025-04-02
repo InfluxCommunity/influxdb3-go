@@ -180,12 +180,12 @@ The `influxdb3.Client` internally uses 2 client libraries to communicate with an
 
 #### Configuration of http.Client
 
-| ClientConfig Key        | Description                                                                                                                                     |
-|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HTTPClient`            | A custom configured `http.Client` instance can be provided. If set this client instance will be used for write operations.                      |  
-| `Timeout`               | The overall time limit for requests made by the Client. A negative value means no timeout. Default value: 10 seconds.                           |
-| `IdleConnectionTimeout` | Maximum amount of time an idle connection will remain idle before closing itself. A negative value means no timeout. Default value: 90 seconds. |
-| `MaxIdleConnections`    | Maximum number of idle connections. A negative value means no limit. Default value: 100.                                                        |
+| ClientConfig Key        | Description                                                                                                                                                                          |
+|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `HTTPClient`            | A custom configured `http.Client` instance can be provided. If set this client instance will be used for write operations.                                                           |  
+| `Timeout`               | The overall time limit for requests made by the Client. A negative value means no timeout. Default value: 10 seconds.                                                                |
+| `IdleConnectionTimeout` | Maximum amount of time an idle connection will remain idle before closing itself. A negative value means no timeout. Default value: 90 seconds.                                      |
+| `MaxIdleConnections`    | Maximum number of idle connections. It sets both `transport.MaxIdleConn` and `transport.MaxIdleConnsPerHost` to the same value. A negative value means no limit. Default value: 100. |
 
 ### Close the client
 
