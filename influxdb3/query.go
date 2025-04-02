@@ -96,9 +96,11 @@ type QueryParameters = map[string]any
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A result iterator (*QueryIterator).
+//   - A result iterator (QueryIterator).
 //   - An error, if any.
-func (c *Client) Query(ctx context.Context, query string, options ...QueryOption) (*QueryIterator, error) {
+//
+//nolint:ireturn
+func (c *Client) Query(ctx context.Context, query string, options ...QueryOption) (QueryIterator, error) {
 	return c.query(ctx, query, nil, newQueryOptions(&DefaultQueryOptions, options))
 }
 
@@ -109,9 +111,11 @@ func (c *Client) Query(ctx context.Context, query string, options ...QueryOption
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A result iterator (*PointValueIterator).
+//   - A result iterator (PointValueIterator).
 //   - An error, if any.
-func (c *Client) QueryPointValue(ctx context.Context, query string, options ...QueryOption) (*PointValueIterator, error) {
+//
+//nolint:ireturn
+func (c *Client) QueryPointValue(ctx context.Context, query string, options ...QueryOption) (PointValueIterator, error) {
 	return c.queryPointValue(ctx, query, nil, newQueryOptions(&DefaultQueryOptions, options))
 }
 
@@ -123,10 +127,12 @@ func (c *Client) QueryPointValue(ctx context.Context, query string, options ...Q
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A result iterator (*QueryIterator).
+//   - A result iterator (QueryIterator).
 //   - An error, if any.
+//
+//nolint:ireturn
 func (c *Client) QueryWithParameters(ctx context.Context, query string, parameters QueryParameters,
-	options ...QueryOption) (*QueryIterator, error) {
+	options ...QueryOption) (QueryIterator, error) {
 	return c.query(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
@@ -138,10 +144,12 @@ func (c *Client) QueryWithParameters(ctx context.Context, query string, paramete
 //   - options: The optional query options. See QueryOption for available options.
 //
 // Returns:
-//   - A result iterator (*PointValueIterator).
+//   - A result iterator (PointValueIterator).
 //   - An error, if any.
+//
+//nolint:ireturn
 func (c *Client) QueryPointValueWithParameters(ctx context.Context, query string, parameters QueryParameters,
-	options ...QueryOption) (*PointValueIterator, error) {
+	options ...QueryOption) (PointValueIterator, error) {
 	return c.queryPointValue(ctx, query, parameters, newQueryOptions(&DefaultQueryOptions, options))
 }
 
@@ -152,11 +160,13 @@ func (c *Client) QueryPointValueWithParameters(ctx context.Context, query string
 //   - query: The query string to execute.
 //
 // Returns:
-//   - A result iterator (*QueryIterator).
+//   - A result iterator (QueryIterator).
 //   - An error, if any.
 //
 // Deprecated: use Query with variadic QueryOption options.
-func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (*QueryIterator, error) {
+//
+//nolint:ireturn
+func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, query string) (QueryIterator, error) {
 	if options == nil {
 		return nil, errors.New("options not set")
 	}
@@ -164,22 +174,24 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 	return c.query(ctx, query, nil, options)
 }
 
-func (c *Client) query(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*QueryIterator, error) {
+//nolint:ireturn
+func (c *Client) query(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (QueryIterator, error) {
 	reader, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return newQueryIterator(reader), nil
+	return newDefaultQueryIterator(reader), nil
 }
 
-func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*PointValueIterator, error) {
+//nolint:ireturn
+func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (PointValueIterator, error) {
 	reader, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return newPointValueIterator(reader), nil
+	return newDefaultPointValueIterator(reader), nil
 }
 
 func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, error) {
