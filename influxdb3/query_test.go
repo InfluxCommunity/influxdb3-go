@@ -152,11 +152,8 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 }
 
 func TestQueryWithLargeResponseFail(t *testing.T) {
-	s := *testutil.StartMockServer(t)
-	origBlobSize := testutil.BlobSize
-	testutil.BlobSize = 4194314
+	s := *testutil.StartMockFlightServer(t, 4194314)
 	defer func() {
-		testutil.BlobSize = origBlobSize
 		s.Shutdown()
 	}()
 
@@ -166,6 +163,12 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 		Database: "explore",
 	})
 	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
 	qIter, qErr := client.Query(context.Background(),
 		"SELECT * FROM examples")
 
@@ -175,11 +178,9 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 }
 
 func TestQueryWithLargeResponsePass(t *testing.T) {
-	s := *testutil.StartMockServer(t)
-	origBlobSize := testutil.BlobSize
-	testutil.BlobSize = 4194314
+	blobSize := int64(4194314)
+	s := *testutil.StartMockFlightServer(t, blobSize)
 	defer func() {
-		testutil.BlobSize = origBlobSize
 		s.Shutdown()
 	}()
 
@@ -189,6 +190,12 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 		Database: "explore",
 	})
 	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
 	qIter, qErr := client.Query(context.Background(),
 		"SELECT * FROM examples",
 		WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
@@ -200,7 +207,7 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 	for qIter.Next() {
 		count++
 	}
-	assert.Equal(t, testutil.BlobSize, count)
+	assert.Equal(t, blobSize, count)
 	assert.Nil(t, qIter.Err())
 }
 

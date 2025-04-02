@@ -50,11 +50,10 @@ func (emmr *ErrorMessageMockReader) Release() {}
 
 func (emmr *ErrorMessageMockReader) Retain() {}
 
-var BlobSize int64 = 4096
-
 var Records = make(map[string][]arrow.Record)
 
 type MockFlightServer struct {
+	BlobSize int64
 	flight.BaseFlightServer
 }
 
@@ -84,7 +83,7 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 	_, qtErr := SQLQueryTicketFromJSONBytes(tkt.GetTicket())
 
 	if qtErr == nil {
-		return writeBlob(fs, BlobSize)
+		return writeBlob(fs, f.BlobSize)
 	}
 
 	recs, ok := Records[string(tkt.GetTicket())]
@@ -104,8 +103,8 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 }
 
 //nolint:all
-func StartMockServer(t *testing.T) *flight.Server {
-	mockServer := MockFlightServer{}
+func StartMockFlightServer(t *testing.T, blobSize int64) *flight.Server {
+	mockServer := MockFlightServer{BlobSize: blobSize}
 	s := flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
 	err := s.Init("localhost:0")
 	if err != nil {
