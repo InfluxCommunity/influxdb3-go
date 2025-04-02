@@ -5,7 +5,7 @@ jobs:
     parameters:
       go-image:
         type: string
-        default: "cimg/go:1.22"
+        default: "cimg/go:1.23"
     docker:
       - image: << parameters.go-image >>
     steps:
