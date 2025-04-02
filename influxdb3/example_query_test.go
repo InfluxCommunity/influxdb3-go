@@ -25,6 +25,9 @@ package influxdb3
 import (
 	"context"
 	"log"
+
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"google.golang.org/grpc"
 )
 
 func ExampleClient_Query() {
@@ -79,6 +82,26 @@ func ExampleClient_QueryWithParameters() {
 		WithHeader("X-trace-ID", "#0122"))
 
 	for iterator.Next() {
+		// process the result
+	}
+}
+
+func ExampleClient_QueryWithOptions() {
+	client, err := NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	qIter, _ := client.Query(context.Background(),
+		"SELECT * FROM temp WHERE time >= now() - interval '1 hour'",
+		WithDatabase("building204"),
+		WithPrecision(lineprotocol.Millisecond),
+		WithGzipThreshold(1_000_000),
+		WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
+	)
+
+	for qIter.Next() {
 		// process the result
 	}
 }
