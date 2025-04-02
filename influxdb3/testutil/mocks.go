@@ -50,15 +50,14 @@ func (emmr *ErrorMessageMockReader) Release() {}
 
 func (emmr *ErrorMessageMockReader) Retain() {}
 
-var Records = make(map[string][]arrow.Record)
-
 type MockFlightServer struct {
 	BlobSize int64
+	Records  map[string][]arrow.Record
 	flight.BaseFlightServer
 }
 
-func writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
-	recs := MakeBlobRecords("test", size)
+func (f *MockFlightServer) writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
+	recs := f.MakeBlobRecords("test", size)
 
 	w := flight.NewRecordWriter(fs, ipc.WithSchema(recs[0].Schema()))
 
@@ -76,17 +75,17 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 	bt, btErr := BlobTicketFromJSONBytes(tkt.GetTicket())
 	if btErr == nil {
 		if bt.Name == "blob" {
-			return writeBlob(fs, bt.Size)
+			return f.writeBlob(fs, bt.Size)
 		}
 	}
 
 	_, qtErr := SQLQueryTicketFromJSONBytes(tkt.GetTicket())
 
 	if qtErr == nil {
-		return writeBlob(fs, f.BlobSize)
+		return f.writeBlob(fs, f.BlobSize)
 	}
 
-	recs, ok := Records[string(tkt.GetTicket())]
+	recs, ok := f.Records[string(tkt.GetTicket())]
 	if !ok {
 		return status.Error(codes.NotFound, "flight not found")
 	}
@@ -104,7 +103,7 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 
 //nolint:all
 func StartMockFlightServer(t *testing.T, blobSize int64) *flight.Server {
-	mockServer := MockFlightServer{BlobSize: blobSize}
+	mockServer := MockFlightServer{BlobSize: blobSize, Records: make(map[string][]arrow.Record)}
 	s := flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
 	err := s.Init("localhost:0")
 	if err != nil {
@@ -223,7 +222,7 @@ func (a *ServAuth) IsValid(token string) (interface{}, error) {
 	return "", errors.New("novalid")
 }
 
-func MakeBlobRecords(name string, size int64) []arrow.Record {
+func (f *MockFlightServer) MakeBlobRecords(name string, size int64) []arrow.Record {
 	mem := memory.NewGoAllocator()
 	meta := arrow.NewMetadata([]string{"blob"}, []string{"blob_val"})
 
@@ -259,11 +258,11 @@ func MakeBlobRecords(name string, size int64) []arrow.Record {
 		recs[i] = array.NewRecord(schema, chunk, -1)
 	}
 
-	Records[name] = recs
+	f.Records[name] = recs
 	return recs
 }
 
-func MakeConstantRecords() []arrow.Record {
+func (f *MockFlightServer) MakeConstantRecords() []arrow.Record {
 	mem := memory.NewGoAllocator()
 
 	meta := arrow.NewMetadata([]string{"data", "reference", "val"},
@@ -296,7 +295,7 @@ func MakeConstantRecords() []arrow.Record {
 		recs[i] = array.NewRecord(schema, chunk, -1)
 	}
 
-	Records["constants"] = recs
+	f.Records["constants"] = recs
 	return recs
 }
 
