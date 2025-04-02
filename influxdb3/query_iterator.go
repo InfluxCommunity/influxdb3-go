@@ -119,6 +119,7 @@ type defaultQueryIterator struct {
 	done bool
 }
 
+//nolint:ireturn
 func newDefaultQueryIterator(reader *flight.Reader) QueryIterator {
 	return &defaultQueryIterator{
 		reader:        reader,

@@ -53,7 +53,10 @@ func TestQueryIteratorEmptyRecord(t *testing.T) {
 	assert.NoError(t, err)
 
 	fReader := &flight.Reader{Reader: ipcReader}
-	it := newDefaultQueryIterator(fReader).(*defaultQueryIterator)
+	it, ok := newDefaultQueryIterator(fReader).(*defaultQueryIterator)
+	if !ok {
+		t.Error("expected defaultQueryIterator")
+	}
 
 	count := 0
 	for it.Next() {

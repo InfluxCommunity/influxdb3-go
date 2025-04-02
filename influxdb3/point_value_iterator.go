@@ -67,6 +67,8 @@ type defaultPointValueIterator struct {
 }
 
 // Return a new defaultPointValueIterator
+//
+//nolint:ireturn
 func newDefaultPointValueIterator(reader *flight.Reader) PointValueIterator {
 	return &defaultPointValueIterator{
 		reader: reader,
