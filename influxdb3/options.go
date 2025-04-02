@@ -137,9 +137,6 @@ func WithDefaultTags(tags map[string]string) Option {
 
 func WithGrpcCallOption(grpcCallOption grpc.CallOption) Option {
 	return func(o *options) {
-		if o.QueryOptions.GrpcCallOptions == nil {
-			o.QueryOptions.GrpcCallOptions = make([]grpc.CallOption, 0)
-		}
 		o.QueryOptions.GrpcCallOptions = append(o.QueryOptions.GrpcCallOptions, grpcCallOption)
 	}
 }
