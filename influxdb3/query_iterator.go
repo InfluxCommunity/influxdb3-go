@@ -48,7 +48,62 @@ const (
 //   - iterator.Value() returns map[string]interface{} object representing the current row
 //   - iterator.AsPoints() returns *PointValues object representing the current row
 //   - iterator.Raw() returns the underlying *flight.Reader object
-type QueryIterator struct {
+type QueryIterator interface {
+
+	// Next reads the next value of the flight reader and returns true if a value is present.
+	//
+	// Returns:
+	//   - true if a value is present, false otherwise.
+	Next() bool
+
+	// AsPoints return data from InfluxDB v3 into PointValues structure.
+	AsPoints() *PointValues
+
+	// Value returns the current value from the flight reader as a map object.
+	// The map contains the fields and tags as key-value pairs.
+	//
+	// The current value types respect metadata provided by InfluxDB v3 metadata query response.
+	// Tags are mapped as a "string", timestamp as "time.Time", and fields as their respective types.
+	//
+	// Field are mapped to the following types:
+	//   - iox::column_type::field::integer: => int64
+	//   - iox::column_type::field::uinteger: => uint64
+	//   - iox::column_type::field::float: => float64
+	//   - iox::column_type::field::string: => string
+	//   - iox::column_type::field::boolean: => bool
+	//
+	// Returns:
+	//   - A map[string]interface{} object representing the current value.
+	Value() map[string]interface{}
+
+	// Index returns the current index of Value.
+	//
+	// Returns:
+	//   - The current index value.
+	Index() interface{}
+
+	// Done returns a boolean value indicating whether the iteration is complete or not.
+	//
+	// Returns:
+	//   - true if the iteration is complete, false otherwise.
+	Done() bool
+
+	// Err returns the first err that might have occurred during iteration
+	//
+	// Returns:
+	//   - the err or nil if no err occurred
+	Err() error
+
+	// Raw returns the underlying flight.Reader associated with the QueryIterator.
+	// WARNING: It is imperative to use either the Raw method or the Value and Next functions, but not both at the same time,
+	// as it can lead to unpredictable behavior.
+	//
+	// Returns:
+	//   - The underlying flight.Reader.
+	Raw() *flight.Reader
+}
+
+type defaultQueryIterator struct {
 	reader *flight.Reader
 	// Current record
 	record arrow.Record
@@ -64,8 +119,8 @@ type QueryIterator struct {
 	done bool
 }
 
-func newQueryIterator(reader *flight.Reader) *QueryIterator {
-	return &QueryIterator{
+func newDefaultQueryIterator(reader *flight.Reader) QueryIterator {
+	return &defaultQueryIterator{
 		reader:        reader,
 		record:        nil,
 		err:           nil,
@@ -75,11 +130,7 @@ func newQueryIterator(reader *flight.Reader) *QueryIterator {
 	}
 }
 
-// Next reads the next value of the flight reader and returns true if a value is present.
-//
-// Returns:
-//   - true if a value is present, false otherwise.
-func (i *QueryIterator) Next() bool {
+func (i *defaultQueryIterator) Next() bool {
 	if i.done {
 		return false
 	}
@@ -115,8 +166,7 @@ func (i *QueryIterator) Next() bool {
 	return true
 }
 
-// AsPoints return data from InfluxDB v3 into PointValues structure.
-func (i *QueryIterator) AsPoints() *PointValues {
+func (i *defaultQueryIterator) AsPoints() *PointValues {
 	return rowToPointValue(i.record, i.indexInRecord)
 }
 
@@ -159,54 +209,21 @@ func rowToPointValue(record arrow.Record, rowIndex int) *PointValues {
 	return p
 }
 
-// Value returns the current value from the flight reader as a map object.
-// The map contains the fields and tags as key-value pairs.
-//
-// The current value types respect metadata provided by InfluxDB v3 metadata query response.
-// Tags are mapped as a "string", timestamp as "time.Time", and fields as their respective types.
-//
-// Field are mapped to the following types:
-//   - iox::column_type::field::integer: => int64
-//   - iox::column_type::field::uinteger: => uint64
-//   - iox::column_type::field::float: => float64
-//   - iox::column_type::field::string: => string
-//   - iox::column_type::field::boolean: => bool
-//
-// Returns:
-//   - A map[string]interface{} object representing the current value.
-func (i *QueryIterator) Value() map[string]interface{} {
+func (i *defaultQueryIterator) Value() map[string]interface{} {
 	return i.current
 }
 
-// Index returns the current index of Value.
-//
-// Returns:
-//   - The current index value.
-func (i *QueryIterator) Index() interface{} {
+func (i *defaultQueryIterator) Index() interface{} {
 	return i.i
 }
 
-// Done returns a boolean value indicating whether the iteration is complete or not.
-//
-// Returns:
-//   - true if the iteration is complete, false otherwise.
-func (i *QueryIterator) Done() bool {
+func (i *defaultQueryIterator) Done() bool {
 	return i.done
 }
 
-// Err returns the first err that might have occurred during iteration
-//
-// Returns:
-//   - the err or nil if no err occurred
-func (i *QueryIterator) Err() error { return i.err }
+func (i *defaultQueryIterator) Err() error { return i.err }
 
-// Raw returns the underlying flight.Reader associated with the QueryIterator.
-// WARNING: It is imperative to use either the Raw method or the Value and Next functions, but not both at the same time,
-// as it can lead to unpredictable behavior.
-//
-// Returns:
-//   - The underlying flight.Reader.
-func (i *QueryIterator) Raw() *flight.Reader {
+func (i *defaultQueryIterator) Raw() *flight.Reader {
 	return i.reader
 }
 

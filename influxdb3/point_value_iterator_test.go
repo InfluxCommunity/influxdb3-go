@@ -122,7 +122,7 @@ func TestPointValueIterator(t *testing.T) {
 	assert.NoError(t, err)
 
 	fReader := &flight.Reader{Reader: ipcReader}
-	it := newPointValueIterator(fReader)
+	it := newDefaultPointValueIterator(fReader)
 
 	var resultSet0 []int64
 	var resultSet1 []interface{}
@@ -241,7 +241,7 @@ func TestPointValueIteratorError(t *testing.T) {
 
 	fReader := &flight.Reader{Reader: mockReader}
 
-	it := newPointValueIterator(fReader)
+	it := newDefaultPointValueIterator(fReader)
 
 	values, err := it.Next()
 

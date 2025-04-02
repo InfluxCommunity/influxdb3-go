@@ -35,7 +35,30 @@ var Done = errors.New("no more items in iterator") //nolint:all
 // the flight reader. It provides method Next to consume the flight reader,
 //
 // The PointValueIterator Next function will return response as a *PointValues object representing the current row
-type PointValueIterator struct {
+type PointValueIterator interface {
+
+	// Next returns the next result.
+	// Its second return value is iterator.Done if there are no more results.
+	// Once Next returns Done in the second parameter, all subsequent calls will return Done.
+	//
+	//	it := newDefaultPointValueIterator(flightReader)
+	//	for {
+	//		PointValue, err := it.Next()
+	//		if err == iterator.Done {
+	//			break
+	//		}
+	//		if err != nil {
+	//			return err
+	//		}
+	//		process(PointValue)
+	//	}
+	Next() (*PointValues, error)
+
+	// Index return the current index of PointValueIterator
+	Index() int
+}
+
+type defaultPointValueIterator struct {
 	reader *flight.Reader
 	// Index of row of current object in current record
 	index int
@@ -43,31 +66,16 @@ type PointValueIterator struct {
 	record arrow.Record
 }
 
-// Return a new PointValueIterator
-func newPointValueIterator(reader *flight.Reader) *PointValueIterator {
-	return &PointValueIterator{
+// Return a new defaultPointValueIterator
+func newDefaultPointValueIterator(reader *flight.Reader) PointValueIterator {
+	return &defaultPointValueIterator{
 		reader: reader,
 		index:  -1,
 		record: nil,
 	}
 }
 
-// Next returns the next result.
-// Its second return value is iterator.Done if there are no more results.
-// Once Next returns Done in the second parameter, all subsequent calls will return Done.
-//
-//	it := newPointValueIterator(flightReader)
-//	for {
-//		PointValue, err := it.Next()
-//		if err == iterator.Done {
-//			break
-//		}
-//		if err != nil {
-//			return err
-//		}
-//		process(PointValue)
-//	}
-func (it *PointValueIterator) Next() (*PointValues, error) {
+func (it *defaultPointValueIterator) Next() (*PointValues, error) {
 	it.index++
 
 	for it.record == nil || it.index >= int(it.record.NumRows()) {
@@ -85,7 +93,6 @@ func (it *PointValueIterator) Next() (*PointValues, error) {
 	return pointValues, nil
 }
 
-// Index return the current index of PointValueIterator
-func (it *PointValueIterator) Index() int {
+func (it *defaultPointValueIterator) Index() int {
 	return it.index
 }

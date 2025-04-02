@@ -1,3 +1,22 @@
+## 3.0.0 [unreleased]
+
+### Breaking Changes
+
+:warning: **This is a breaking change release.**
+
+> To improve mockability, `QueryIterator` and `PointValueIterator` were changed from `struct` type to `interface` type.
+
+Update steps:
+
+1. Update library: `go get github.com/InfluxCommunity/influxdb3-go/v3/influxdb3`
+1. Update import path in Go files to `github.com/InfluxCommunity/influxdb3-go/v3/influxdb3`
+1. Replace all occurrences of `*QueryIterator` with `QueryIterator` in your code
+1. Replace all occurrences of `*PointValueIterator` with `PointValueIterator` in your code
+
+### Features
+
+1. [#150](https://github.com/InfluxCommunity/influxdb3-go/pull/150): `QueryIterator` and `PointValueIterator` were changed to `interface` type.
+
 ## 2.5.0 [unreleased]
 
 ### Features
