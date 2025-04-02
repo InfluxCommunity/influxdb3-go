@@ -25,6 +25,7 @@ package influxdb3
 import (
 	"context"
 	"log"
+	"time"
 )
 
 func ExampleClient_Query() {
@@ -34,8 +35,13 @@ func ExampleClient_Query() {
 	}
 	defer client.Close()
 
+	// configure client timeout via context
+	clientTimeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), clientTimeout)
+	defer cancel()
+
 	// query
-	iterator, _ := client.Query(context.Background(),
+	iterator, _ := client.Query(ctx,
 		"SELECT count(*) FROM weather WHERE time >= now() - interval '5 minutes'")
 
 	for iterator.Next() {
@@ -43,7 +49,7 @@ func ExampleClient_Query() {
 	}
 
 	// query with custom header
-	iterator, _ = client.Query(context.Background(),
+	iterator, _ = client.Query(ctx,
 		"SELECT count(*) FROM stat WHERE time >= now() - interval '5 minutes'",
 		WithHeader("X-trace-ID", "#0122"))
 
@@ -59,8 +65,13 @@ func ExampleClient_QueryWithParameters() {
 	}
 	defer client.Close()
 
+	// configure client timeout via context
+	clientTimeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), clientTimeout)
+	defer cancel()
+
 	// query
-	iterator, _ := client.QueryWithParameters(context.Background(),
+	iterator, _ := client.QueryWithParameters(ctx,
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",
@@ -71,7 +82,7 @@ func ExampleClient_QueryWithParameters() {
 	}
 
 	// query with custom header
-	iterator, _ = client.QueryWithParameters(context.Background(),
+	iterator, _ = client.QueryWithParameters(ctx,
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",
