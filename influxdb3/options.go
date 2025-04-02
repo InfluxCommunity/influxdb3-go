@@ -146,10 +146,6 @@ func WithDefaultTags(tags map[string]string) Option {
 //	   )
 //
 // For more information see https://pkg.go.dev/google.golang.org/grpc#CallOption
-//
-//nolint:gci
-//nolint:gofmt
-//nolint:goimports
 func WithGrpcCallOption(grpcCallOption grpc.CallOption) Option {
 	return func(o *options) {
 		o.QueryOptions.GrpcCallOptions = append(o.QueryOptions.GrpcCallOptions, grpcCallOption)
