@@ -19,14 +19,22 @@ func main() {
 	// (optional) Proxy URL
 	proxyURL := os.Getenv("INFLUX_PROXY_URL")
 
+	// Client timeout
+	timeout := 10 * time.Second
+
 	// Instantiate a client using your credentials.
-	client, err := influxdb3.New(influxdb3.ClientConfig{
+	config := influxdb3.ClientConfig{
 		Host:             url,
 		Token:            token,
 		Database:         database,
 		SSLRootsFilePath: sslRootsFilePath,
 		Proxy:            proxyURL,
-	})
+		// Connection parameters:
+		Timeout:               timeout,
+		IdleConnectionTimeout: 90 * time.Second,
+		MaxIdleConnections:    10,
+	}
+	client, err := influxdb3.New(config)
 	if err != nil {
 		panic(err)
 	}
@@ -99,8 +107,10 @@ func main() {
     AND location IN ('Paris', 'London', 'Madrid')
   `
 
-	// Run the query
-	iterator, err := client.Query(context.Background(), query)
+	// Run the query (with client timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	iterator, err := client.Query(ctx, query)
 	if err != nil {
 		panic(err)
 	}

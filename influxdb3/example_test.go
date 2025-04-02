@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"log"
+	"time"
 )
 
 func ExampleNew() {
@@ -33,6 +34,10 @@ func ExampleNew() {
 		Database:         "my-database",
 		SSLRootsFilePath: "/path/to/certificates.pem",
 		Proxy:            "http://localhost:8888",
+		// Connection parameters:
+		Timeout:               10 * time.Second,
+		IdleConnectionTimeout: 90 * time.Second,
+		MaxIdleConnections:    10,
 	})
 	if err != nil {
 		log.Fatal(err)

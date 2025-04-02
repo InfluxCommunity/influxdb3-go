@@ -138,14 +138,12 @@ func WithDefaultTags(tags map[string]string) Option {
 
 // WithGrpcCallOption is used to send GRPC call options to the underlying Flight client
 //
-//nolint:gci
-//nolint:gofmt
-//nolint:goimports
 // Example:
-//      qIter, qErr := client.Query(context.Background(),
-//          "SELECT * FROM examples",
-//          WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
-//         )
+//
+//	qIter, qErr := client.Query(context.Background(),
+//	    "SELECT * FROM examples",
+//	    WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
+//	   )
 //
 // For more information see https://pkg.go.dev/google.golang.org/grpc#CallOption
 func WithGrpcCallOption(grpcCallOption grpc.CallOption) Option {

@@ -26,9 +26,13 @@ import (
 	"context"
 	"log"
 
+	"time"
+
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
+
+var ctx = context.Background()
 
 func ExampleClient_Query() {
 	client, err := NewFromEnv()
@@ -37,8 +41,13 @@ func ExampleClient_Query() {
 	}
 	defer client.Close()
 
+	// configure client timeout via context
+	clientTimeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), clientTimeout)
+	defer cancel()
+
 	// query
-	iterator, _ := client.Query(context.Background(),
+	iterator, _ := client.Query(ctx,
 		"SELECT count(*) FROM weather WHERE time >= now() - interval '5 minutes'")
 
 	for iterator.Next() {
@@ -46,7 +55,7 @@ func ExampleClient_Query() {
 	}
 
 	// query with custom header
-	iterator, _ = client.Query(context.Background(),
+	iterator, _ = client.Query(ctx,
 		"SELECT count(*) FROM stat WHERE time >= now() - interval '5 minutes'",
 		WithHeader("X-trace-ID", "#0122"))
 
@@ -63,7 +72,7 @@ func ExampleClient_QueryWithParameters() {
 	defer client.Close()
 
 	// query
-	iterator, _ := client.QueryWithParameters(context.Background(),
+	iterator, _ := client.QueryWithParameters(ctx,
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",
@@ -74,7 +83,7 @@ func ExampleClient_QueryWithParameters() {
 	}
 
 	// query with custom header
-	iterator, _ = client.QueryWithParameters(context.Background(),
+	iterator, _ = client.QueryWithParameters(ctx,
 		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
 		QueryParameters{
 			"location": "sun-valley-1",
@@ -93,7 +102,7 @@ func ExampleClient_QueryWithOptions() {
 	}
 	defer client.Close()
 
-	qIter, _ := client.Query(context.Background(),
+	qIter, _ := client.Query(ctx,
 		"SELECT * FROM temp WHERE time >= now() - interval '1 hour'",
 		WithDatabase("building204"),
 		WithPrecision(lineprotocol.Millisecond),
