@@ -4,7 +4,14 @@
 
 1. [#146](https://github.com/InfluxCommunity/influxdb3-go/pull/146): Add error field to QueryIterator to hold first possible error encountered when retrieving records from the flight Reader.
 1. [#147](https://github.com/InfluxCommunity/influxdb3-go/pull/147): Ability to pass `grpc.CallOption` functions to the underlying flight Client.
-1. [#149](https://github.com/InfluxCommunity/influxdb3-go/pull/149): Fix built-in HTTP client's default configuration and expose some configuration options.
+1. [#149](https://github.com/InfluxCommunity/influxdb3-go/pull/149): Fix built-in HTTP client's default configuration
+   and expose new configurable parameters:
+   - `Timeout` - The overall time limit for requests made by the Client. A negative value means no timeout. Default
+     value: 10 seconds.
+   - `IdleConnectionTimeout` - Maximum time an idle connection will remain idle before closing itself. A negative value
+     means no timeout. Default value: 90 seconds.
+   - `MaxIdleConnections`  - Maximum number of idle connections. It sets both `transport.MaxIdleConn` and
+     `transport.MaxIdleConnsPerHost` to the same value. A negative value means no limit. Default value: 100.
 
 ## 2.4.0 [2025-03-26]
 
