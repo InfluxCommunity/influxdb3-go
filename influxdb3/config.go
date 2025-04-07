@@ -131,9 +131,6 @@ type ClientConfig struct {
 	Proxy string
 }
 
-type HTTPClientConfig struct {
-}
-
 // validate validates the config.
 func (c *ClientConfig) validate() error {
 	if c.Host == "" {
