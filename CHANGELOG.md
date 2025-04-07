@@ -3,7 +3,8 @@
 ### Features
 
 1. [#146](https://github.com/InfluxCommunity/influxdb3-go/pull/146): Add error field to QueryIterator to hold first possible error encountered when retrieving records from the flight Reader.
-2. [#147](https://github.com/InfluxCommunity/influxdb3-go/pull/147): Ability to pass `grpc.CallOption` functions to the underlying flight Client.
+1. [#147](https://github.com/InfluxCommunity/influxdb3-go/pull/147): Ability to pass `grpc.CallOption` functions to the underlying flight Client.
+1. [#149](https://github.com/InfluxCommunity/influxdb3-go/pull/149): Fix built-in HTTP client's default configuration and expose some configuration options.
 
 ## 2.4.0 [2025-03-26]
 

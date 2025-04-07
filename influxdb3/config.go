@@ -29,6 +29,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
@@ -50,6 +51,15 @@ const (
 	connStrInfluxDatabase      = "database"
 	connStrInfluxPrecision     = "precision"
 	connStrInfluxGzipThreshold = "gzipThreshold"
+)
+
+const (
+	// defaultTimeout specifies the default value of ClientConfig.Timeout.
+	defaultTimeout = 10 * time.Second
+	// defaultIdleConnectionTimeout specifies the default value of ClientConfig.IdleConnectionTimeout.
+	defaultIdleConnectionTimeout = 90 * time.Second
+	// defaultMaxIdleConnections specifies the default value of ClientConfig.MaxIdleConnections.
+	defaultMaxIdleConnections = 100
 )
 
 // ClientConfig holds the parameters for creating a new client.
@@ -81,8 +91,32 @@ type ClientConfig struct {
 	// (TLSClientConfig), a custom request timeout (Timeout),
 	// or other customization as required.
 	//
-	// It HTTPClient is nil, http.DefaultClient will be used.
+	// If HTTPClient is nil, http.DefaultClient will be used with the following adjustments:
+	//   - Timeout: 10s
+	//   - Transport.IdleConnTimeout: 90s
+	//   - Transport.MaxIdleConns: 100
+	//   - Transport.MaxIdleConnsPerHost: 100
 	HTTPClient *http.Client
+
+	// Timeout specifies the overall time limit for requests made by the Client.
+	// The timeout includes connection time, any redirects, and reading the response body.
+	// It is applied to write (HTTP client) operations only.
+	//
+	// A negative value means no timeout. Default value: 10 seconds.
+	Timeout time.Duration
+
+	// IdleConnectionTimeout specifies the maximum amount of time an idle connection
+	// will remain idle before closing itself.
+	// It is applied to write (HTTP client) operations only.
+	//
+	// A negative value means no timeout. Default value: 90 seconds.
+	IdleConnectionTimeout time.Duration
+
+	// MaxIdleConnections controls the maximum number of idle connections.
+	// It is applied to write (HTTP client) operations only.
+	//
+	// A negative value means no limit. Default value: 100.
+	MaxIdleConnections int
 
 	// Write options
 	WriteOptions *WriteOptions
@@ -220,4 +254,58 @@ func (c *ClientConfig) parseGzipThreshold(threshold string) error {
 	c.WriteOptions.GzipThreshold = value
 
 	return nil
+}
+
+// isTimeoutSet returns whether the Timeout was set.
+func (c *ClientConfig) isTimeoutSet() bool {
+	return c.Timeout != 0
+}
+
+// getTimeoutOrDefault returns the Timeout or the default value if not set.
+func (c *ClientConfig) getTimeoutOrDefault() time.Duration {
+	if c.Timeout == 0 {
+		// Not set, use the default.
+		return defaultTimeout
+	}
+	if c.Timeout < 0 {
+		// No timeout.
+		return 0
+	}
+	return c.Timeout
+}
+
+// isIdleConnectionTimeoutSet returns whether the IdleConnectionTimeout was set.
+func (c *ClientConfig) isIdleConnectionTimeoutSet() bool {
+	return c.IdleConnectionTimeout != 0
+}
+
+// getIdleConnectionTimeoutOrDefault returns the IdleConnectionTimeout or the default value if not set.
+func (c *ClientConfig) getIdleConnectionTimeoutOrDefault() time.Duration {
+	if c.IdleConnectionTimeout == 0 {
+		// Not set, use the default.
+		return defaultIdleConnectionTimeout
+	}
+	if c.IdleConnectionTimeout < 0 {
+		// No timeout.
+		return 0
+	}
+	return c.IdleConnectionTimeout
+}
+
+// isMaxIdleConnectionsSet returns whether the MaxIdleConnections was set.
+func (c *ClientConfig) isMaxIdleConnectionsSet() bool {
+	return c.MaxIdleConnections != 0
+}
+
+// getMaxIdleConnectionsOrDefault returns the MaxIdleConnections or the default value if not set.
+func (c *ClientConfig) getMaxIdleConnectionsOrDefault() int {
+	if c.MaxIdleConnections == 0 {
+		// Not set, use the default.
+		return defaultMaxIdleConnections
+	}
+	if c.MaxIdleConnections < 0 {
+		// No limit.
+		return 0
+	}
+	return c.MaxIdleConnections
 }

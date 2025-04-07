@@ -28,8 +28,10 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -501,23 +503,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 
 func TestWriteData(t *testing.T) {
 	now := time.Now()
-	s := struct {
-		Measurement string    `lp:"measurement"`
-		Sensor      string    `lp:"tag,sensor"`
-		ID          string    `lp:"tag,device_id"`
-		Temp        float64   `lp:"field,temperature"`
-		Hum         int       `lp:"field,humidity"`
-		Time        time.Time `lp:"timestamp"`
-		Description string    `lp:"-"`
-	}{
-		"air",
-		"SHT31",
-		"10",
-		23.5,
-		55,
-		now,
-		"Room temp",
-	}
+	s := sampleDataStruct(now)
 	lp := fmt.Sprintf("air,device_id=10,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.UnixNano())
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
@@ -538,6 +524,35 @@ func TestWriteData(t *testing.T) {
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s})
 	assert.NoError(t, err)
+}
+
+func sampleDataStruct(now time.Time) struct {
+	Measurement string `lp:"measurement"`
+	Sensor      string `lp:"tag,sensor"`
+	ID          string `lp:"tag,device_id"`
+
+	Temp        float64   `lp:"field,temperature"`
+	Hum         int       `lp:"field,humidity"`
+	Time        time.Time `lp:"timestamp"`
+	Description string    `lp:"-"`
+} {
+	return struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Temp        float64   `lp:"field,temperature"`
+		Hum         int       `lp:"field,humidity"`
+		Time        time.Time `lp:"timestamp"`
+		Description string    `lp:"-"`
+	}{
+		"air",
+		"SHT31",
+		"10",
+		23.5,
+		55,
+		now,
+		"Room temp",
+	}
 }
 
 func TestWriteEmptyData(t *testing.T) {
@@ -919,4 +934,101 @@ func TestMakeHTTPParamsBody(t *testing.T) {
 
 		assert.Equal(t, string(slurp1), string(slurp2))
 	}
+}
+
+func TestWriteWithClientTimeout(t *testing.T) {
+	timeout := 500 * time.Millisecond
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(timeout + 1*time.Second)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+		Timeout:  timeout,
+	})
+	require.NoError(t, err)
+
+	err = c.Write(context.Background(), []byte("data"))
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+
+	p := NewPointWithMeasurement("cpu")
+	p.SetTag("host", "local")
+	p.SetField("usage_user", 16.75)
+	err = c.WritePoints(context.Background(), []*Point{p})
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+
+	now := time.Now()
+	s := sampleDataStruct(now)
+	err = c.WriteData(context.Background(), []any{s})
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+}
+
+func TestWriteWithMaxIdleConnections(t *testing.T) {
+	requestCount := 0
+	uniqueConnectionCount := 0
+	var addrMap sync.Map
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		requestCount++
+		addr, ok := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		if !ok {
+			t.Errorf("could not get local address from context: %v", addr)
+		}
+		_, loaded := addrMap.LoadOrStore(addr, true)
+		if !loaded {
+			uniqueConnectionCount++
+		}
+		// Add some sleep time to ensure that all parallel requests reach the server before any of them finishes.
+		time.Sleep(1 * time.Second)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	maxIdleConnections := 2
+	c, err := New(ClientConfig{
+		Host:               ts.URL,
+		Token:              "my-token",
+		Database:           "my-database",
+		MaxIdleConnections: maxIdleConnections,
+	})
+	require.NoError(t, err)
+
+	writeInParallel := func(callCount int) {
+		var wg sync.WaitGroup
+		wg.Add(callCount)
+		for i := 1; i <= callCount; i++ {
+			go func() {
+				defer wg.Done()
+				err := c.Write(context.Background(), []byte("data"))
+				require.NoError(t, err)
+			}()
+		}
+		wg.Wait()
+	}
+
+	// 1st batch: do 5 writes in parallel to open 5 new connections.
+	batch1Count := 5
+	writeInParallel(batch1Count)
+
+	// Check that 5 unique connections were used.
+	assert.Equal(t, batch1Count, uniqueConnectionCount)
+	assert.Equal(t, batch1Count, requestCount)
+
+	// 2nd batch: do another 5 writes in parallel.
+	batch2Count := 5
+	writeInParallel(batch2Count)
+
+	// Check that only 5+3 unique connections were used (instead of 5+5)
+	// as 2 idle connections were reused from the 1st batch.
+	assert.Equal(t, batch1Count+batch2Count-maxIdleConnections, uniqueConnectionCount)
+	assert.Equal(t, batch1Count+batch2Count, requestCount)
 }
