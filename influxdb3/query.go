@@ -170,7 +170,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		return nil, err
 	}
 
-	return newQueryIterator(reader), nil
+	return NewQueryIterator(reader), nil
 }
 
 func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*PointValueIterator, error) {
@@ -179,7 +179,7 @@ func (c *Client) queryPointValue(ctx context.Context, query string, parameters Q
 		return nil, err
 	}
 
-	return newPointValueIterator(reader), nil
+	return NewPointValueIterator(reader), nil
 }
 
 func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, error) {
