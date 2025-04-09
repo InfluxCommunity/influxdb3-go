@@ -64,7 +64,7 @@ type QueryIterator struct {
 	done bool
 }
 
-func newQueryIterator(reader *flight.Reader) *QueryIterator {
+func NewQueryIterator(reader *flight.Reader) *QueryIterator {
 	return &QueryIterator{
 		reader:        reader,
 		record:        nil,

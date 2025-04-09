@@ -44,7 +44,7 @@ type PointValueIterator struct {
 }
 
 // Return a new PointValueIterator
-func newPointValueIterator(reader *flight.Reader) *PointValueIterator {
+func NewPointValueIterator(reader *flight.Reader) *PointValueIterator {
 	return &PointValueIterator{
 		reader: reader,
 		index:  -1,
@@ -56,7 +56,7 @@ func newPointValueIterator(reader *flight.Reader) *PointValueIterator {
 // Its second return value is iterator.Done if there are no more results.
 // Once Next returns Done in the second parameter, all subsequent calls will return Done.
 //
-//	it := newPointValueIterator(flightReader)
+//	it := NewPointValueIterator(flightReader)
 //	for {
 //		PointValue, err := it.Next()
 //		if err == iterator.Done {

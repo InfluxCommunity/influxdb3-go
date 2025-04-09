@@ -12,6 +12,8 @@
      means no timeout. Default value: 90 seconds.
    - `MaxIdleConnections`  - Maximum number of idle connections. It sets both `transport.MaxIdleConn` and
      `transport.MaxIdleConnsPerHost` to the same value. A negative value means no limit. Default value: 100.
+1. [#154](https://github.com/InfluxCommunity/influxdb3-go/pull/154): Export functions `NewQueryIterator` and
+   `NewPointValueIterator` to simplify testing.
 
 ## 2.4.0 [2025-03-26]
 
