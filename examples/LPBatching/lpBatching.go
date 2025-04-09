@@ -44,7 +44,7 @@ func main() {
 	defer func(client *influxdb3.Client) {
 		err := client.Close()
 		if err != nil {
-			slog.Error("Error closing client", err)
+			slog.Error("Error closing client", "root cause", err.Error())
 		}
 	}(client)
 
