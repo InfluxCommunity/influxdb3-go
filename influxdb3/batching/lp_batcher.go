@@ -142,7 +142,7 @@ func (lpb *LPBatcher) Add(lines ...string) {
 		if lpb.callbackByteEmit == nil {
 			// no emitter callback
 			if lpb.CurrentLoadSize() > (lpb.capacity - lpb.size) {
-				slog.Warn(
+				slog.Debug(
 					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
 						"Batcher load is %d bytes waiting to be emitted.",
 						lpb.CurrentLoadSize()),

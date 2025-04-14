@@ -155,7 +155,7 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 		if b.callbackEmit == nil {
 			// no emitter callback
 			if b.CurrentLoadSize() >= (b.capacity - b.size) {
-				slog.Warn(
+				slog.Debug(
 					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
 						"Batcher load is %d points waiting to be emitted.",
 						b.CurrentLoadSize()),
