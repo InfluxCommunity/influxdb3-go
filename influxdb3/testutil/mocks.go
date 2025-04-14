@@ -56,21 +56,6 @@ type MockFlightServer struct {
 	flight.BaseFlightServer
 }
 
-func (f *MockFlightServer) writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
-	recs := f.MakeBlobRecords("test", size)
-
-	w := flight.NewRecordWriter(fs, ipc.WithSchema(recs[0].Schema()))
-
-	for _, r := range recs {
-		err := w.Write(r)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
 	bt, btErr := BlobTicketFromJSONBytes(tkt.GetTicket())
 	if btErr == nil {
@@ -297,6 +282,21 @@ func (f *MockFlightServer) MakeConstantRecords() []arrow.Record {
 
 	f.Records["constants"] = recs
 	return recs
+}
+
+func (f *MockFlightServer) writeBlob(fs flight.FlightService_DoGetServer, size int64) error {
+	recs := f.MakeBlobRecords("test", size)
+
+	w := flight.NewRecordWriter(fs, ipc.WithSchema(recs[0].Schema()))
+
+	for _, r := range recs {
+		err := w.Write(r)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // copied from arrow-go/flight/flight_test.go
