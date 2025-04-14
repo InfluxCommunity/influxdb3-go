@@ -1,5 +1,9 @@
 ## 2.6.0 [unreleased]
 
+### Features
+
+1. [#155](https://github.com/InfluxCommunity/influxdb3-go/pull/155): Batcher warnings when buffer data is not being automatically emitted changed to level `Debug` in slog.
+
 ## 2.5.0 [2025-04-10]
 
 ### Features
