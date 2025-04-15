@@ -273,6 +273,13 @@ func NewFromEnv() (*Client, error) {
 	return New(cfg)
 }
 
+// Close closes all idle connections.
+func (c *Client) Close() error {
+	c.config.HTTPClient.CloseIdleConnections()
+	err := c.queryClient.Close()
+	return err
+}
+
 // makeAPICall issues an HTTP request to InfluxDB host API url according to parameters.
 // Additionally, sets Authorization header and User-Agent.
 // It returns http.Response or error. Error can be a *hostError if host responded with error.
@@ -369,11 +376,4 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	httpError.Headers = r.Header
 
 	return &httpError.ServerError
-}
-
-// Close closes all idle connections.
-func (c *Client) Close() error {
-	c.config.HTTPClient.CloseIdleConnections()
-	err := c.queryClient.Close()
-	return err
 }

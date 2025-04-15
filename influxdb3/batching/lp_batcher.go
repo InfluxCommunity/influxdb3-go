@@ -81,6 +81,25 @@ type LPBatcher struct {
 	sync.Mutex
 }
 
+// NewLPBatcher creates and initializes a new LPBatcher instance
+// applying the supplied options. By default a batch size is DefaultByteBatchSize
+// and the initial capacity is the DefaultBufferCapacity.
+func NewLPBatcher(options ...LPOption) *LPBatcher {
+	lpb := &LPBatcher{
+		size:     DefaultByteBatchSize,
+		capacity: DefaultBufferCapacity,
+	}
+
+	// Apply the options
+	for _, o := range options {
+		o(lpb)
+	}
+
+	// setup internal data
+	lpb.buffer = make([]byte, 0, lpb.capacity)
+	return lpb
+}
+
 // SetSize sets the batch size of the batcher
 func (lpb *LPBatcher) SetSize(s int) {
 	lpb.size = s
@@ -99,25 +118,6 @@ func (lpb *LPBatcher) SetReadyCallback(f func()) {
 // SetEmitBytesCallback sets the callbackByteEmit function
 func (lpb *LPBatcher) SetEmitBytesCallback(f func([]byte)) {
 	lpb.callbackByteEmit = f
-}
-
-// NewLPBatcher creates and initializes a new LPBatcher instance
-// applying the supplied options. By default a batch size is DefaultByteBatchSize
-// and the initial capacity is the DefaultBufferCapacity.
-func NewLPBatcher(options ...LPOption) *LPBatcher {
-	lpb := &LPBatcher{
-		size:     DefaultByteBatchSize,
-		capacity: DefaultBufferCapacity,
-	}
-
-	// Apply the options
-	for _, o := range options {
-		o(lpb)
-	}
-
-	// setup internal data
-	lpb.buffer = make([]byte, 0, lpb.capacity)
-	return lpb
 }
 
 // Add lines to the buffer and call appropriate callbacks when
@@ -142,7 +142,7 @@ func (lpb *LPBatcher) Add(lines ...string) {
 		if lpb.callbackByteEmit == nil {
 			// no emitter callback
 			if lpb.CurrentLoadSize() > (lpb.capacity - lpb.size) {
-				slog.Warn(
+				slog.Debug(
 					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
 						"Batcher load is %d bytes waiting to be emitted.",
 						lpb.CurrentLoadSize()),
@@ -161,10 +161,6 @@ func (lpb *LPBatcher) Ready() bool {
 	return lpb.isReady()
 }
 
-func (lpb *LPBatcher) isReady() bool {
-	return len(lpb.buffer) >= lpb.size
-}
-
 // Emit returns a new batch of bytes with upto to the provided batch size
 // depending on when the last newline character in the potential batch is met, or
 // with all the remaining bytes. Please drain the bytes at the end of your
@@ -174,6 +170,22 @@ func (lpb *LPBatcher) Emit() []byte {
 	defer lpb.Unlock()
 
 	return lpb.emitBytes()
+}
+
+// Flush drains all bytes even if buffer currently larger than size
+func (lpb *LPBatcher) Flush() []byte {
+	packet := lpb.buffer
+	lpb.buffer = lpb.buffer[:0]
+	return packet
+}
+
+// CurrentLoadSize returns the current size of the internal buffer
+func (lpb *LPBatcher) CurrentLoadSize() int {
+	return len(lpb.buffer)
+}
+
+func (lpb *LPBatcher) isReady() bool {
+	return len(lpb.buffer) >= lpb.size
 }
 
 func (lpb *LPBatcher) emitBytes() []byte {
@@ -204,16 +216,4 @@ func (lpb *LPBatcher) emitBytes() []byte {
 	lpb.buffer = lpb.buffer[len(packet):]
 
 	return packet
-}
-
-// Flush drains all bytes even if buffer currently larger than size
-func (lpb *LPBatcher) Flush() []byte {
-	packet := lpb.buffer
-	lpb.buffer = lpb.buffer[:0]
-	return packet
-}
-
-// CurrentLoadSize returns the current size of the internal buffer
-func (lpb *LPBatcher) CurrentLoadSize() int {
-	return len(lpb.buffer)
 }

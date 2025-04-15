@@ -98,26 +98,6 @@ type Batcher struct {
 	sync.Mutex
 }
 
-// SetSize sets the batch size.  Units are Points.
-func (b *Batcher) SetSize(s int) {
-	b.size = s
-}
-
-// SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
-func (b *Batcher) SetCapacity(c int) {
-	b.capacity = c
-}
-
-// SetReadyCallback sets the callbackReady function.
-func (b *Batcher) SetReadyCallback(f func()) {
-	b.callbackReady = f
-}
-
-// SetEmitCallback sets the callbackEmit function.
-func (b *Batcher) SetEmitCallback(f func([]*influxdb3.Point)) {
-	b.callbackEmit = f
-}
-
 // NewBatcher creates and initializes a new Batcher instance applying the
 // specified options. By default, a batch-size is DefaultBatchSize and the
 // initial capacity is DefaultCapacity.
@@ -139,6 +119,26 @@ func NewBatcher(options ...Option) *Batcher {
 	return b
 }
 
+// SetSize sets the batch size.  Units are Points.
+func (b *Batcher) SetSize(s int) {
+	b.size = s
+}
+
+// SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+func (b *Batcher) SetCapacity(c int) {
+	b.capacity = c
+}
+
+// SetReadyCallback sets the callbackReady function.
+func (b *Batcher) SetReadyCallback(f func()) {
+	b.callbackReady = f
+}
+
+// SetEmitCallback sets the callbackEmit function.
+func (b *Batcher) SetEmitCallback(f func([]*influxdb3.Point)) {
+	b.callbackEmit = f
+}
+
 // Add metric(s) to the batcher and call the given callbacks if any
 func (b *Batcher) Add(p ...*influxdb3.Point) {
 	b.Lock()
@@ -155,7 +155,7 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 		if b.callbackEmit == nil {
 			// no emitter callback
 			if b.CurrentLoadSize() >= (b.capacity - b.size) {
-				slog.Warn(
+				slog.Debug(
 					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
 						"Batcher load is %d points waiting to be emitted.",
 						b.CurrentLoadSize()),
@@ -174,8 +174,16 @@ func (b *Batcher) Ready() bool {
 	return b.isReady()
 }
 
-func (b *Batcher) isReady() bool {
-	return len(b.points) >= b.size
+// Flush drains all points even if the internal buffer is currently larger than size.
+// It does not call the callbackEmit method
+func (b *Batcher) Flush() []*influxdb3.Point {
+	points := b.points
+	b.points = b.points[:0]
+	return points
+}
+
+func (b *Batcher) CurrentLoadSize() int {
+	return len(b.points)
 }
 
 // Emit returns a new batch of points with the provided batch size or with the
@@ -188,6 +196,10 @@ func (b *Batcher) Emit() []*influxdb3.Point {
 	return b.emitPoints()
 }
 
+func (b *Batcher) isReady() bool {
+	return len(b.points) >= b.size
+}
+
 func (b *Batcher) emitPoints() []*influxdb3.Point {
 	l := min(b.size, len(b.points))
 
@@ -195,16 +207,4 @@ func (b *Batcher) emitPoints() []*influxdb3.Point {
 	b.points = b.points[l:]
 
 	return points
-}
-
-// Flush drains all points even if the internal buffer is currently larger than size.
-// It does not call the callbackEmit method
-func (b *Batcher) Flush() []*influxdb3.Point {
-	points := b.points
-	b.points = b.points[:0]
-	return points
-}
-
-func (b *Batcher) CurrentLoadSize() int {
-	return len(b.points)
 }
