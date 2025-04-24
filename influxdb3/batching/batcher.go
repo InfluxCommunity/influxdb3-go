@@ -69,6 +69,15 @@ func WithInitialCapacity(capacity int) Option {
 	}
 }
 
+// WithCapacity changes the initial capacity of the internal buffer
+//
+// Deprecated: use WithInitialCapacity instead
+func WithCapacity(capacity int) Option {
+	return func(b PointEmittable) {
+		b.SetInitialCapacity(capacity)
+	}
+}
+
 // WithReadyCallback sets the function called when a new batch is ready. The
 // batcher will wait for the callback to finish, so please return as fast as
 // possible and move long-running processing to a  go-routine.
@@ -126,6 +135,13 @@ func (b *Batcher) SetSize(s int) {
 
 // SetInitialCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
 func (b *Batcher) SetInitialCapacity(c int) {
+	b.initialCapacity = c
+}
+
+// SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+//
+// Deprecated: use SetInitialCapacity instead.
+func (b *Batcher) SetCapacity(c int) {
 	b.initialCapacity = c
 }
 

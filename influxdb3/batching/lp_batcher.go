@@ -35,6 +35,16 @@ func WithInitialBufferCapacity(capacity int) LPOption {
 	}
 }
 
+// WithBufferCapacity changes the initial capacity of the internal buffer
+// The unit is byte
+//
+// Deprecated: use WithInitialBufferCapacity instead
+func WithBufferCapacity(capacity int) LPOption {
+	return func(b ByteEmittable) {
+		b.SetInitialCapacity(capacity)
+	}
+}
+
 // WithByteEmitReadyCallback sets the function called when a new batch is ready. The
 // batcher will wait for the callback to finish, so please return as fast as
 // possible and move long-running processing to a  go-routine.
@@ -107,6 +117,13 @@ func (lpb *LPBatcher) SetSize(s int) {
 
 // SetInitialCapacity sets the initial capacity of the internal buffer
 func (lpb *LPBatcher) SetInitialCapacity(c int) {
+	lpb.initialCapacity = c
+}
+
+// SetCapacity sets the initial capacity of the internal buffer
+//
+// Deprecated: use SetInitialCapacity instead
+func (lpb *LPBatcher) SetCapacity(c int) {
 	lpb.initialCapacity = c
 }
 
