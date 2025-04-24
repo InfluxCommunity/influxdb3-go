@@ -633,7 +633,7 @@ func TestLPBatcher(t *testing.T) {
 	lag := 0
 	lpb := batching.NewLPBatcher(
 		batching.WithBufferSize(size),
-		batching.WithBufferCapacity(capacity),
+		batching.WithInitialBufferCapacity(capacity),
 		batching.WithByteEmitReadyCallback(func() {
 			readyCt++
 		}),
