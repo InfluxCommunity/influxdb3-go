@@ -8,7 +8,7 @@ import (
 )
 
 const DefaultByteBatchSize = 100000
-const DefaultBufferCapacity = DefaultByteBatchSize * 2
+const DefaultInitialBufferCapacity = DefaultByteBatchSize * 2
 
 // ByteEmittable provides the basis for a type Emitting line protocol data
 // as a byte array (i.e. []byte).
@@ -27,11 +27,11 @@ func WithBufferSize(size int) LPOption {
 	}
 }
 
-// WithBufferCapacity changes the initial capacity of the internal buffer
+// WithInitialBufferCapacity changes the initial capacity of the internal buffer
 // The unit is byte
-func WithBufferCapacity(capacity int) LPOption {
+func WithInitialBufferCapacity(capacity int) LPOption {
 	return func(b ByteEmittable) {
-		b.SetCapacity(capacity)
+		b.SetInitialCapacity(capacity)
 	}
 }
 
@@ -71,8 +71,8 @@ func WithEmitBytesCallback(f func([]byte)) LPOption {
 // When the first line in the buffer exceeds this property,
 // only that line is emitted.
 type LPBatcher struct {
-	size     int
-	capacity int
+	size            int
+	initialCapacity int
 
 	callbackReady    func()
 	callbackByteEmit func([]byte)
@@ -86,8 +86,8 @@ type LPBatcher struct {
 // and the initial capacity is the DefaultBufferCapacity.
 func NewLPBatcher(options ...LPOption) *LPBatcher {
 	lpb := &LPBatcher{
-		size:     DefaultByteBatchSize,
-		capacity: DefaultBufferCapacity,
+		size:            DefaultByteBatchSize,
+		initialCapacity: DefaultInitialBufferCapacity,
 	}
 
 	// Apply the options
@@ -96,7 +96,7 @@ func NewLPBatcher(options ...LPOption) *LPBatcher {
 	}
 
 	// setup internal data
-	lpb.buffer = make([]byte, 0, lpb.capacity)
+	lpb.buffer = make([]byte, 0, lpb.initialCapacity)
 	return lpb
 }
 
@@ -105,9 +105,9 @@ func (lpb *LPBatcher) SetSize(s int) {
 	lpb.size = s
 }
 
-// SetCapacity sets the initial capacity of the internal buffer
-func (lpb *LPBatcher) SetCapacity(c int) {
-	lpb.capacity = c
+// SetInitialCapacity sets the initial capacity of the internal buffer
+func (lpb *LPBatcher) SetInitialCapacity(c int) {
+	lpb.initialCapacity = c
 }
 
 // SetReadyCallback sets the ReadyCallback function
@@ -141,10 +141,9 @@ func (lpb *LPBatcher) Add(lines ...string) {
 		}
 		if lpb.callbackByteEmit == nil {
 			// no emitter callback
-			if lpb.CurrentLoadSize() > (lpb.capacity - lpb.size) {
+			if lpb.CurrentLoadSize() > (lpb.initialCapacity - lpb.size) {
 				slog.Debug(
-					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
-						"Batcher load is %d bytes waiting to be emitted.",
+					fmt.Sprintf("Batcher load is %d bytes waiting to be emitted.",
 						lpb.CurrentLoadSize()),
 				)
 			}

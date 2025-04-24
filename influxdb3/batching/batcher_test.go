@@ -36,7 +36,7 @@ func TestDefaultValues(t *testing.T) {
 
 	// Check that default values are set correctly
 	assert.Equal(t, DefaultBatchSize, b.size)
-	assert.Equal(t, DefaultCapacity, cap(b.points))
+	assert.Equal(t, DefaultInitialCapacity, cap(b.points))
 }
 
 func TestCustomValues(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCustomValues(t *testing.T) {
 
 	b := NewBatcher(
 		WithSize(batchSize),
-		WithCapacity(capacity),
+		WithInitialCapacity(capacity),
 	)
 
 	assert.Equal(t, batchSize, b.size)
@@ -167,7 +167,7 @@ func TestAddLargerThanSize(t *testing.T) {
 
 	resultSet := make([]*influxdb3.Point, 0)
 	b := NewBatcher(WithSize(batchSize),
-		WithCapacity(batchSize*3),
+		WithInitialCapacity(batchSize*3),
 		WithEmitCallback(func(points []*influxdb3.Point) {
 			resultSet = append(resultSet, points...)
 			emitCt++
@@ -192,7 +192,7 @@ func TestFlush(t *testing.T) {
 			time.Now())
 	}
 
-	b := NewBatcher(WithSize(batchSize), WithCapacity(batchSize*2))
+	b := NewBatcher(WithSize(batchSize), WithInitialCapacity(batchSize*2))
 	b.Add(pointSet...)
 	assert.Equal(t, batchSize*loadFactor, b.CurrentLoadSize())
 	flushed := b.Flush()
