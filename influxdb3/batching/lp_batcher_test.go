@@ -29,6 +29,7 @@ func TestLPCustomValues(t *testing.T) {
 
 	assert.Equal(t, size, lpb.size)
 	assert.Equal(t, capacity, lpb.initialCapacity)
+	assert.Equal(t, capacity, cap(lpb.buffer))
 	assert.Nil(t, lpb.callbackReady)
 	assert.Nil(t, lpb.callbackByteEmit)
 }
@@ -90,6 +91,21 @@ func TestEmitEmptyBatcher(t *testing.T) {
 
 	results := lpb.Emit()
 
+	assert.Empty(t, results)
+}
+
+// Deprecated: verifying deprecated option
+func TestLPBatcherWithBufferCapacity(t *testing.T) {
+	size := 256
+	capacity := size * 2
+
+	lpb := NewLPBatcher(WithBufferSize(size), WithBufferCapacity(capacity))
+
+	assert.Equal(t, size, lpb.size)
+	assert.Equal(t, capacity, lpb.initialCapacity)
+	assert.Equal(t, capacity, cap(lpb.buffer))
+
+	results := lpb.Emit()
 	assert.Empty(t, results)
 }
 

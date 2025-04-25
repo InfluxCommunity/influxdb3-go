@@ -52,6 +52,21 @@ func TestCustomValues(t *testing.T) {
 	assert.Equal(t, capacity, cap(b.points))
 }
 
+// Deprecated: verifying deprecated option
+func TestBatcherWithCapacityOption(t *testing.T) {
+	batchSize := 10
+	capacity := 100
+
+	b := NewBatcher(
+		WithSize(batchSize),
+		WithCapacity(capacity),
+	)
+
+	assert.Equal(t, batchSize, b.size)
+	assert.Equal(t, capacity, b.initialCapacity)
+	assert.Equal(t, capacity, cap(b.points))
+}
+
 func TestAddAndCallBackEmit(t *testing.T) {
 	batchSize := 5
 	emitted := false
