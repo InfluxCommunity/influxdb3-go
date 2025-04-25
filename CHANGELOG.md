@@ -1,5 +1,14 @@
 ## 2.7.0 [unreleased]
 
+### Bug Fixes
+
+1. [#158](https://github.com/InfluxCommunity/influxdb3-go/pull/158): Refactor Batcher and LPBatcher:
+   - Fields and methods using `capacity` renamed to `initialCapacity`.
+   - Log messages when buffer data is not being emitted are simplified.
+   - `SetCapacity` methods on both structures are now deprecated.
+   - `WithCapacity` and `WithBufferCapacity` options are now deprecated.
+
+
 ## 2.6.0 [2025-04-15]
 
 ### Features
