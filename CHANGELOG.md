@@ -8,7 +8,6 @@
    - `SetCapacity` methods on both structures are now deprecated.
    - `WithCapacity` and `WithBufferCapacity` options are now deprecated.
 
-
 ## 2.6.0 [2025-04-15]
 
 ### Features
