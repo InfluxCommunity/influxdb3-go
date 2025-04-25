@@ -44,6 +44,7 @@ type Emittable interface {
 	SetSize(s int)               // setsize
 	SetInitialCapacity(c int)    // set capacity
 	SetReadyCallback(rcb func()) // ready Callback
+	SetCapacity(c int)           // Deprecated: use SetInitialCapacity instead
 }
 
 // PointEmittable provides the basis for any type emitting
@@ -74,7 +75,7 @@ func WithInitialCapacity(capacity int) Option {
 // Deprecated: use WithInitialCapacity instead
 func WithCapacity(capacity int) Option {
 	return func(b PointEmittable) {
-		b.SetInitialCapacity(capacity)
+		b.SetCapacity(capacity)
 	}
 }
 

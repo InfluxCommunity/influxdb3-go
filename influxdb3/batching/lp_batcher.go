@@ -41,7 +41,7 @@ func WithInitialBufferCapacity(capacity int) LPOption {
 // Deprecated: use WithInitialBufferCapacity instead
 func WithBufferCapacity(capacity int) LPOption {
 	return func(b ByteEmittable) {
-		b.SetInitialCapacity(capacity)
+		b.SetCapacity(capacity)
 	}
 }
 
