@@ -10,7 +10,7 @@ import (
 const DefaultByteBatchSize = 100000
 const DefaultInitialBufferCapacity = DefaultByteBatchSize * 2
 
-//Deprecated: use DefaultInitialBufferCapacity
+// Deprecated: use DefaultInitialBufferCapacity
 const DefaultBufferCapacity = DefaultInitialBufferCapacity
 
 // ByteEmittable provides the basis for a type Emitting line protocol data

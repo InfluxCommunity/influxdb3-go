@@ -37,7 +37,7 @@ const DefaultBatchSize = 1000
 // DefaultInitialCapacity is the default initial capacity of the point buffer
 const DefaultInitialCapacity = 2 * DefaultBatchSize
 
-//Deprecated: use DefaultInitialCapacity
+// Deprecated: use DefaultInitialCapacity
 const DefaultCapacity = DefaultInitialCapacity
 
 // Emittable provides the base for any type
