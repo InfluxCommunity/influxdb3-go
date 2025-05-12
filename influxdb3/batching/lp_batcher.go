@@ -10,6 +10,9 @@ import (
 const DefaultByteBatchSize = 100000
 const DefaultInitialBufferCapacity = DefaultByteBatchSize * 2
 
+//Deprecated: use DefaultInitialBufferCapacity
+const DefaultBufferCapacity = DefaultInitialBufferCapacity
+
 // ByteEmittable provides the basis for a type Emitting line protocol data
 // as a byte array (i.e. []byte).
 type ByteEmittable interface {
@@ -158,12 +161,10 @@ func (lpb *LPBatcher) Add(lines ...string) {
 		}
 		if lpb.callbackByteEmit == nil {
 			// no emitter callback
-			if lpb.CurrentLoadSize() > (lpb.initialCapacity - lpb.size) {
-				slog.Debug(
-					fmt.Sprintf("Batcher load is %d bytes waiting to be emitted.",
-						lpb.CurrentLoadSize()),
-				)
-			}
+			slog.Debug(
+				fmt.Sprintf("Batcher load is %d bytes waiting to be emitted.",
+					lpb.CurrentLoadSize()),
+			)
 			break
 		}
 		lpb.callbackByteEmit(lpb.emitBytes())

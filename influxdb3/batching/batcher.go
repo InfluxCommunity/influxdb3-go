@@ -37,6 +37,9 @@ const DefaultBatchSize = 1000
 // DefaultInitialCapacity is the default initial capacity of the point buffer
 const DefaultInitialCapacity = 2 * DefaultBatchSize
 
+//Deprecated: use DefaultInitialCapacity
+const DefaultCapacity = DefaultInitialCapacity
+
 // Emittable provides the base for any type
 // that will collect and then emit data upon
 // reaching a ready state.
@@ -110,7 +113,7 @@ type Batcher struct {
 
 // NewBatcher creates and initializes a new Batcher instance applying the
 // specified options. By default, a batch-size is DefaultBatchSize and the
-// initial capacity is DefaultCapacity.
+// initial capacity is DefaultInitialCapacity.
 func NewBatcher(options ...Option) *Batcher {
 	// Set up a batcher with the default values
 	b := &Batcher{
@@ -171,12 +174,10 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 		}
 		if b.callbackEmit == nil {
 			// no emitter callback
-			if b.CurrentLoadSize() >= (b.initialCapacity - b.size) {
-				slog.Debug(
-					fmt.Sprintf("Batcher load is %d points waiting to be emitted.",
-						b.CurrentLoadSize()),
-				)
-			}
+			slog.Debug(
+				fmt.Sprintf("Batcher load is %d points waiting to be emitted.",
+					b.CurrentLoadSize()),
+			)
 			break
 		}
 		b.callbackEmit(b.emitPoints())
