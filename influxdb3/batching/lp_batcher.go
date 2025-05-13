@@ -8,7 +8,10 @@ import (
 )
 
 const DefaultByteBatchSize = 100000
-const DefaultBufferCapacity = DefaultByteBatchSize * 2
+const DefaultInitialBufferCapacity = DefaultByteBatchSize * 2
+
+// Deprecated: use DefaultInitialBufferCapacity
+const DefaultBufferCapacity = DefaultInitialBufferCapacity
 
 // ByteEmittable provides the basis for a type Emitting line protocol data
 // as a byte array (i.e. []byte).
@@ -27,8 +30,18 @@ func WithBufferSize(size int) LPOption {
 	}
 }
 
+// WithInitialBufferCapacity changes the initial capacity of the internal buffer
+// The unit is byte
+func WithInitialBufferCapacity(capacity int) LPOption {
+	return func(b ByteEmittable) {
+		b.SetInitialCapacity(capacity)
+	}
+}
+
 // WithBufferCapacity changes the initial capacity of the internal buffer
 // The unit is byte
+//
+// Deprecated: use WithInitialBufferCapacity instead
 func WithBufferCapacity(capacity int) LPOption {
 	return func(b ByteEmittable) {
 		b.SetCapacity(capacity)
@@ -71,8 +84,8 @@ func WithEmitBytesCallback(f func([]byte)) LPOption {
 // When the first line in the buffer exceeds this property,
 // only that line is emitted.
 type LPBatcher struct {
-	size     int
-	capacity int
+	size            int
+	initialCapacity int
 
 	callbackReady    func()
 	callbackByteEmit func([]byte)
@@ -86,8 +99,8 @@ type LPBatcher struct {
 // and the initial capacity is the DefaultBufferCapacity.
 func NewLPBatcher(options ...LPOption) *LPBatcher {
 	lpb := &LPBatcher{
-		size:     DefaultByteBatchSize,
-		capacity: DefaultBufferCapacity,
+		size:            DefaultByteBatchSize,
+		initialCapacity: DefaultInitialBufferCapacity,
 	}
 
 	// Apply the options
@@ -96,7 +109,7 @@ func NewLPBatcher(options ...LPOption) *LPBatcher {
 	}
 
 	// setup internal data
-	lpb.buffer = make([]byte, 0, lpb.capacity)
+	lpb.buffer = make([]byte, 0, lpb.initialCapacity)
 	return lpb
 }
 
@@ -105,9 +118,16 @@ func (lpb *LPBatcher) SetSize(s int) {
 	lpb.size = s
 }
 
+// SetInitialCapacity sets the initial capacity of the internal buffer
+func (lpb *LPBatcher) SetInitialCapacity(c int) {
+	lpb.initialCapacity = c
+}
+
 // SetCapacity sets the initial capacity of the internal buffer
+//
+// Deprecated: use SetInitialCapacity instead
 func (lpb *LPBatcher) SetCapacity(c int) {
-	lpb.capacity = c
+	lpb.initialCapacity = c
 }
 
 // SetReadyCallback sets the ReadyCallback function
@@ -141,13 +161,10 @@ func (lpb *LPBatcher) Add(lines ...string) {
 		}
 		if lpb.callbackByteEmit == nil {
 			// no emitter callback
-			if lpb.CurrentLoadSize() > (lpb.capacity - lpb.size) {
-				slog.Debug(
-					fmt.Sprintf("Batcher is ready, but no callbackByteEmit is available.  "+
-						"Batcher load is %d bytes waiting to be emitted.",
-						lpb.CurrentLoadSize()),
-				)
-			}
+			slog.Debug(
+				fmt.Sprintf("Batcher load is %d bytes waiting to be emitted.",
+					lpb.CurrentLoadSize()),
+			)
 			break
 		}
 		lpb.callbackByteEmit(lpb.emitBytes())

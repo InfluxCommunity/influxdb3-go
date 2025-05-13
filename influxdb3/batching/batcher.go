@@ -34,16 +34,20 @@ import (
 // DefaultBatchSize is the default number of points emitted
 const DefaultBatchSize = 1000
 
-// DefaultCapacity is the default initial capacity of the point buffer
-const DefaultCapacity = 2 * DefaultBatchSize
+// DefaultInitialCapacity is the default initial capacity of the point buffer
+const DefaultInitialCapacity = 2 * DefaultBatchSize
+
+// Deprecated: use DefaultInitialCapacity
+const DefaultCapacity = DefaultInitialCapacity
 
 // Emittable provides the base for any type
 // that will collect and then emit data upon
 // reaching a ready state.
 type Emittable interface {
 	SetSize(s int)               // setsize
-	SetCapacity(c int)           // set capacity
+	SetInitialCapacity(c int)    // set capacity
 	SetReadyCallback(rcb func()) // ready Callback
+	SetCapacity(c int)           // Deprecated: use SetInitialCapacity instead
 }
 
 // PointEmittable provides the basis for any type emitting
@@ -62,7 +66,16 @@ func WithSize(size int) Option {
 	}
 }
 
+// WithInitialCapacity changes the initial capacity of the internal buffer
+func WithInitialCapacity(capacity int) Option {
+	return func(b PointEmittable) {
+		b.SetInitialCapacity(capacity)
+	}
+}
+
 // WithCapacity changes the initial capacity of the internal buffer
+//
+// Deprecated: use WithInitialCapacity instead
 func WithCapacity(capacity int) Option {
 	return func(b PointEmittable) {
 		b.SetCapacity(capacity)
@@ -89,10 +102,10 @@ func WithEmitCallback(f func([]*influxdb3.Point)) Option {
 
 // Batcher collects points and emits them as batches
 type Batcher struct {
-	size          int
-	capacity      int
-	callbackReady func()
-	callbackEmit  func([]*influxdb3.Point)
+	size            int
+	initialCapacity int
+	callbackReady   func()
+	callbackEmit    func([]*influxdb3.Point)
 
 	points []*influxdb3.Point
 	sync.Mutex
@@ -100,12 +113,12 @@ type Batcher struct {
 
 // NewBatcher creates and initializes a new Batcher instance applying the
 // specified options. By default, a batch-size is DefaultBatchSize and the
-// initial capacity is DefaultCapacity.
+// initial capacity is DefaultInitialCapacity.
 func NewBatcher(options ...Option) *Batcher {
 	// Set up a batcher with the default values
 	b := &Batcher{
-		size:     DefaultBatchSize,
-		capacity: DefaultCapacity,
+		size:            DefaultBatchSize,
+		initialCapacity: DefaultInitialCapacity,
 	}
 
 	// Apply the options
@@ -114,7 +127,7 @@ func NewBatcher(options ...Option) *Batcher {
 	}
 
 	// setup internal data
-	b.points = make([]*influxdb3.Point, 0, b.capacity)
+	b.points = make([]*influxdb3.Point, 0, b.initialCapacity)
 
 	return b
 }
@@ -124,9 +137,16 @@ func (b *Batcher) SetSize(s int) {
 	b.size = s
 }
 
+// SetInitialCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+func (b *Batcher) SetInitialCapacity(c int) {
+	b.initialCapacity = c
+}
+
 // SetCapacity sets the initial Capacity of the internal []*influxdb3.Point buffer.
+//
+// Deprecated: use SetInitialCapacity instead.
 func (b *Batcher) SetCapacity(c int) {
-	b.capacity = c
+	b.initialCapacity = c
 }
 
 // SetReadyCallback sets the callbackReady function.
@@ -154,13 +174,10 @@ func (b *Batcher) Add(p ...*influxdb3.Point) {
 		}
 		if b.callbackEmit == nil {
 			// no emitter callback
-			if b.CurrentLoadSize() >= (b.capacity - b.size) {
-				slog.Debug(
-					fmt.Sprintf("Batcher is ready, but no callbackEmit is available.  "+
-						"Batcher load is %d points waiting to be emitted.",
-						b.CurrentLoadSize()),
-				)
-			}
+			slog.Debug(
+				fmt.Sprintf("Batcher load is %d points waiting to be emitted.",
+					b.CurrentLoadSize()),
+			)
 			break
 		}
 		b.callbackEmit(b.emitPoints())
