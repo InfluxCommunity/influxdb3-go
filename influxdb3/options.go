@@ -58,6 +58,16 @@ type WriteOptions struct {
 
 	// Write body larger than the threshold is gzipped. 0 for no compression.
 	GzipThreshold int
+
+	// Instructs the server whether to wait with the response until WAL persistence completes.
+	// NoSync=true means faster write but without the confirmation that the data was persisted.
+	//
+	// Note: This option is supported by InfluxDB 3 Core and Enterprise servers only.
+	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated)
+	// the write operation will fail with an error.
+	//
+	// Default value: false.
+	NoSync bool
 }
 
 // DefaultQueryOptions specifies default query options
@@ -69,6 +79,7 @@ var DefaultQueryOptions = QueryOptions{
 var DefaultWriteOptions = WriteOptions{
 	Precision:     lineprotocol.Nanosecond,
 	GzipThreshold: 1_000,
+	NoSync:        false,
 }
 
 // Option is a functional option type that can be passed to Client.Query and Client.Write methods.
@@ -88,6 +99,7 @@ type QueryOption = Option
 //   - WithPrecision
 //   - WithGzipThreshold
 //   - WithDefaultTags
+//   - WithNoSync
 type WriteOption = Option
 
 // WithDatabase is used to override default database in Client.Query and Client.Write methods.
@@ -133,6 +145,13 @@ func WithGzipThreshold(gzipThreshold int) Option {
 func WithDefaultTags(tags map[string]string) Option {
 	return func(o *options) {
 		o.DefaultTags = tags
+	}
+}
+
+// WithNoSync is used to override default tags in Client.Write methods.
+func WithNoSync(noSync bool) Option {
+	return func(o *options) {
+		o.NoSync = noSync
 	}
 }
 

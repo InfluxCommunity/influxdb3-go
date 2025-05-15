@@ -1,5 +1,17 @@
 ## 2.8.0 [unreleased]
 
+### Features
+
+1. [#159](https://github.com/InfluxCommunity/influxdb3-go/pull/159): Support fast writes without waiting for WAL
+   persistence:
+   - New write option (`WriteOptions.NoSync`) added: `true` value means faster write but without the confirmation that
+     the data was persisted. Default value: `false`.
+   - **Supported by self-managed InfluxDB 3 Core and Enterprise servers only!**
+   - Also configurable via connection string query parameter (`writeNoSync`).
+   - Also configurable via environment variable (`INFLUX_WRITE_NO_SYNC`).
+   - Long precision string values added from v3 HTTP API: `"nanosecond"`, `"microsecond"`, `"millisecond"`, `"second"` (
+     in addition to the existing `"ns"`, `"us"`, `"ms"`, `"s"`).
+
 ## 2.7.0 [2025-05-15]
 
 ### Bug Fixes
