@@ -91,7 +91,7 @@ func New(config ClientConfig) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing host URL: %w", err)
 	}
-	c.apiURL.Path = path.Join(c.apiURL.Path, "api/v2") + "/"
+	c.apiURL.Path = path.Join(c.apiURL.Path, "api") + "/"
 
 	// Prepare authorization header value
 	authScheme := c.config.AuthScheme
@@ -246,6 +246,8 @@ func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, con
 //   - database - database (bucket) name
 //   - precision - timestamp precision when writing data
 //   - gzipThreshold - payload size threshold for gzipping data
+//   - writeNoSync - bool value whether to skip waiting for WAL persistence on write.
+//     (See WriteOptions.NoSync for more details)
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
@@ -264,6 +266,8 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 //   - INFLUX_DATABASE - database (bucket) name
 //   - INFLUX_PRECISION - timestamp precision when writing data
 //   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
+//   - INFLUX_WRITE_NO_SYNC - bool value whether to skip waiting for WAL persistence on write
+//     (See WriteOptions.NoSync for more details)
 func NewFromEnv() (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.env()

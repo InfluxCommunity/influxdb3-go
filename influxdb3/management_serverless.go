@@ -70,7 +70,7 @@ func (c *ServerlessClient) CreateBucket(ctx context.Context, bucket *Bucket) err
 		bucket.Name = c.client.config.Database
 	}
 
-	return c.createBucket(ctx, "/api/v2/buckets", bucket)
+	return c.createBucket(ctx, "v2/buckets", bucket)
 }
 
 // createBucket is a helper function for CreateBucket to enhance test coverage.

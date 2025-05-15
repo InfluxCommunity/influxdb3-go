@@ -31,7 +31,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -366,6 +368,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	defer ts.Close()
 	options := DefaultWriteOptions
 	options.Precision = lineprotocol.Millisecond
+	options.NoSync = false
 	c, err := New(ClientConfig{
 		Host:         ts.URL + "/path/",
 		Token:        "my-token",
@@ -376,9 +379,117 @@ func TestWriteCorrectUrl(t *testing.T) {
 	require.NoError(t, err)
 	err = c.Write(context.Background(), []byte("a f=1"))
 	assert.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
 	err = c.Write(context.Background(), []byte("a f=1"))
 	assert.NoError(t, err)
+}
+
+func TestWriteCorrectUrlNoSync(t *testing.T) {
+	var correctPath string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	options := DefaultWriteOptions
+	options.Precision = lineprotocol.Millisecond
+
+	clientConfig := ClientConfig{
+		Host:         ts.URL + "/path/",
+		Token:        "my-token",
+		Organization: "my-org",
+		Database:     "my-database",
+		WriteOptions: &options,
+	}
+
+	// options.NoSync unset
+	c, err := New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// options.NoSync = false
+	options.NoSync = false
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// options.NoSync = true
+	options.NoSync = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// options.NoSync = false & WithNoSync(true)
+	options.NoSync = false
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(true))
+	assert.NoError(t, err)
+
+	// options.NoSync = true & WithNoSync(false)
+	options.NoSync = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
+	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(false))
+	assert.NoError(t, err)
+}
+
+func TestWriteWithNoSyncToV2Server(t *testing.T) {
+	var correctPath string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// initialization of query client
+		if r.Method == "PRI" {
+			return
+		}
+		// Fails on v3 API calls.
+		if strings.Contains(r.URL.Path, "/api/v3/") {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	options := DefaultWriteOptions
+	options.Precision = lineprotocol.Millisecond
+
+	clientConfig := ClientConfig{
+		Host:         ts.URL + "/path/",
+		Token:        "my-token",
+		Organization: "my-org",
+		Database:     "my-database",
+		WriteOptions: &options,
+	}
+
+	// options.NoSync = false
+	options.NoSync = false
+	c, err := New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// options.NoSync = true
+	options.NoSync = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	// should fail, as v3 API is not supported
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
 }
 
 func TestWritePointsAndBytes(t *testing.T) {

@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "http://localhost:8086", c.config.Host)
-	assert.Equal(t, "http://localhost:8086/api/v2/", c.apiURL.String())
+	assert.Equal(t, "http://localhost:8086/api/", c.apiURL.String())
 	assert.Equal(t, "Token my-token", c.authorization)
 
 	c, err = New(ClientConfig{Host: "http://localhost:8086", Token: "my-token", Organization: "my-org", Database: "my-database"})
@@ -307,12 +307,12 @@ func TestURLs(t *testing.T) {
 		HostURL      string
 		serverAPIURL string
 	}{
-		{"http://host:8086", "http://host:8086/api/v2/"},
-		{"http://host:8086/", "http://host:8086/api/v2/"},
-		{"http://host:8086/path", "http://host:8086/path/api/v2/"},
-		{"http://host:8086/path/", "http://host:8086/path/api/v2/"},
-		{"http://host:8086/path1/path2/path3", "http://host:8086/path1/path2/path3/api/v2/"},
-		{"http://host:8086/path1/path2/path3/", "http://host:8086/path1/path2/path3/api/v2/"},
+		{"http://host:8086", "http://host:8086/api/"},
+		{"http://host:8086/", "http://host:8086/api/"},
+		{"http://host:8086/path", "http://host:8086/path/api/"},
+		{"http://host:8086/path/", "http://host:8086/path/api/"},
+		{"http://host:8086/path1/path2/path3", "http://host:8086/path1/path2/path3/api/"},
+		{"http://host:8086/path1/path2/path3/", "http://host:8086/path1/path2/path3/api/"},
 	}
 	for _, turl := range urls {
 		t.Run(turl.HostURL, func(t *testing.T) {
@@ -380,7 +380,7 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "with write options",
-			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=ms",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=ms&gzipThreshold=64&writeNoSync=true",
 			cfg: &ClientConfig{
 				Host:         "https://host:8086",
 				Token:        "abc",
@@ -388,13 +388,33 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					Precision:     lineprotocol.Millisecond,
-					GzipThreshold: 1000, // default
+					GzipThreshold: 64,
+					NoSync:        true,
+				},
+			},
+		},
+		{
+			name: "with precision long value",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=microsecond",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					Precision:     lineprotocol.Microsecond,
 				},
 			},
 		},
 		{
 			name: "invalid gzip threshold",
 			cs:   "https://host:8086?token=abc&gzipThreshold=a0",
+			err:  "invalid syntax",
+		},
+		{
+			name: "invalid writeNoSync",
+			cs:   "https://host:8086?token=abc&writeNoSync=truuu",
 			err:  "invalid syntax",
 		},
 	}
@@ -492,6 +512,7 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_DATABASE":       "my-db",
 				"INFLUX_PRECISION":      "ms",
 				"INFLUX_GZIP_THRESHOLD": "64",
+				"INFLUX_WRITE_NO_SYNC":  "true",
 			},
 			cfg: &ClientConfig{
 				Host:         "http://host:8086",
@@ -501,6 +522,28 @@ func TestNewFromEnv(t *testing.T) {
 				WriteOptions: &WriteOptions{
 					Precision:     lineprotocol.Millisecond,
 					GzipThreshold: 64,
+					NoSync:        true,
+				},
+			},
+		},
+		{
+			name: "with precision long value",
+			vars: map[string]string{
+				"INFLUX_HOST":      "http://host:8086",
+				"INFLUX_TOKEN":     "abc",
+				"INFLUX_ORG":       "my-org",
+				"INFLUX_DATABASE":  "my-db",
+				"INFLUX_PRECISION": "microsecond",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     lineprotocol.Microsecond,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
 				},
 			},
 		},
@@ -522,6 +565,15 @@ func TestNewFromEnv(t *testing.T) {
 			},
 			err: "invalid syntax",
 		},
+		{
+			name: "invalid writeNoSync env",
+			vars: map[string]string{
+				"INFLUX_HOST":          "http://host:8086",
+				"INFLUX_TOKEN":         "abc",
+				"INFLUX_WRITE_NO_SYNC": "truuu",
+			},
+			err: "invalid syntax",
+		},
 	}
 	clearEnv := func() {
 		os.Unsetenv(envInfluxHost)
@@ -531,6 +583,7 @@ func TestNewFromEnv(t *testing.T) {
 		os.Unsetenv(envInfluxDatabase)
 		os.Unsetenv(envInfluxPrecision)
 		os.Unsetenv(envInfluxGzipThreshold)
+		os.Unsetenv(envInfluxWriteNoSync)
 	}
 	setEnv := func(vars map[string]string) {
 		for k, v := range vars {

@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -152,11 +153,24 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	var gzipThreshold = options.GzipThreshold
 
 	var body io.Reader
-	u, _ := c.apiURL.Parse("write")
-	params := u.Query()
-	params.Set("org", c.config.Organization)
-	params.Set("bucket", database)
-	params.Set("precision", precision.String())
+	var u *url.URL
+	var params url.Values
+	if options.NoSync {
+		// Setting no_sync=true is supported only in the v3 API.
+		u, _ = c.apiURL.Parse("v3/write_lp")
+		params = u.Query()
+		params.Set("org", c.config.Organization)
+		params.Set("db", database)
+		params.Set("precision", toV3PrecisionString(precision))
+		params.Set("no_sync", "true")
+	} else {
+		// By default, use the v2 API.
+		u, _ = c.apiURL.Parse("v2/write")
+		params = u.Query()
+		params.Set("org", c.config.Organization)
+		params.Set("bucket", database)
+		params.Set("precision", precision.String())
+	}
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"application/json"}}
@@ -205,6 +219,11 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
+		var svErr *ServerError
+		if options.NoSync && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed && strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
+			// Server does not support the v3 write API, can't use the NoSync option.
+			return errors.New("server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+		}
 		return err
 	}
 	return resp.Body.Close()
@@ -356,4 +375,18 @@ func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.T
 		}
 	}
 	return fieldVal, nil
+}
+
+func toV3PrecisionString(precision lineprotocol.Precision) string {
+	switch precision {
+	case lineprotocol.Nanosecond:
+		return "nanosecond"
+	case lineprotocol.Microsecond:
+		return "microsecond"
+	case lineprotocol.Millisecond:
+		return "millisecond"
+	case lineprotocol.Second:
+		return "second"
+	}
+	panic(fmt.Errorf("unknown precision: %v", precision))
 }

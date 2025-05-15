@@ -42,6 +42,7 @@ const (
 	envInfluxDatabase      = "INFLUX_DATABASE"
 	envInfluxPrecision     = "INFLUX_PRECISION"
 	envInfluxGzipThreshold = "INFLUX_GZIP_THRESHOLD"
+	envInfluxWriteNoSync   = "INFLUX_WRITE_NO_SYNC"
 )
 
 const (
@@ -51,6 +52,7 @@ const (
 	connStrInfluxDatabase      = "database"
 	connStrInfluxPrecision     = "precision"
 	connStrInfluxGzipThreshold = "gzipThreshold"
+	connStrInfluxWriteNoSync   = "writeNoSync"
 )
 
 const (
@@ -181,6 +183,11 @@ func (c *ClientConfig) parse(connectionString string) error {
 			return err
 		}
 	}
+	if writeNoSync, ok := values[connStrInfluxWriteNoSync]; ok {
+		if err := c.parseWriteNoSync(writeNoSync[0]); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -212,6 +219,11 @@ func (c *ClientConfig) env() error {
 			return err
 		}
 	}
+	if writeNoSync, ok := os.LookupEnv(envInfluxWriteNoSync); ok {
+		if err := c.parseWriteNoSync(writeNoSync); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -224,13 +236,13 @@ func (c *ClientConfig) parsePrecision(precision string) error {
 	}
 
 	switch precision {
-	case "ns":
+	case "ns", "nanosecond":
 		c.WriteOptions.Precision = lineprotocol.Nanosecond
-	case "us":
+	case "us", "microsecond":
 		c.WriteOptions.Precision = lineprotocol.Microsecond
-	case "ms":
+	case "ms", "millisecond":
 		c.WriteOptions.Precision = lineprotocol.Millisecond
-	case "s":
+	case "s", "second":
 		c.WriteOptions.Precision = lineprotocol.Second
 	default:
 		return fmt.Errorf("unsupported precision '%s'", precision)
@@ -252,6 +264,23 @@ func (c *ClientConfig) parseGzipThreshold(threshold string) error {
 	}
 
 	c.WriteOptions.GzipThreshold = value
+
+	return nil
+}
+
+// parseWriteNoSync parses and sets write option NoSync
+func (c *ClientConfig) parseWriteNoSync(strVal string) error {
+	if c.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.WriteOptions = &options
+	}
+
+	value, err := strconv.ParseBool(strVal)
+	if err != nil {
+		return err
+	}
+
+	c.WriteOptions.NoSync = value
 
 	return nil
 }
