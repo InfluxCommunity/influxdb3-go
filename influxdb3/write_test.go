@@ -1151,5 +1151,4 @@ func TestToV3PrecisionString(t *testing.T) {
 	assert.Panics(t, func() {
 		toV3PrecisionString(5)
 	})
-
 }

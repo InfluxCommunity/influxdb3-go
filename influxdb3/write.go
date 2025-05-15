@@ -220,7 +220,8 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		var svErr *ServerError
-		if options.NoSync && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed && strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
+		if options.NoSync && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
+			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
 			// Server does not support the v3 write API, can't use the NoSync option.
 			return errors.New("server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
 		}
