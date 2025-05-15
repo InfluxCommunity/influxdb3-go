@@ -395,7 +395,7 @@ func TestNewFromConnectionString(t *testing.T) {
 		},
 		{
 			name: "with precision long value",
-			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=microsecond",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=second",
 			cfg: &ClientConfig{
 				Host:         "https://host:8086",
 				Token:        "abc",
@@ -403,7 +403,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
-					Precision:     lineprotocol.Microsecond,
+					Precision:     lineprotocol.Second,
 				},
 			},
 		},
@@ -533,7 +533,7 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_TOKEN":     "abc",
 				"INFLUX_ORG":       "my-org",
 				"INFLUX_DATABASE":  "my-db",
-				"INFLUX_PRECISION": "microsecond",
+				"INFLUX_PRECISION": "nanosecond",
 			},
 			cfg: &ClientConfig{
 				Host:         "http://host:8086",
@@ -541,7 +541,7 @@ func TestNewFromEnv(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Microsecond,
+					Precision:     lineprotocol.Nanosecond,
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 				},

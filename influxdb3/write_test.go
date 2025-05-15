@@ -1142,3 +1142,14 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 	assert.Equal(t, batch1Count+batch2Count-maxIdleConnections, uniqueConnectionCount)
 	assert.Equal(t, batch1Count+batch2Count, requestCount)
 }
+
+func TestToV3PrecisionString(t *testing.T) {
+	assert.Equal(t, "nanosecond", toV3PrecisionString(lineprotocol.Nanosecond))
+	assert.Equal(t, "microsecond", toV3PrecisionString(lineprotocol.Microsecond))
+	assert.Equal(t, "millisecond", toV3PrecisionString(lineprotocol.Millisecond))
+	assert.Equal(t, "second", toV3PrecisionString(lineprotocol.Second))
+	assert.Panics(t, func() {
+		toV3PrecisionString(5)
+	})
+
+}
