@@ -394,7 +394,7 @@ func TestNewFromConnectionString(t *testing.T) {
 			},
 		},
 		{
-			name: "with precision long value",
+			name: "with precision long value - second",
 			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=second",
 			cfg: &ClientConfig{
 				Host:         "https://host:8086",
@@ -404,6 +404,20 @@ func TestNewFromConnectionString(t *testing.T) {
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					Precision:     lineprotocol.Second,
+				},
+			},
+		},
+		{
+			name: "with precision long value - microsecond",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=microsecond",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					Precision:     lineprotocol.Microsecond,
 				},
 			},
 		},
