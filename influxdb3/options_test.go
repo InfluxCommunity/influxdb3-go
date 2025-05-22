@@ -122,6 +122,7 @@ func TestWriteOptions(t *testing.T) {
 				Database:      "db-x",
 				Precision:     DefaultWriteOptions.Precision,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
 			},
 		},
 		{
@@ -131,19 +132,22 @@ func TestWriteOptions(t *testing.T) {
 				Database:      "db-x",
 				Precision:     lineprotocol.Millisecond,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
 			},
 		},
 		{
-			name: "override database and precision and GZIP threshold",
+			name: "override database, precision, GZIP threshold, write no sync",
 			opts: va(
 				WithDatabase("db-x"),
 				WithPrecision(lineprotocol.Millisecond),
 				WithGzipThreshold(4096),
+				WithNoSync(true),
 			),
 			want: &WriteOptions{
 				Database:      "db-x",
 				Precision:     lineprotocol.Millisecond,
 				GzipThreshold: 4096,
+				NoSync:        true,
 			},
 		},
 	}
