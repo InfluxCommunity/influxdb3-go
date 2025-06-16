@@ -41,7 +41,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow/flight"
+	"github.com/apache/arrow-go/v18/arrow/flight"
 )
 
 // Client implements an InfluxDB client.
