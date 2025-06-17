@@ -12,6 +12,10 @@
    - Long precision string values added from v3 HTTP API: `"nanosecond"`, `"microsecond"`, `"millisecond"`, `"second"` (
      in addition to the existing `"ns"`, `"us"`, `"ms"`, `"s"`).
 
+### Bug Fixes
+
+1. [#166](https://github.com/InfluxCommunity/influxdb3-go/pull/166): Upgrades dependency `apache/arrow/go` to `apache/arrow-go` v18.
+
 ## 2.7.0 [2025-05-15]
 
 ### Bug Fixes
