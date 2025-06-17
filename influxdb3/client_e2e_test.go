@@ -55,6 +55,25 @@ func SkipCheck(t *testing.T) {
 	if _, present := os.LookupEnv("TESTING_INFLUXDB_DATABASE"); !present {
 		t.Skip("TESTING_INFLUXDB_DATABASE not set")
 	}
+
+	WaitHttpsProxyNotSet(t)
+}
+
+func WaitHttpsProxyNotSet(t *testing.T) {
+
+	proxy_val, proxy_enabled := os.LookupEnv("HTTPS_PROXY")
+
+	ttl := 3000
+	count := 0
+	for proxy_enabled {
+		if count >= ttl {
+			t.Fatalf("\nHTTPS_PROXY is set to %s.  It should not be set when running e2e tests", proxy_val)
+			break
+		}
+		time.Sleep(time.Duration(100) * time.Millisecond)
+		count += 100
+		proxy_val, proxy_enabled = os.LookupEnv("HTTPS_PROXY")
+	}
 }
 
 func TestWriteAndQueryExample(t *testing.T) {

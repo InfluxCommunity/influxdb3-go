@@ -1,5 +1,3 @@
-//go:build !e2e
-
 /*
  The MIT License
 
@@ -154,7 +152,10 @@ func TestNewWithProxy(t *testing.T) {
 	assert.Equal(t, "http://proxy:8888", c.config.Proxy)
 
 	// Valid proxy url with HTTPS_PROXY env already set.
-	t.Setenv("HTTPS_PROXY", "http://another-proxy:8888")
+	setEnvErr := os.Setenv("HTTPS_PROXY", "http://another-proxy:8888")
+	if setEnvErr != nil {
+		t.Fatal(setEnvErr)
+	}
 	c, err = New(ClientConfig{
 		Host:  "http://localhost:8086",
 		Token: "my-token",
