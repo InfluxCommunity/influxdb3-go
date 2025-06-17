@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/apache/arrow/go/v15/arrow"
 	"os"
 	"time"
+
+	"github.com/apache/arrow-go/v18/arrow"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 )

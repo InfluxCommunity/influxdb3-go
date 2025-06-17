@@ -25,8 +25,8 @@ package influxdb3
 import (
 	"errors"
 
-	"github.com/apache/arrow/go/v15/arrow"
-	"github.com/apache/arrow/go/v15/arrow/flight"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/flight"
 )
 
 var Done = errors.New("no more items in iterator") //nolint:all
