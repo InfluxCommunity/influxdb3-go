@@ -309,28 +309,29 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	return enc.Bytes(), nil
 }
 
+var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
+var UIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
+var FloatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
+
 func foo(v interface{}) interface{} {
 	rValue := reflect.ValueOf(v)
 	rType := rValue.Type()
 	kind := rType.Kind()
 	ignores := []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
-	if rType != reflect.TypeOf(time.Duration(0)) && !slices.Contains(ignores, kind) && (rType.String() != kind.String()) {
-		kinds := []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
-		if slices.Contains(kinds, kind) {
+	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(ignores, kind) || (rType.String() == kind.String()) {
+		return convertField(v)
+	} else {
+		if slices.Contains(IntKinds, kind) {
 			return rValue.Convert(reflect.TypeOf(int64(0))).Int()
 		}
 
-		kinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
-		if slices.Contains(kinds, kind) {
+		if slices.Contains(UIntKinds, kind) {
 			return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
 		}
 
-		kinds = []reflect.Kind{reflect.Float32, reflect.Float64}
-		if slices.Contains(kinds, kind) {
+		if slices.Contains(FloatKinds, kind) {
 			return rValue.Convert(reflect.TypeOf(float64(0))).Float()
 		}
-	} else {
-		return convertField(v)
 	}
 
 	return nil
