@@ -309,16 +309,12 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	return enc.Bytes(), nil
 }
 
-var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
-var UIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
-var FloatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
-var CantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
-
 func convertField(v interface{}) interface{} {
 	rValue := reflect.ValueOf(v)
 	rType := rValue.Type()
 	rKind := rType.Kind()
 
+	var CantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
 	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(CantConvertKinds, rKind) || (rType.String() == rKind.String()) {
 		return convertPrimitiveField(v)
 	} else {
@@ -327,14 +323,17 @@ func convertField(v interface{}) interface{} {
 }
 
 func convertNamedType(rValue reflect.Value, rKind reflect.Kind) interface{} {
+	var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
 	if slices.Contains(IntKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(int64(0))).Int()
 	}
 
+	var UIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
 	if slices.Contains(UIntKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
 	}
 
+	var FloatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
 	if slices.Contains(FloatKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(float64(0))).Float()
 	}
