@@ -312,33 +312,38 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
 var UIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
 var FloatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
+var CantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
 
-func foo(v interface{}) interface{} {
+func convertField(v interface{}) interface{} {
 	rValue := reflect.ValueOf(v)
 	rType := rValue.Type()
-	kind := rType.Kind()
-	ignores := []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
-	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(ignores, kind) || (rType.String() == kind.String()) {
-		return convertField(v)
+	rKind := rType.Kind()
+
+	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(CantConvertKinds, rKind) || (rType.String() == rKind.String()) {
+		return convertPrimitiveField(v)
 	} else {
-		if slices.Contains(IntKinds, kind) {
-			return rValue.Convert(reflect.TypeOf(int64(0))).Int()
-		}
+		return convertNamedType(rValue, rKind)
+	}
+}
 
-		if slices.Contains(UIntKinds, kind) {
-			return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
-		}
+func convertNamedType(rValue reflect.Value, rKind reflect.Kind) interface{} {
+	if slices.Contains(IntKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(int64(0))).Int()
+	}
 
-		if slices.Contains(FloatKinds, kind) {
-			return rValue.Convert(reflect.TypeOf(float64(0))).Float()
-		}
+	if slices.Contains(UIntKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
+	}
+
+	if slices.Contains(FloatKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(float64(0))).Float()
 	}
 
 	return nil
 }
 
 // convertField converts any primitive type to types supported by line protocol
-func convertField(v interface{}) interface{} {
+func convertPrimitiveField(v interface{}) interface{} {
 	switch v := v.(type) {
 	case bool, int64, uint64, string, float64:
 		return v

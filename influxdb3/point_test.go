@@ -46,14 +46,6 @@ func (s st) String() string {
 	return fmt.Sprintf("%.2f d %v", s.d, s.b)
 }
 
-func TestFoo(t *testing.T) {
-	type S int8
-
-	v := S(1)
-
-	foo(v)
-}
-
 type S int32
 
 func TestConvert(t *testing.T) {
@@ -90,7 +82,7 @@ func TestConvert(t *testing.T) {
 	}
 	for _, tv := range obj {
 		t.Run(reflect.TypeOf(tv.val).String(), func(t *testing.T) {
-			v := foo(tv.val)
+			v := convertField(tv.val)
 			assert.Equal(t, reflect.TypeOf(tv.targetVal), reflect.TypeOf(v))
 			if f, ok := tv.targetVal.(float64); ok {
 				val := reflect.ValueOf(tv.val)
