@@ -309,11 +309,14 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	return enc.Bytes(), nil
 }
 
+// convertField converts a given interface value into a compatible type for line protocol representation.
+// It handles primitive types, composite types, and named types by delegating to relevant helper functions.
 func convertField(v interface{}) interface{} {
 	rValue := reflect.ValueOf(v)
 	rType := rValue.Type()
 	rKind := rType.Kind()
 
+	// CantConvertKinds are kinds that will be converted to string
 	var CantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
 	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(CantConvertKinds, rKind) || (rType.String() == rKind.String()) {
 		return convertPrimitiveField(v)
@@ -322,6 +325,7 @@ func convertField(v interface{}) interface{} {
 	}
 }
 
+// convertNamedType converts a named type value to its corresponding basic type (int64, uint64, float64) if possible.
 func convertNamedType(rValue reflect.Value, rKind reflect.Kind) interface{} {
 	var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
 	if slices.Contains(IntKinds, rKind) {
