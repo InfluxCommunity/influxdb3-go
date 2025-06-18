@@ -14,7 +14,10 @@
 
 ### Bug Fixes
 
-1. [#166](https://github.com/InfluxCommunity/influxdb3-go/pull/166): Upgrades dependency `apache/arrow/go` to `apache/arrow-go` v18.
+1. [#164](https://github.com/InfluxCommunity/influxdb3-go/pull/164): Updates
+   - Go version to 1.23.9
+   - `golang.org/x/net` to v0.38.0
+2. [#166](https://github.com/InfluxCommunity/influxdb3-go/pull/166): Upgrades dependency `apache/arrow/go` to `apache/arrow-go` v18.
 
 ## 2.7.0 [2025-05-15]
 
