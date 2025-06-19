@@ -25,6 +25,8 @@ package influxdb3
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -307,8 +309,58 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	return enc.Bytes(), nil
 }
 
-// convertField converts any primitive type to types supported by line protocol
+// convertField converts a given interface value into a compatible type for line protocol representation.
+// It handles primitive types, composite types, and named types by delegating to relevant helper functions.
 func convertField(v interface{}) interface{} {
+	rValue := reflect.ValueOf(v)
+	rType := rValue.Type()
+	rKind := rType.Kind()
+
+	if (rType == reflect.TypeOf(time.Duration(0)) ||
+		rType == reflect.TypeOf(time.Time{})) ||
+		rType == reflect.TypeOf([]byte{}) ||
+		(rType.String() == rKind.String()) {
+		return convertPrimitiveField(v)
+	}
+
+	var cantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
+	if !slices.Contains(cantConvertKinds, rKind) {
+		return convertNamedFieldType(rValue, rKind)
+	}
+
+	return fmt.Sprintf("%v", v)
+}
+
+// convertNamedFieldType converts a named type value to its corresponding basic type (int64, uint64, float64) if possible.
+func convertNamedFieldType(rValue reflect.Value, rKind reflect.Kind) interface{} {
+	var intKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
+	if slices.Contains(intKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(int64(0))).Int()
+	}
+
+	var uIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
+	if slices.Contains(uIntKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
+	}
+
+	var floatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
+	if slices.Contains(floatKinds, rKind) {
+		return rValue.Convert(reflect.TypeOf(float64(0))).Float()
+	}
+
+	if rKind == reflect.String {
+		return rValue.Convert(reflect.TypeOf("")).String()
+	}
+
+	if rKind == reflect.Bool {
+		return rValue.Convert(reflect.TypeOf(true)).Bool()
+	}
+
+	return nil
+}
+
+// convertField converts any primitive type to types supported by line protocol
+func convertPrimitiveField(v interface{}) interface{} {
 	switch v := v.(type) {
 	case bool, int64, uint64, string, float64:
 		return v
@@ -336,7 +388,6 @@ func convertField(v interface{}) interface{} {
 		return v.Format(time.RFC3339Nano)
 	case time.Duration:
 		return v.String()
-	default:
-		return fmt.Sprintf("%v", v)
 	}
+	return nil
 }

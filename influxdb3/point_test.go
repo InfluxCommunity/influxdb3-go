@@ -36,7 +36,17 @@ import (
 )
 
 type ia int
-
+type String string
+type Bool bool
+type Float float32
+type Int int16
+type Uint uint8
+type Student User
+type User struct {
+	Name string
+	Age  int
+}
+type Map map[int]string
 type st struct {
 	d float64
 	b bool
@@ -45,6 +55,8 @@ type st struct {
 func (s st) String() string {
 	return fmt.Sprintf("%.2f d %v", s.d, s.b)
 }
+
+type S int32
 
 func TestConvert(t *testing.T) {
 	obj := []struct {
@@ -65,7 +77,7 @@ func TestConvert(t *testing.T) {
 		{true, true},
 		{float32(1.2), float64(1.2)},
 		{float64(2.2), float64(2.2)},
-		{ia(4), "4"},
+		{ia(4), int64(4)},
 		{[]string{"a", "b"}, "[a b]"},
 		{map[int]string{1: "a", 2: "b"}, "map[1:a 2:b]"},
 		{struct {
@@ -76,6 +88,13 @@ func TestConvert(t *testing.T) {
 		{[]byte("test"), "test"},
 		{time.Date(2022, 12, 13, 14, 15, 16, 0, time.UTC), "2022-12-13T14:15:16Z"},
 		{12*time.Hour + 11*time.Minute + 10*time.Second, "12h11m10s"},
+		{String("name"), "name"},
+		{Float(2.5), float64(2.5)},
+		{Bool(true), bool(true)},
+		{Int(16), int64(16)},
+		{Uint(8), uint64(8)},
+		{Student{Name: "Name", Age: 21}, "{Name 21}"},
+		{Map{1: "a", 2: "b"}, "map[1:a 2:b]"},
 	}
 	for _, tv := range obj {
 		t.Run(reflect.TypeOf(tv.val).String(), func(t *testing.T) {
