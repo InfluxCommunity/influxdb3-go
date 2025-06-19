@@ -316,30 +316,37 @@ func convertField(v interface{}) interface{} {
 	rType := rValue.Type()
 	rKind := rType.Kind()
 
-	// CantConvertKinds are kinds that will be converted to string
-	var CantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
-	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(CantConvertKinds, rKind) || (rType.String() == rKind.String()) {
+	// cantConvertKinds are kinds that will be converted to string
+	var cantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
+	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(cantConvertKinds, rKind) || (rType.String() == rKind.String()) {
 		return convertPrimitiveField(v)
-	} else {
-		return convertNamedType(rValue, rKind)
 	}
+	return convertNamedFieldType(rValue, rKind)
 }
 
-// convertNamedType converts a named type value to its corresponding basic type (int64, uint64, float64) if possible.
-func convertNamedType(rValue reflect.Value, rKind reflect.Kind) interface{} {
-	var IntKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
-	if slices.Contains(IntKinds, rKind) {
+// convertNamedFieldType converts a named type value to its corresponding basic type (int64, uint64, float64) if possible.
+func convertNamedFieldType(rValue reflect.Value, rKind reflect.Kind) interface{} {
+	var intKinds = []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
+	if slices.Contains(intKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(int64(0))).Int()
 	}
 
-	var UIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
-	if slices.Contains(UIntKinds, rKind) {
+	var uIntKinds = []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
+	if slices.Contains(uIntKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(uint64(0))).Uint()
 	}
 
-	var FloatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
-	if slices.Contains(FloatKinds, rKind) {
+	var floatKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
+	if slices.Contains(floatKinds, rKind) {
 		return rValue.Convert(reflect.TypeOf(float64(0))).Float()
+	}
+
+	if rKind == reflect.String {
+		return rValue.Convert(reflect.TypeOf("")).String()
+	}
+
+	if rKind == reflect.Bool {
+		return rValue.Convert(reflect.TypeOf(true)).Bool()
 	}
 
 	return nil

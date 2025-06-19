@@ -36,6 +36,11 @@ import (
 )
 
 type ia int
+type String string
+type Bool bool
+type Float float32
+type Int int16
+type Uint uint8
 
 type st struct {
 	d float64
@@ -53,7 +58,11 @@ func TestConvert(t *testing.T) {
 		val       interface{}
 		targetVal interface{}
 	}{
-		{S(-5), int64(-5)},
+		{String("name"), "name"},
+		{Float(2.5), float64(2.5)},
+		{Bool(true), bool(true)},
+		{Int(16), int64(16)},
+		{Uint(8), uint64(8)},
 		{int(-5), int64(-5)},
 		{int8(5), int64(5)},
 		{int16(-51), int64(-51)},
@@ -91,7 +100,7 @@ func TestConvert(t *testing.T) {
 				valf := val.Convert(ft)
 				assert.Less(t, math.Abs(f-valf.Float()), 1e-6)
 			} else {
-				//assert.EqualValues(t, tv.targetVal, v)
+				assert.EqualValues(t, tv.targetVal, v)
 			}
 		})
 	}
