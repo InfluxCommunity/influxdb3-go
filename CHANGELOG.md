@@ -2,6 +2,11 @@
 
 ## 2.9.0 [unreleased]
 
+### Features
+
+1. [#169](https://github.com/InfluxCommunity/influxdb3-go/pull/169): Support type convertion for named type.
+
+
 ## 2.8.0 [2025-06-18]
 
 ### Features
