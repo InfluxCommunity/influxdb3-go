@@ -316,12 +316,19 @@ func convertField(v interface{}) interface{} {
 	rType := rValue.Type()
 	rKind := rType.Kind()
 
-	// cantConvertKinds are kinds that will be converted to string
-	var cantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
-	if rType == reflect.TypeOf(time.Duration(0)) || slices.Contains(cantConvertKinds, rKind) || (rType.String() == rKind.String()) {
+	if (rType == reflect.TypeOf(time.Duration(0)) ||
+		rType == reflect.TypeOf(time.Time{})) ||
+		rType == reflect.TypeOf([]byte{}) ||
+		(rType.String() == rKind.String()) {
 		return convertPrimitiveField(v)
 	}
-	return convertNamedFieldType(rValue, rKind)
+
+	var cantConvertKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Struct, reflect.Array}
+	if !slices.Contains(cantConvertKinds, rKind) {
+		return convertNamedFieldType(rValue, rKind)
+	}
+
+	return fmt.Sprintf("%v", v)
 }
 
 // convertNamedFieldType converts a named type value to its corresponding basic type (int64, uint64, float64) if possible.
@@ -381,7 +388,6 @@ func convertPrimitiveField(v interface{}) interface{} {
 		return v.Format(time.RFC3339Nano)
 	case time.Duration:
 		return v.String()
-	default:
-		return fmt.Sprintf("%v", v)
 	}
+	return nil
 }
