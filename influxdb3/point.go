@@ -34,7 +34,9 @@ import (
 
 // Point represents InfluxDB time series point, holding tags and fields
 type Point struct {
-	Values         *PointValues
+	Values *PointValues
+
+	// fieldConverter this converter function must return one of these types supported by InfluxDB int64, uint64, float64, bool, string.
 	fieldConverter *func(interface{}) interface{}
 }
 
