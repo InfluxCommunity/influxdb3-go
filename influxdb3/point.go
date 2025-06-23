@@ -34,7 +34,8 @@ import (
 
 // Point represents InfluxDB time series point, holding tags and fields
 type Point struct {
-	Values *PointValues
+	Values         *PointValues
+	fieldConverter *func(interface{}) interface{}
 }
 
 // NewPointWithPointValues returns a new Point with given PointValues.
@@ -293,7 +294,15 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 	sort.Strings(fieldKeys)
 	for _, fieldKey := range fieldKeys {
 		fieldValue := p.Values.Fields[fieldKey]
-		value, ok := lineprotocol.NewValue(convertField(fieldValue))
+		if p.fieldConverter != nil {
+			fieldValue = (*p.fieldConverter)(fieldValue)
+			if _, err := isSupportedType(fieldValue); err != nil {
+				return nil, fmt.Errorf("unsupported type: %T", fieldValue)
+			}
+		} else {
+			fieldValue = convertField(fieldValue)
+		}
+		value, ok := lineprotocol.NewValue(fieldValue)
 		if !ok {
 			return nil, fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
 		}
@@ -305,6 +314,21 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		return nil, fmt.Errorf("encoding error: %w", err)
 	}
 	return enc.Bytes(), nil
+}
+
+// WithFieldConverter sets a custom field converter function for transforming field values when used.
+func (p *Point) WithFieldConverter(converter *func(interface{}) interface{}) {
+	p.fieldConverter = converter
+}
+
+// isSupportedType checks if the input value is of a supported type (int64, uint64, float64, bool, string, or []byte).
+// Returns true if the type is supported, otherwise returns false along with an error indicating the unsupported type.
+func isSupportedType(v interface{}) (bool, error) {
+	switch v.(type) {
+	case int64, uint64, float64, bool, string, []byte:
+		return true, nil
+	}
+	return false, fmt.Errorf("unsupported type: %T", v)
 }
 
 // convertField converts any primitive type to types supported by line protocol
