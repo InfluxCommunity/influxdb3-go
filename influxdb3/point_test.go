@@ -36,6 +36,18 @@ import (
 )
 
 type ia int
+type Int8 int8
+type Int16 int16
+type Int32 int32
+type Int64 int64
+type Uint8 uint8
+type Uint16 uint16
+type Uint32 uint32
+type Uint64 uint64
+type Float32 float32
+type Float64 float64
+type String string
+type Bool bool
 
 type st struct {
 	d float64
@@ -280,4 +292,81 @@ func TestFromValuesMissingMeasurement(t *testing.T) {
 	_, err := FromValues(values)
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "missing measurement")
+}
+
+func TestFieldConverterValid(t *testing.T) {
+	validConverterFunc := func(v interface{}) interface{} {
+		switch v := v.(type) {
+		case Int8:
+			return int64(v)
+		case Int16:
+			return int64(v)
+		case Int32:
+			return int64(v)
+		case Int64:
+			return int64(v)
+		case Uint8:
+			return uint64(v)
+		case Uint16:
+			return uint64(v)
+		case Uint32:
+			return uint64(v)
+		case Uint64:
+			return uint64(v)
+		case Float32:
+			return float64(v)
+		case Float64:
+			return float64(v)
+		case String:
+			return string(v)
+		case Bool:
+			return bool(v)
+		case time.Time:
+			return v.Format(time.RFC3339Nano)
+		case time.Duration:
+			return v.String()
+		}
+		return v
+	}
+	point := createPointWithNamedType(&validConverterFunc)
+
+	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
+	assert.NoError(t, err)
+	line := "measurement " +
+		"bool=true,duration=\"12h11m10s\",float32=9,float64=10," +
+		"int16=2i,int32=3i,int64=4i,int8=1i,string=\"11\"," +
+		"time=\"2022-12-13T14:15:16Z\",uint16=6u,uint32=7u,uint64=8u,uint8=5u\n"
+
+	assert.Equal(t, line, string(binary))
+}
+
+func TestFieldConverterInvalid(t *testing.T) {
+	invalidConverterFunc := func(v interface{}) interface{} { return v }
+	point := createPointWithNamedType(&invalidConverterFunc)
+
+	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
+	assert.Contains(t, err.Error(), "unsupported type:")
+	assert.Nil(t, binary)
+}
+
+func createPointWithNamedType(converter *func(interface{}) interface{}) *Point {
+	point := NewPointWithMeasurement("measurement")
+	point.WithFieldConverter(converter)
+
+	point.SetField("int8", Int8(1))
+	point.SetField("int16", Int16(2))
+	point.SetField("int32", Int32(3))
+	point.SetField("int64", Int64(4))
+	point.SetField("uint8", Uint8(5))
+	point.SetField("uint16", Uint16(6))
+	point.SetField("uint32", Uint32(7))
+	point.SetField("uint64", Uint64(8))
+	point.SetField("float32", Float32(9))
+	point.SetField("float64", Float64(10))
+	point.SetField("string", String("11"))
+	point.SetField("bool", Bool(true))
+	point.SetField("time", time.Date(2022, 12, 13, 14, 15, 16, 0, time.UTC))
+	point.SetField("duration", 12*time.Hour+11*time.Minute+10*time.Second)
+
+	return point
 }
