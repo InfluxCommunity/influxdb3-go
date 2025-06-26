@@ -305,7 +305,7 @@ func (c *Client) GetServerVersion() (string, error) {
 			return v, err
 		}
 		var versionResp struct {
-			Version string `json:"v"`
+			Version string `json:"version"`
 		}
 		err = json.Unmarshal(body, &versionResp)
 		if err != nil {
