@@ -277,6 +277,46 @@ func NewFromEnv() (*Client, error) {
 	return New(cfg)
 }
 
+// GetServerVersion fetches the version of the server by parsing the response headers or body of the "/ping" endpoint.
+func (c *Client) GetServerVersion() (string, error) {
+	u, err := url.Parse(c.config.Host + "/ping")
+	if err != nil {
+		return "", err
+	}
+
+	r, err := c.makeAPICall(context.Background(), httpParams{
+		endpointURL: u,
+		httpMethod:  "GET",
+		headers:     http.Header{},
+		body:        nil,
+	})
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	v := r.Header.Get(strings.ToLower("X-Influxdb-Version"))
+	if v == "" {
+		var body []byte
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			return v, err
+		}
+		var versionResp struct {
+			Version string `json:"v"`
+		}
+		err = json.Unmarshal(body, &versionResp)
+		if err != nil {
+			return v, err
+		}
+		v = versionResp.Version
+	}
+
+	return v, nil
+}
+
 // Close closes all idle connections.
 func (c *Client) Close() error {
 	c.config.HTTPClient.CloseIdleConnections()

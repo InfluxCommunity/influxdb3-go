@@ -908,3 +908,78 @@ func TestFixUrl(t *testing.T) {
 			})
 	}
 }
+
+func TestGetVersionInHeaderSuccess(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Influxdb-Version", "3.0.0")
+		w.Write([]byte(
+			`{"version": "2.0"}`,
+		))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	version, err := client.GetServerVersion()
+	require.NoError(t, err)
+	assert.Equal(t, "3.0.0", version)
+}
+
+func TestGetVersionInBodySuccess(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(
+			`{"version": "2.0"}`,
+		))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	version, err := client.GetServerVersion()
+	require.NoError(t, err)
+	assert.Equal(t, "2.0", version)
+}
+
+func TestGetVersionInvalid(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Something", "3.0.0")
+		w.Write([]byte(
+			`{"something": "2.0"}`,
+		))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	version, err := client.GetServerVersion()
+	require.NoError(t, err)
+	assert.Empty(t, version)
+}
+
+func TestGetVersionFail(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Influxdb-Version", "3.0.0")
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	version, err := client.GetServerVersion()
+	assert.Equal(t, "500 Internal Server Error", err.Error())
+	assert.Empty(t, version)
+}
+
+func TestGetVersionMalformJson(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(
+			`{Invalid`,
+		))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+	require.NoError(t, err)
+	version, err := client.GetServerVersion()
+	assert.Contains(t, err.Error(), "invalid character")
+	assert.Empty(t, version)
+}
