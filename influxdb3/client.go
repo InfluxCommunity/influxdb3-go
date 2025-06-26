@@ -279,7 +279,12 @@ func NewFromEnv() (*Client, error) {
 
 // GetServerVersion fetches the version of the server by parsing the response headers or body of the "/ping" endpoint.
 func (c *Client) GetServerVersion() (string, error) {
-	u, err := c.apiURL.Parse(c.config.Host + "/ping")
+	joinPath, err := url.JoinPath(c.config.Host, "/ping")
+	if err != nil {
+		return "", err
+	}
+
+	u, err := url.Parse(joinPath)
 	if err != nil {
 		return "", err
 	}
