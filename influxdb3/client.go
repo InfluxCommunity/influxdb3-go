@@ -296,10 +296,7 @@ func (c *Client) GetServerVersion() (string, error) {
 	v := r.Header.Get(strings.ToLower("X-Influxdb-Version"))
 	if v == "" {
 		var body []byte
-		body, err = io.ReadAll(r.Body)
-		if err != nil {
-			return v, err
-		}
+		body, _ = io.ReadAll(r.Body)
 		var versionResp struct {
 			Version string `json:"version"`
 		}
