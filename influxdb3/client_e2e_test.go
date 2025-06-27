@@ -727,3 +727,22 @@ func TestLPBatcher(t *testing.T) {
 		}
 	}
 }
+
+func TestGetServerVersion(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	defer client.Close()
+
+	version, err := client.GetServerVersion()
+	require.NoError(t, err)
+	assert.NotEmpty(t, version)
+}

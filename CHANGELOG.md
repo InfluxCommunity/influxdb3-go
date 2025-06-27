@@ -2,6 +2,10 @@
 
 ## 2.9.0 [unreleased]
 
+### Features
+
+1. [#171](https://github.com/InfluxCommunity/influxdb3-go/pull/171): Add function to get InfluxDB version.
+
 ## 2.8.0 [2025-06-18]
 
 ### Features
