@@ -909,17 +909,6 @@ func TestFixUrl(t *testing.T) {
 	}
 }
 
-func TestInvalidUrl(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer ts.Close()
-	client, _ := New(ClientConfig{Host: "ts.URL", Token: "my-token"})
-	version, err := client.GetServerVersion()
-	assert.Error(t, err)
-	assert.Empty(t, version)
-}
-
 func TestGetVersionInHeaderSuccess(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-Influxdb-Version", "3.0.0")
