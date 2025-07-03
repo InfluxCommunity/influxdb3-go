@@ -328,7 +328,7 @@ func TestFieldConverterValid(t *testing.T) {
 		}
 		return v
 	}
-	point := createPointWithNamedType(&validConverterFunc)
+	point := createPointWithNamedType(validConverterFunc)
 
 	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
 	assert.NoError(t, err)
@@ -342,14 +342,14 @@ func TestFieldConverterValid(t *testing.T) {
 
 func TestFieldConverterInvalid(t *testing.T) {
 	invalidConverterFunc := func(v interface{}) interface{} { return v }
-	point := createPointWithNamedType(&invalidConverterFunc)
+	point := createPointWithNamedType(invalidConverterFunc)
 
 	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
-	assert.Contains(t, err.Error(), "unsupported type:")
+	assert.Contains(t, err.Error(), "invalid value for field")
 	assert.Nil(t, binary)
 }
 
-func createPointWithNamedType(converter *func(interface{}) interface{}) *Point {
+func createPointWithNamedType(converter func(interface{}) interface{}) *Point {
 	point := NewPointWithMeasurement("measurement")
 	point.WithFieldConverter(converter)
 
