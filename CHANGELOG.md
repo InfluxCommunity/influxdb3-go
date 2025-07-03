@@ -4,7 +4,8 @@
 
 ### Features
 
-1. [#171](https://github.com/InfluxCommunity/influxdb3-go/pull/171): Add function to get InfluxDB version.
+1. [#169](https://github.com/InfluxCommunity/influxdb3-go/pull/169): Support user-defined type converter function for writes points.
+2. [#171](https://github.com/InfluxCommunity/influxdb3-go/pull/171): Add function to get InfluxDB version.
 
 ## 2.8.0 [2025-06-18]
 
