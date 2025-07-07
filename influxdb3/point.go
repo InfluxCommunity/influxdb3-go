@@ -35,6 +35,9 @@ import (
 // Point represents InfluxDB time series point, holding tags and fields
 type Point struct {
 	Values *PointValues
+
+	// fieldConverter this converter function must return one of these types supported by InfluxDB int64, uint64, float64, bool, string, []byte.
+	fieldConverter func(interface{}) interface{}
 }
 
 // NewPointWithPointValues returns a new Point with given PointValues.
@@ -291,9 +294,13 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		fieldKeys = append(fieldKeys, k)
 	}
 	sort.Strings(fieldKeys)
+	converter := p.fieldConverter
+	if converter == nil {
+		converter = convertField
+	}
 	for _, fieldKey := range fieldKeys {
-		fieldValue := p.Values.Fields[fieldKey]
-		value, ok := lineprotocol.NewValue(convertField(fieldValue))
+		fieldValue := converter(p.Values.Fields[fieldKey])
+		value, ok := lineprotocol.NewValue(fieldValue)
 		if !ok {
 			return nil, fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
 		}
@@ -305,6 +312,11 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, d
 		return nil, fmt.Errorf("encoding error: %w", err)
 	}
 	return enc.Bytes(), nil
+}
+
+// WithFieldConverter sets a custom field converter function for transforming field values when used.
+func (p *Point) WithFieldConverter(converter func(interface{}) interface{}) {
+	p.fieldConverter = converter
 }
 
 // convertField converts any primitive type to types supported by line protocol
