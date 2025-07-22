@@ -135,15 +135,10 @@ docker exec influxdb_v3 influxdb3 create database --token "$ADMIN_TOKEN" "$INFLU
 export_var() {
   local var_name="$1" var_value="$2"
   [[ -n "$var_name" ]] || return
-  if [[ -z "$BASH_ENV" ]]; then
-    echo "\$BASH_ENV not available (not in CircleCI), cannot export variables."
-    exit 1
-  fi
+  [[ -n "$BASH_ENV" ]] || { echo "\$BASH_ENV not available (not in CircleCI), cannot export variables."; exit 1; }
   echo "Exporting $var_name=$var_value"
   echo "export $var_name=$var_value" >> "$BASH_ENV"
 }
-
-echo "BASH_ENV is: '$BASH_ENV'"
 
 echo
 export_var "$EXPORT_URL_ENV_VAR" "http://localhost:8181"
