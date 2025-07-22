@@ -98,8 +98,12 @@ docker run \
 echo
 echo "Wait to start InfluxDB 3.0"
 echo
-until curl -s -o /dev/null -w "%{http_code}" http://localhost:8181/ping | grep -q "401"; do
-  sleep 2
+for i in {1..30}; do
+  if curl -s -o /dev/null -w "%{http_code}" http://localhost:8181/ping | grep -q "401"; then
+    break
+  fi
+  echo "Attempt $i/30: Waiting for InfluxDB to respond with 401..."
+  sleep 1
 done
 echo "Done"
 
