@@ -36,9 +36,6 @@ jobs:
       - run:
           name: Run tests
           command: |
-            echo "DEBUG: TESTING_INFLUXDB_URL=$TESTING_INFLUXDB_URL" # TODO simon: do not commit!!!
-            echo "DEBUG: TESTING_INFLUXDB_DATABASE=$TESTING_INFLUXDB_DATABASE" # TODO simon: do not commit!!!
-            echo "DEBUG: TESTING_INFLUXDB_TOKEN=$TESTING_INFLUXDB_TOKEN" # TODO simon: do not commit!!!
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
               GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out ./...
             else
