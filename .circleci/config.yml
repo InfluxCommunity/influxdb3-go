@@ -2,15 +2,10 @@ version: 2.1
 
 jobs:
   tests-go:
-    parameters:
-      go-image:
-        type: string
-        default: "cimg/go:1.23"
-    docker:
-      - image: << parameters.go-image >>
+    machine:
+      image: ubuntu-2204:current
     steps:
       - checkout
-      - setup_remote_docker
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
