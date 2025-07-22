@@ -82,14 +82,14 @@ docker network create -d bridge influx_network --subnet $INFLUXDB_NETWORK_SUBNET
 echo
 echo "Restarting InfluxDB 3.0 [${INFLUXDB_V3_IMAGE}] ... "
 echo
-docker pull ${INFLUXDB_V3_IMAGE} || true
+docker pull "${INFLUXDB_V3_IMAGE}" || true
 docker run \
        --detach \
        --name influxdb_v3 \
        --network influx_network \
        --publish 8181:8181 \
        --env LOG_FILTER=debug \
-       ${INFLUXDB_V3_IMAGE} \
+       "${INFLUXDB_V3_IMAGE}" \
        serve -v \
         --node-id node01 \
         --object-store file \
@@ -131,9 +131,9 @@ docker exec influxdb_v3 influxdb3 create database --token "$ADMIN_TOKEN" "$INFLU
 export_var() {
   local var_name="$1" var_value="$2"
   [[ -n "$var_name" ]] || return
-  [[ -n "$BASH_ENV" && -w "$BASH_ENV" ]] || { echo '$BASH_ENV not available (not in CircleCI), cannot export variables'; exit 1; }
+  [[ -n "$BASH_ENV" && -w "$BASH_ENV" ]] || { echo "$$BASH_ENV not available (not in CircleCI), cannot export variables"; exit 1; }
   echo "Exporting $var_name=$var_value"
-  echo "export $var_name=$var_value" >> $BASH_ENV
+  echo "export $var_name=$var_value" >> "$BASH_ENV"
 }
 
 echo
