@@ -6,6 +6,7 @@
 
 1. [#169](https://github.com/InfluxCommunity/influxdb3-go/pull/169): Support user-defined type converter function for writes points.
 2. [#171](https://github.com/InfluxCommunity/influxdb3-go/pull/171): Add function to get InfluxDB version.
+3. [#174](https://github.com/InfluxCommunity/influxdb3-go/pull/174): Run integration tests against a locally started InfluxDB 3 Core server.
 
 ## 2.8.0 [2025-06-18]
 
