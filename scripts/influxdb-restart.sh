@@ -63,7 +63,7 @@ done
 #
 # Check prerequisites
 #
-for cmd in docker wget; do
+for cmd in docker curl; do
   command -v ${cmd} &>/dev/null || { echo "'${cmd}' is not installed"; exit 1; }
 done
 
