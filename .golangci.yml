@@ -21,6 +21,7 @@ linters:
     - mnd
     - nilnil
     - nlreturn
+    - noctx
     - noinlineerr
     - staticcheck
     - tagliatelle
