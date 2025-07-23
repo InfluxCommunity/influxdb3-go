@@ -23,15 +23,8 @@
 
 set -e
 
-DEFAULT_INFLUXDB_V3_VERSION="3-core"
-INFLUXDB_V3_VERSION="${INFLUXDB_V3_VERSION:-$DEFAULT_INFLUXDB_V3_VERSION}"
-INFLUXDB_V3_IMAGE=influxdb:${INFLUXDB_V3_VERSION}
-
 DEFAULT_INFLUXDB_DATABASE=my-db
 INFLUXDB_DATABASE="${INFLUXDB_DATABASE:-$DEFAULT_INFLUXDB_DATABASE}"
-
-INFLUXDB_NETWORK_SUBNET=192.170.0.0/24
-INFLUXDB_NETWORK_GW=192.170.0.1
 
 #
 # Parse command line arguments
@@ -63,37 +56,9 @@ done
 #
 # Check prerequisites
 #
-for cmd in docker curl; do
+for cmd in curl jq; do
   command -v ${cmd} &>/dev/null || { echo "'${cmd}' is not installed"; exit 1; }
 done
-
-echo
-echo "Cleanup"
-echo
-docker kill influxdb_v3 2>/dev/null || true
-docker rm influxdb_v3 2>/dev/null || true
-docker network rm influx_network 2>/dev/null || true
-
-echo
-echo "Create network"
-echo
-docker network create -d bridge influx_network --subnet $INFLUXDB_NETWORK_SUBNET --gateway $INFLUXDB_NETWORK_GW
-
-echo
-echo "Restarting InfluxDB 3.0 [${INFLUXDB_V3_IMAGE}] ... "
-echo
-docker pull "${INFLUXDB_V3_IMAGE}" || true
-docker run \
-       --detach \
-       --name influxdb_v3 \
-       --network influx_network \
-       --publish 8181:8181 \
-       --env LOG_FILTER=debug \
-       "${INFLUXDB_V3_IMAGE}" \
-       serve -v \
-        --node-id node01 \
-        --object-store file \
-        --data-dir /var/lib/influxdb3/data
 
 echo
 echo "Wait to start InfluxDB 3.0"
@@ -110,7 +75,11 @@ echo "Done"
 echo
 echo "Create admin token"
 echo
-ADMIN_TOKEN=$(docker exec influxdb_v3 influxdb3 create token --admin | grep "Token:" | awk '{print $2}')
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8181/api/v3/configure/token/admin | jq -r '.token')
+if [[ -z "$ADMIN_TOKEN" || "$ADMIN_TOKEN" == "null" ]]; then
+  echo "Failed to create admin token"
+  exit 1
+fi
 echo "ADMIN_TOKEN=$ADMIN_TOKEN"
 
 echo
@@ -126,7 +95,15 @@ echo "Done"
 echo
 echo "Create database"
 echo
-docker exec influxdb_v3 influxdb3 create database --token "$ADMIN_TOKEN" "$INFLUXDB_DATABASE"
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:8181/api/v3/configure/database" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{\"db\":\"${INFLUXDB_DATABASE}\"}")
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Database creation failed with HTTP $HTTP_CODE"
+  exit 1
+fi
+echo "Done"
 
 #
 # Export results
