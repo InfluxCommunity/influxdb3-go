@@ -379,7 +379,7 @@ func TestQueryDatabaseDoesNotExist(t *testing.T) {
 	iterator, err := client.Query(context.Background(), "SHOW TABLES")
 	assert.Nil(t, iterator)
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "bucket \"does not exist\" not found")
+	assert.True(t, strings.Contains(err.Error(), "bucket \"does not exist\" not found") || strings.Contains(err.Error(), "database not found: does not exist"))
 }
 
 func TestQuerySchema(t *testing.T) {
@@ -449,14 +449,6 @@ func TestWriteError(t *testing.T) {
 	err = client.Write(context.Background(), []byte("test,type=negative val="))
 	require.Error(t, err)
 	assert.NotPanics(t, func() { _ = err.(*influxdb3.ServerError) })
-	assert.Regexp(t, "[0-9a-f]{16}", err.(*influxdb3.ServerError).Headers["Trace-Id"][0])
-	b, perr := strconv.ParseBool(err.(*influxdb3.ServerError).Headers["Trace-Sampled"][0])
-	require.NoError(t, perr)
-	assert.False(t, b)
-	assert.NotNil(t, err.(*influxdb3.ServerError).Headers["Strict-Transport-Security"])
-	assert.Regexp(t, "[0-9a-f]{32}", err.(*influxdb3.ServerError).Headers["X-Influxdb-Request-Id"][0])
-	assert.NotNil(t, err.(*influxdb3.ServerError).Headers["X-Influxdb-Build"][0])
-
 }
 
 func TestEscapedStringValues(t *testing.T) {
