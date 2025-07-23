@@ -13,7 +13,6 @@ jobs:
           - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
           - INFLUXDB3_OBJECT_STORE=file
           - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
-          - LOG_FILTER=debug
     steps:
       - checkout
       - restore_cache:
