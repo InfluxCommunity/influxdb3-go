@@ -46,6 +46,7 @@ func NewPointValues(measurementName string) *PointValues {
 }
 
 // GetMeasurement returns the measurement name
+// It will return null when querying with SQL Query.
 func (pv *PointValues) GetMeasurement() string {
 	return pv.MeasurementName
 }
