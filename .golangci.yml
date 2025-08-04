@@ -23,6 +23,7 @@ linters:
     - nlreturn
     - noctx
     - noinlineerr
+    - noctx
     - staticcheck
     - tagliatelle
     - testifylint

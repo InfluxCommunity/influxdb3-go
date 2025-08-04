@@ -84,7 +84,8 @@ func FromValues(values *PointValues) (*Point, error) {
 	return NewPointWithPointValues(values), nil
 }
 
-// GetMeasurement returns the measurement name
+// GetMeasurement returns the measurement name.
+// It will return null when querying with SQL Query.
 func (p *Point) GetMeasurement() string {
 	return p.Values.GetMeasurement()
 }
