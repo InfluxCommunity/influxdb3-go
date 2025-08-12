@@ -1,5 +1,7 @@
 # Change Log
 
+## 2.10.0 [unreleased]
+
 ## 2.9.0 [2025-08-12]
 
 ### Features
