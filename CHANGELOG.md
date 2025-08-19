@@ -4,7 +4,7 @@
 
 ### CI
 
-1. [#180](https://github.com/InfluxCommunity/influxdb3-go/pull/180): 
+1. [#180](https://github.com/InfluxCommunity/influxdb3-go/pull/180):
    - Add tests for arm64 CircleCI.
    - Add tests for go v1.24 and v1.25.
 
