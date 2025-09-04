@@ -388,6 +388,33 @@ iterator, err := client.QueryWithParameters(ctx, query, parameters,
 
 For more information, see the [InfluxDB documentation](https://docs.influxdata.com/).
 
+#### gRPC Compression
+
+By default, the Go client does not advertise support for compressed responses,  
+so the server will always send responses uncompressed.
+
+You can enable compression by registering a compressor and passing a gRPC call option:
+
+```go
+import "google.golang.org/grpc/encoding/gzip"
+import "google.golang.org/grpc"
+
+// Previous client initialization 
+
+iterator, err := client.Query(ctx, query, 
+    influxdb3.WithGrpcCallOption(grpc.UseCompressor(gzip.Name)))
+
+// Process the result.
+
+```
+
+This will:
+
+- advertise support for gzip in `grpc-accept-encoding` header, so the server may send gzip-compressed responses (the client automatically decompresses them), and
+- compress the outgoing request messages with gzip.
+
+:warning: If the server does not support the chosen compression algorithm, the request will be rejected.
+
 ## Run examples
 
 See the [`examples` folder](./examples/README.md) for complete code examples that you can run.
