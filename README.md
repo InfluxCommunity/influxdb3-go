@@ -388,6 +388,13 @@ iterator, err := client.QueryWithParameters(ctx, query, parameters,
 
 For more information, see the [InfluxDB documentation](https://docs.influxdata.com/).
 
+### gRPC Compression
+
+The Go client supports gRPC response compression.
+
+If the server chooses to compress query responses (e.g., with gzip), the client
+will automatically decompress them â€” no extra configuration is required.
+
 ## Run examples
 
 See the [`examples` folder](./examples/README.md) for complete code examples that you can run.

@@ -53,6 +53,7 @@ func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPo
 
 	opts := []grpc.DialOption{
 		transport,
+		grpc.WithDecompressor(grpc.NewGZIPDecompressor()), // Until grpc uses decompressor by default, we have to add it
 	}
 
 	if proxyURL != nil {
@@ -208,6 +209,8 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 	}
 	md.Set("authorization", "Bearer "+c.config.Token)
 	md.Set("User-Agent", userAgent)
+	// Until grpc starts to advertise this header, we have to publish it ourselves
+	md.Set("grpc-accept-encoding", "identity, gzip")
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	ticketData := map[string]interface{}{

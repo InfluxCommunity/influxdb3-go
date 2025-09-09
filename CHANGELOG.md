@@ -2,6 +2,10 @@
 
 ## 2.10.0 [unreleased]
 
+### Features
+
+1. [#185](https://github.com/InfluxCommunity/influxdb3-go/pull/169): Add transparent gRPC compression support
+
 ### CI
 
 1. [#180](https://github.com/InfluxCommunity/influxdb3-go/pull/180):
