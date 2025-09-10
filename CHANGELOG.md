@@ -4,7 +4,7 @@
 
 ### Features
 
-1. [#185](https://github.com/InfluxCommunity/influxdb3-go/pull/169): Add transparent gRPC compression support
+1. [#189](https://github.com/InfluxCommunity/influxdb3-go/pull/189): Add transparent gRPC compression support
 
 ### CI
 
