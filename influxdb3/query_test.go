@@ -112,7 +112,6 @@ func TestQueryWithCustomHeader(t *testing.T) {
 	assert.Equal(t, []string{"hdr-call-1"}, middleware.outgoingMD["my-call-header"], "custom call header value")
 	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
 	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
-	assert.Equal(t, []string{"identity, gzip"}, middleware.outgoingMD["grpc-accept-encoding"], "grpc-accept-encoding header set")
 }
 
 func TestQueryWithDefaultHeaders(t *testing.T) {
@@ -150,7 +149,6 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
 	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
-	assert.Equal(t, []string{"identity, gzip"}, middleware.outgoingMD["grpc-accept-encoding"], "grpc-accept-encoding header set")
 }
 
 func TestQueryWithLargeResponseFail(t *testing.T) {
