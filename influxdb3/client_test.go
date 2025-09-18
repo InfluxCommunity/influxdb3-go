@@ -592,6 +592,64 @@ func TestNewFromEnv(t *testing.T) {
 			},
 			err: "invalid syntax",
 		},
+		{
+			name: "with WriteTimeout env",
+			vars: map[string]string{
+				"INFLUX_HOST":          "http://host:8086",
+				"INFLUX_TOKEN":         "abc",
+				"INFLUX_DATABASE":      "my-db",
+				"INFLUX_ORG":           "my-org",
+				"INFLUX_WRITE_TIMEOUT": "10s",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Database:     "my-db",
+				Organization: "my-org",
+				WriteTimeout: 10 * time.Second,
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with WriteTimeout env invalid",
+			vars: map[string]string{
+				"INFLUX_HOST":          "http://host:8086",
+				"INFLUX_TOKEN":         "abc",
+				"INFLUX_DATABASE":      "my-db",
+				"INFLUX_ORG":           "my-org",
+				"INFLUX_WRITE_TIMEOUT": "one minute",
+			},
+			err: "time: invalid duration \"one minute\"",
+		},
+		{
+			name: "with QueryTimeout env",
+			vars: map[string]string{
+				"INFLUX_HOST":          "http://host:8086",
+				"INFLUX_TOKEN":         "abc",
+				"INFLUX_DATABASE":      "my-db",
+				"INFLUX_ORG":           "my-org",
+				"INFLUX_QUERY_TIMEOUT": "30s",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Database:     "my-db",
+				Organization: "my-org",
+				WriteTimeout: 30 * time.Second,
+				WriteOptions: &DefaultWriteOptions,
+			},
+		},
+		{
+			name: "with QueryTimeout env invalid",
+			vars: map[string]string{
+				"INFLUX_HOST":          "http://host:8086",
+				"INFLUX_TOKEN":         "abc",
+				"INFLUX_DATABASE":      "my-db",
+				"INFLUX_ORG":           "my-org",
+				"INFLUX_WRITE_TIMEOUT": "half minute",
+			},
+			err: "time: invalid duration \"half minute\"",
+		},
 	}
 	clearEnv := func() {
 		os.Unsetenv(envInfluxHost)
@@ -602,6 +660,8 @@ func TestNewFromEnv(t *testing.T) {
 		os.Unsetenv(envInfluxPrecision)
 		os.Unsetenv(envInfluxGzipThreshold)
 		os.Unsetenv(envInfluxWriteNoSync)
+		os.Unsetenv(envInfluxWriteTimeout)
+		os.Unsetenv(envInfluxQueryTimeout)
 	}
 	setEnv := func(vars map[string]string) {
 		for k, v := range vars {

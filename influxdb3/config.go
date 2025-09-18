@@ -43,6 +43,8 @@ const (
 	envInfluxPrecision     = "INFLUX_PRECISION"
 	envInfluxGzipThreshold = "INFLUX_GZIP_THRESHOLD"
 	envInfluxWriteNoSync   = "INFLUX_WRITE_NO_SYNC"
+	envInfluxWriteTimeout  = "INFLUX_WRITE_TIMEOUT"
+	envInfluxQueryTimeout  = "INFLUX_QUERY_TIMEOUT"
 )
 
 const (
@@ -236,6 +238,20 @@ func (c *ClientConfig) env() error {
 		if err := c.parseWriteNoSync(writeNoSync); err != nil {
 			return err
 		}
+	}
+	if writeTimeout, ok := os.LookupEnv(envInfluxWriteTimeout); ok {
+		to, err := time.ParseDuration(writeTimeout)
+		if err != nil {
+			return err
+		}
+		c.WriteTimeout = to
+	}
+	if queryTimeout, ok := os.LookupEnv(envInfluxQueryTimeout); ok {
+		to, err := time.ParseDuration(queryTimeout)
+		if err != nil {
+			return err
+		}
+		c.QueryTimeout = to
 	}
 
 	return nil
