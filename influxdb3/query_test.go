@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 	"github.com/apache/arrow-go/v18/arrow"
@@ -211,8 +212,95 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 	assert.Nil(t, qIter.Err())
 }
 
-// fake Flight server implementation
+func TestQueryWithQueryTimeoutDeadlineExpired(t *testing.T) {
+	s := flight.NewServerWithMiddleware(nil)
+	err := s.Init("localhost:0")
+	require.NoError(t, err)
+	f := &flightServer{}
+	s.RegisterFlightService(f)
 
+	go func() {
+		err := s.Serve()
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}()
+	defer s.Shutdown()
+
+	client, err := New(ClientConfig{
+		Host:         "http://" + s.Addr().String(),
+		Token:        "my_secret_token",
+		Database:     "explore",
+		QueryTimeout: 1 * time.Microsecond,
+	})
+
+	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
+
+	qIter, qerr := client.Query(context.Background(), "SELECT * FROM data")
+
+	assert.Nil(t, qIter)
+	assert.NotNil(t, qerr)
+	assert.Regexp(t, regexp.MustCompile("^flight do get: rpc error:.*DeadlineExceeded.*"), qerr)
+}
+
+func TestQueryWithQueryTimeoutOK(t *testing.T) {
+	s := flight.NewServerWithMiddleware(nil)
+	err := s.Init("localhost:0")
+	require.NoError(t, err)
+	f := &flightServer{}
+	s.RegisterFlightService(f)
+
+	go func() {
+		err := s.Serve()
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}()
+	defer s.Shutdown()
+
+	client, err := New(ClientConfig{
+		Host:         "http://" + s.Addr().String(),
+		Token:        "my_secret_token",
+		Database:     "explore",
+		QueryTimeout: 15 * time.Second,
+	})
+
+	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
+
+	qIter, qerr := client.Query(context.Background(), "SELECT * FROM data")
+
+	assert.Nil(t, qerr)
+	assert.True(t, qIter.Next())
+	strResult := ""
+	fSum := 0.0
+	iSum := int64(0)
+	for qIter.Next() {
+		val := qIter.Value()
+		strResult += val["stringField"].(string)
+		if val["floatField"] != nil {
+			fSum += val["floatField"].(float64)
+		}
+		iSum += val["intField"].(int64)
+	}
+	assert.Nil(t, qIter.Err())
+	assert.Equal(t, "bcde", strResult)
+	assert.Equal(t, float64(8), fSum)
+	assert.Equal(t, int64(14), iSum)
+}
+
+// fake Flight server implementation
 type flightServer struct {
 	flight.BaseFlightServer
 }

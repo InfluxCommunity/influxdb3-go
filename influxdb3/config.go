@@ -105,7 +105,20 @@ type ClientConfig struct {
 	// It is applied to write (HTTP client) operations only.
 	//
 	// A negative value means no timeout. Default value: 10 seconds.
+	//
+	// Deprecated: Please use more specific properties WriteTimeout and QueryTimeout
 	Timeout time.Duration
+
+	// WriteTimeout specifies the overall time limit for write requests made by the Client.
+	//
+	// A negative value means no timeout.  Default value: 10 seconds.
+	WriteTimeout time.Duration
+
+	// QueryTimeout when defined specifies the amount of time used to calculate an implicit
+	// Deadline context when query streams are opened by the Client.
+	//
+	// A negative value means no Deadline will be added, in which case Queries can potentially run indefinitely.
+	QueryTimeout time.Duration
 
 	// IdleConnectionTimeout specifies the maximum amount of time an idle connection
 	// will remain idle before closing itself.
@@ -292,15 +305,23 @@ func (c *ClientConfig) isTimeoutSet() bool {
 
 // getTimeoutOrDefault returns the Timeout or the default value if not set.
 func (c *ClientConfig) getTimeoutOrDefault() time.Duration {
-	if c.Timeout == 0 {
-		// Not set, use the default.
-		return defaultTimeout
+	// Not set, try deprecated c.Timeout
+	if c.WriteTimeout == 0 {
+		if c.Timeout == 0 {
+			// Not set, use the default.
+			return defaultTimeout
+		}
+		if c.Timeout < 0 {
+			// No timeout.
+			return 0
+		}
+		return c.Timeout
 	}
-	if c.Timeout < 0 {
+	if c.WriteTimeout < 0 {
 		// No timeout.
 		return 0
 	}
-	return c.Timeout
+	return c.WriteTimeout
 }
 
 // isIdleConnectionTimeoutSet returns whether the IdleConnectionTimeout was set.
