@@ -1046,6 +1046,7 @@ func TestMakeHTTPParamsBody(t *testing.T) {
 	}
 }
 
+//nolint:dupl
 func TestWriteWithClientTimeout(t *testing.T) {
 	timeout := 500 * time.Millisecond
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1079,6 +1080,7 @@ func TestWriteWithClientTimeout(t *testing.T) {
 	assert.ErrorContains(t, err, "context deadline exceeded")
 }
 
+//nolint:dupl
 func TestWriteWithClientWriteTimeout(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
