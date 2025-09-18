@@ -35,9 +35,10 @@ func ExampleNew() {
 		SSLRootsFilePath: "/path/to/certificates.pem",
 		Proxy:            "http://localhost:8888",
 		// Connection parameters:
-		Timeout:               10 * time.Second,
+		WriteTimeout:          10 * time.Second,
 		IdleConnectionTimeout: 90 * time.Second,
 		MaxIdleConnections:    10,
+		QueryTimeout:          2 * time.Minute,
 	})
 	if err != nil {
 		log.Fatal(err)
