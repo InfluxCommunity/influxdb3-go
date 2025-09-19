@@ -738,3 +738,31 @@ func TestGetServerVersion(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, version)
 }
+
+func TestQueryTimeoutDeadlineExceeded(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:         url,
+		Token:        token,
+		Database:     database,
+		QueryTimeout: time.Millisecond,
+	})
+	defer client.Close()
+
+	require.NoError(t, err)
+
+	iter, qerr := client.Query(context.Background(), "SELECT * FROM data")
+
+	if iter != nil {
+		assert.Fail(t, "Got Iterator when expecting failure")
+		return
+	}
+
+	assert.NotNil(t, qerr)
+	assert.Regexp(t, "^flight do get: rpc error:.*DeadlineExceeded.*", qerr)
+}

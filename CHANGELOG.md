@@ -2,6 +2,14 @@
 
 ## 2.11.0 [unreleased]
 
+### Features
+
+1. [192](https://github.com/InfluxCommunity/influxdb3-go/pull/192): Add clearer timeout parameters.
+   - The `ClientConfig` property `Timeout` is now deprecated.
+   - In `ClientConfig` a new property `WriteTimeout` supersedes it.
+   - In `ClientConfig` the new property `QueryTimeout` sets a default context deadline to be used with all queries.
+   - New environment variables `INFLUXDB_WRITE_TIMEOUT` and `INFLUXDB_QUERY_TIMEOUT` are added.
+
 ## 2.10.0 [2025-09-15]
 
 ### Features

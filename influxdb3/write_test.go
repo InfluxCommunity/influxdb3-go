@@ -1046,6 +1046,7 @@ func TestMakeHTTPParamsBody(t *testing.T) {
 	}
 }
 
+//nolint:dupl
 func TestWriteWithClientTimeout(t *testing.T) {
 	timeout := 500 * time.Millisecond
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1068,6 +1069,40 @@ func TestWriteWithClientTimeout(t *testing.T) {
 	p := NewPointWithMeasurement("cpu")
 	p.SetTag("host", "local")
 	p.SetField("usage_user", 16.75)
+	err = c.WritePoints(context.Background(), []*Point{p})
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+
+	now := time.Now()
+	s := sampleDataStruct(now)
+	err = c.WriteData(context.Background(), []any{s})
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+}
+
+//nolint:dupl
+func TestWriteWithClientWriteTimeout(t *testing.T) {
+	timeout := 100 * time.Millisecond
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(timeout + 1*time.Second)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+	c, err := New(ClientConfig{
+		Host:         ts.URL,
+		Token:        "my-token",
+		Database:     "my-database",
+		WriteTimeout: timeout,
+	})
+	require.NoError(t, err)
+
+	err = c.Write(context.Background(), []byte("data"))
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context deadline exceeded")
+
+	p := NewPointWithMeasurement("temp")
+	p.SetTag("location", "harfa")
+	p.SetField("spot", 21.3)
 	err = c.WritePoints(context.Background(), []*Point{p})
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "context deadline exceeded")

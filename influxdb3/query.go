@@ -233,7 +233,17 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 		grpcCallOptions = append(grpcCallOptions, options.GrpcCallOptions...)
 	}
 
-	stream, err := c.queryClient.DoGet(ctx, ticket, grpcCallOptions...)
+	var _ctx context.Context
+
+	if c.config.QueryTimeout > 0 {
+		var cancel context.CancelFunc
+		_ctx, cancel = context.WithTimeout(ctx, c.config.QueryTimeout)
+		defer cancel()
+	} else {
+		_ctx = ctx
+	}
+
+	stream, err := c.queryClient.DoGet(_ctx, ticket, grpcCallOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("flight do get: %w", err)
 	}
