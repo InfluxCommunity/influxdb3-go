@@ -2,11 +2,15 @@
 
 ## 2.11.0 [unreleased]
 
+### Bug Fixes
+
+1. [#193](https://github.com/InfluxCommunity/influxdb3-go/pull/193): Use `influxdb3_test` package in the documentation examples to enforce public API usage.
+
 ## 2.10.0 [2025-09-15]
 
 ### Features
 
-1. [#189](https://github.com/InfluxCommunity/influxdb3-go/pull/189): Add transparent gRPC compression support
+1. [#189](https://github.com/InfluxCommunity/influxdb3-go/pull/189): Add transparent gRPC compression support.
 
 ### CI
 
