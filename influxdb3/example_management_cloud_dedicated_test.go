@@ -20,13 +20,15 @@
  THE SOFTWARE.
 */
 
-package influxdb3
+package influxdb3_test
 
 import (
 	"context"
 	"log"
 	"net/url"
 	"os"
+
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 )
 
 func ExampleCloudDedicatedClient_CreateDatabase() {
@@ -38,12 +40,12 @@ func ExampleCloudDedicatedClient_CreateDatabase() {
 		log.Fatal(err)
 	}
 
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		panic(err)
 	}
 
-	cloudDedicatedConfig := CloudDedicatedClientConfig{
+	cloudDedicatedConfig := influxdb3.CloudDedicatedClientConfig{
 		AccountID:        accountID,
 		ClusterID:        clusterID,
 		ManagementToken:  managementToken,
@@ -52,13 +54,13 @@ func ExampleCloudDedicatedClient_CreateDatabase() {
 
 	defer client.Close()
 
-	cloudDedicatedClient := NewCloudDedicatedClient(client)
-	db := &Database{
+	cloudDedicatedClient := influxdb3.NewCloudDedicatedClient(client)
+	db := &influxdb3.Database{
 		ClusterDatabaseName:               "testDB",
 		ClusterDatabaseMaxTables:          500,
 		ClusterDatabaseMaxColumnsPerTable: 250,
 		ClusterDatabaseRetentionPeriod:    0,
-		ClusterDatabasePartitionTemplate:  []PartitionTemplate{},
+		ClusterDatabasePartitionTemplate:  []influxdb3.PartitionTemplate{},
 	}
 
 	if err := cloudDedicatedClient.CreateDatabase(context.Background(), &cloudDedicatedConfig, db); err != nil {

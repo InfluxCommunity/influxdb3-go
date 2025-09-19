@@ -20,7 +20,7 @@
  THE SOFTWARE.
 */
 
-package influxdb3
+package influxdb3_test
 
 import (
 	"context"
@@ -29,11 +29,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 func ExampleClient_Write() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal()
 	}
@@ -50,24 +51,24 @@ func ExampleClient_Write() {
 	}
 
 	// write line protocol with options
-	err = client.Write(context.Background(), data, WithDatabase("another-database"), WithGzipThreshold(64))
+	err = client.Write(context.Background(), data, influxdb3.WithDatabase("another-database"), influxdb3.WithGzipThreshold(64))
 	if err != nil {
 		log.Fatal()
 	}
 }
 
 func ExampleClient_WritePoints() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal()
 	}
 	defer client.Close()
 
-	p0 := NewPointWithMeasurement("cpu")
+	p0 := influxdb3.NewPointWithMeasurement("cpu")
 	p0.SetTag("host", "localhost")
 	p0.SetField("usage_user", 16.75)
 	p0.SetTimestamp(time.Now())
-	points := []*Point{p0}
+	points := []*influxdb3.Point{p0}
 
 	// write points
 	err = client.WritePoints(context.Background(), points)
@@ -76,7 +77,7 @@ func ExampleClient_WritePoints() {
 	}
 
 	// write points with options
-	err = client.WritePoints(context.Background(), points, WithPrecision(lineprotocol.Second))
+	err = client.WritePoints(context.Background(), points, influxdb3.WithPrecision(lineprotocol.Second))
 	if err != nil {
 		log.Fatal()
 	}
@@ -93,7 +94,7 @@ func ExampleClient_WriteData() {
 		Description string    `lp:"-"`
 	}
 
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal()
 	}
@@ -117,7 +118,7 @@ func ExampleClient_WriteData() {
 	}
 
 	// write points with options
-	err = client.WriteData(context.Background(), points, WithDefaultTags(map[string]string{
+	err = client.WriteData(context.Background(), points, influxdb3.WithDefaultTags(map[string]string{
 		"version": "0.1",
 	}))
 	if err != nil {
@@ -126,7 +127,7 @@ func ExampleClient_WriteData() {
 }
 
 func ExampleClient_serverError() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal()
 	}
@@ -137,7 +138,7 @@ func ExampleClient_serverError() {
 
 	if err != nil {
 		log.Printf("WARN write failed: %s", err.Error())
-		var svErr *ServerError
+		var svErr *influxdb3.ServerError
 		errors.As(err, &svErr)
 		log.Printf("   ServerError headers:")
 		for key, val := range svErr.Headers {
