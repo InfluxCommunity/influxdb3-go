@@ -102,7 +102,7 @@ func TestQueryWithCustomHeader(t *testing.T) {
 
 	c.setQueryClient(fc)
 
-	_, err = c.Query(context.Background(), "SELECT * FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
+	_, err = c.Query(context.Background(), "SELECT name FROM nothing", WithHeader("my-call-header", "hdr-call-1"))
 	require.NoError(t, err, "DoGet success")
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.NotNil(t, middleware.outgoingMD, "outgoing MD is not nil")
@@ -146,7 +146,7 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 	defer c.Close()
 
 	c.setQueryClient(fc)
-	_, _ = c.Query(context.Background(), "SELECT * FROM nothing")
+	_, _ = c.Query(context.Background(), "SELECT name FROM nothing")
 	assert.True(t, middleware.outgoingMDOk, "context contains outgoing MD")
 	assert.Equal(t, []string{userAgent}, middleware.outgoingMD["user-agent"], "default user agent header set")
 	assert.Equal(t, []string{"Bearer my-token"}, middleware.outgoingMD["authorization"], "authorization header set")
@@ -171,7 +171,7 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 		}
 	}(client)
 	qIter, qErr := client.Query(context.Background(),
-		"SELECT * FROM examples")
+		"SELECT name FROM examples")
 
 	require.NoError(t, qErr)
 	assert.False(t, qIter.Next())
@@ -198,7 +198,7 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 		}
 	}(client)
 	qIter, qErr := client.Query(context.Background(),
-		"SELECT * FROM examples",
+		"SELECT name FROM examples",
 		WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
 	)
 
@@ -242,7 +242,7 @@ func TestQueryWithQueryTimeoutDeadlineExpired(t *testing.T) {
 		}
 	}(client)
 
-	qIter, qerr := client.Query(context.Background(), "SELECT * FROM data")
+	qIter, qerr := client.Query(context.Background(), "SELECT name FROM data")
 
 	assert.Nil(t, qIter)
 	assert.NotNil(t, qerr)
@@ -279,7 +279,7 @@ func TestQueryWithQueryTimeoutOK(t *testing.T) {
 		}
 	}(client)
 
-	qIter, qerr := client.Query(context.Background(), "SELECT * FROM data")
+	qIter, qerr := client.Query(context.Background(), "SELECT intField,stringField,floatField FROM data")
 
 	assert.Nil(t, qerr)
 	assert.True(t, qIter.Next())
