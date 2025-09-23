@@ -33,6 +33,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1115,22 +1116,22 @@ func TestWriteWithClientWriteTimeout(t *testing.T) {
 }
 
 func TestWriteWithMaxIdleConnections(t *testing.T) {
-	requestCount := 0
-	uniqueConnectionCount := 0
+	var requestCount atomic.Uint32
+	var uniqueConnectionCount atomic.Uint32
 	var addrMap sync.Map
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
 			return
 		}
-		requestCount++
+		requestCount.Add(1)
 		addr, ok := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
 		if !ok {
 			t.Errorf("could not get local address from context: %v", addr)
 		}
 		_, loaded := addrMap.LoadOrStore(addr, true)
 		if !loaded {
-			uniqueConnectionCount++
+			uniqueConnectionCount.Add(1)
 		}
 		// Add some sleep time to ensure that all parallel requests reach the server before any of them finishes.
 		time.Sleep(1 * time.Second)
@@ -1165,8 +1166,8 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 	writeInParallel(batch1Count)
 
 	// Check that 5 unique connections were used.
-	assert.Equal(t, batch1Count, uniqueConnectionCount)
-	assert.Equal(t, batch1Count, requestCount)
+	assert.Equal(t, batch1Count, int(uniqueConnectionCount.Load()))
+	assert.Equal(t, batch1Count, int(requestCount.Load()))
 
 	// 2nd batch: do another 5 writes in parallel.
 	batch2Count := 5
@@ -1174,8 +1175,8 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 
 	// Check that only 5+3 unique connections were used (instead of 5+5)
 	// as 2 idle connections were reused from the 1st batch.
-	assert.Equal(t, batch1Count+batch2Count-maxIdleConnections, uniqueConnectionCount)
-	assert.Equal(t, batch1Count+batch2Count, requestCount)
+	assert.Equal(t, batch1Count+batch2Count-maxIdleConnections, int(uniqueConnectionCount.Load()))
+	assert.Equal(t, batch1Count+batch2Count, int(requestCount.Load()))
 }
 
 func TestToV3PrecisionString(t *testing.T) {
