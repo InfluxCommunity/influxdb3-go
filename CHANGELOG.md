@@ -4,13 +4,10 @@
 
 ### CI
 
-1. [#194](https://github.com/InfluxCommunity/influxdb3-go/pull/194): Fix pipelines not downloading the correct go images.
-
-### CI
-
 1. [#180](https://github.com/InfluxCommunity/influxdb3-go/pull/180):
    - Add tests for arm64 CircleCI.
    - Add tests for go v1.24 and v1.25.
+2. [#194](https://github.com/InfluxCommunity/influxdb3-go/pull/194): Fix pipelines not downloading the correct go images.
 
 ## 2.9.0 [2025-08-12]
 
