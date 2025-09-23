@@ -20,15 +20,17 @@
  THE SOFTWARE.
 */
 
-package influxdb3
+package influxdb3_test
 
 import (
 	"log"
 	"time"
+
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 )
 
 func ExampleNew() {
-	client, err := New(ClientConfig{
+	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:             "https://us-east-1-1.aws.cloud2.influxdata.com",
 		Token:            "my-token",
 		Database:         "my-database",
@@ -47,7 +49,7 @@ func ExampleNew() {
 }
 
 func ExampleNewFromConnectionString() {
-	client, err := NewFromConnectionString("https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database")
+	client, err := influxdb3.NewFromConnectionString("https://us-east-1-1.aws.cloud2.influxdata.com/?token=my-token&database=my-database")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +57,7 @@ func ExampleNewFromConnectionString() {
 }
 
 func ExampleNewFromEnv() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}

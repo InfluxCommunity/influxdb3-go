@@ -20,7 +20,7 @@
  THE SOFTWARE.
 */
 
-package influxdb3
+package influxdb3_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 
 	"time"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
@@ -35,7 +36,7 @@ import (
 var ctx = context.Background()
 
 func ExampleClient_Query() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func ExampleClient_Query() {
 
 	// query
 	iterator, _ := client.Query(ctx,
-		"SELECT count(*) FROM weather WHERE time >= now() - interval '5 minutes'")
+		`SELECT count(*) FROM weather WHERE time >= now() - interval '5 minutes'`)
 
 	for iterator.Next() {
 		// process the result
@@ -56,8 +57,8 @@ func ExampleClient_Query() {
 
 	// query with custom header
 	iterator, _ = client.Query(ctx,
-		"SELECT count(*) FROM stat WHERE time >= now() - interval '5 minutes'",
-		WithHeader("X-trace-ID", "#0122"))
+		`SELECT count(*) FROM stat WHERE time >= now() - interval '5 minutes'`,
+		influxdb3.WithHeader("X-trace-ID", "#0122"))
 
 	for iterator.Next() {
 		// process the result
@@ -65,7 +66,7 @@ func ExampleClient_Query() {
 }
 
 func ExampleClient_QueryWithParameters() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,8 +74,8 @@ func ExampleClient_QueryWithParameters() {
 
 	// query
 	iterator, _ := client.QueryWithParameters(ctx,
-		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
-		QueryParameters{
+		`SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'`,
+		influxdb3.QueryParameters{
 			"location": "sun-valley-1",
 		})
 
@@ -84,11 +85,11 @@ func ExampleClient_QueryWithParameters() {
 
 	// query with custom header
 	iterator, _ = client.QueryWithParameters(ctx,
-		"SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'",
-		QueryParameters{
+		`SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'`,
+		influxdb3.QueryParameters{
 			"location": "sun-valley-1",
 		},
-		WithHeader("X-trace-ID", "#0122"))
+		influxdb3.WithHeader("X-trace-ID", "#0122"))
 
 	for iterator.Next() {
 		// process the result
@@ -96,18 +97,18 @@ func ExampleClient_QueryWithParameters() {
 }
 
 func ExampleClient_QueryWithOptions() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer client.Close()
 
 	qIter, _ := client.Query(ctx,
-		"SELECT * FROM temp WHERE time >= now() - interval '1 hour'",
-		WithDatabase("building204"),
-		WithPrecision(lineprotocol.Millisecond),
-		WithGzipThreshold(1_000_000),
-		WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
+		`SELECT time,location,name FROM temp WHERE time >= now() - interval '1 hour'`,
+		influxdb3.WithDatabase("building204"),
+		influxdb3.WithPrecision(lineprotocol.Millisecond),
+		influxdb3.WithGzipThreshold(1_000_000),
+		influxdb3.WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
 	)
 
 	for qIter.Next() {

@@ -20,25 +20,27 @@
  THE SOFTWARE.
 */
 
-package influxdb3
+package influxdb3_test
 
 import (
 	"context"
 	"log"
+
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 )
 
 func ExampleServerlessClient_CreateBucket() {
-	client, err := NewFromEnv()
+	client, err := influxdb3.NewFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer client.Close()
 
-	serverlessClient := NewServerlessClient(client)
-	bucket := Bucket{
+	serverlessClient := influxdb3.NewServerlessClient(client)
+	bucket := influxdb3.Bucket{
 		Name:  "BUCKET_NAME",
 		OrgID: "ORG_ID",
-		RetentionRules: []BucketRetentionRule{
+		RetentionRules: []influxdb3.BucketRetentionRule{
 			{
 				Type:         "expire",
 				EverySeconds: 86400,
