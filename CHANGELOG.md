@@ -10,11 +10,15 @@
    - In `ClientConfig` the new property `QueryTimeout` sets a default context deadline to be used with all queries.
    - New environment variables `INFLUXDB_WRITE_TIMEOUT` and `INFLUXDB_QUERY_TIMEOUT` are added.
 
+### Bug Fixes
+
+1. [#193](https://github.com/InfluxCommunity/influxdb3-go/pull/193): Use `influxdb3_test` package in the documentation examples to enforce public API usage.
+
 ## 2.10.0 [2025-09-15]
 
 ### Features
 
-1. [#189](https://github.com/InfluxCommunity/influxdb3-go/pull/189): Add transparent gRPC compression support
+1. [#189](https://github.com/InfluxCommunity/influxdb3-go/pull/189): Add transparent gRPC compression support.
 
 ### CI
 
