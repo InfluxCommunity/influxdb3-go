@@ -67,9 +67,11 @@ jobs:
         type: string
         default: "cimg/go:1.23"
       exe:
-        type: executor
+        type: string
         default: docker-amd64-image
-    executor: << parameters.exe >>
+    executor:
+      name: << parameters.exe >>
+      go-image: << parameters.go-image >>
     steps:
       - checkout
       - restore_cache:
