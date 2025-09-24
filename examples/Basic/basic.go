@@ -30,9 +30,10 @@ func main() {
 		SSLRootsFilePath: sslRootsFilePath,
 		Proxy:            proxyURL,
 		// Connection parameters:
-		Timeout:               timeout,
+		WriteTimeout:          timeout,
 		IdleConnectionTimeout: 90 * time.Second,
 		MaxIdleConnections:    10,
+		QueryTimeout:          2 * time.Minute,
 	}
 	client, err := influxdb3.New(config)
 	if err != nil {
