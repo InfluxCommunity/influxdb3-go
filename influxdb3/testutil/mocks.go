@@ -1,4 +1,5 @@
 // Package testutil provides basic utilities for testing the client.
+// +gocover:ignore:file
 package testutil
 
 import (
