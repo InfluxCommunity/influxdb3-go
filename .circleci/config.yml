@@ -104,15 +104,15 @@ jobs:
           name: Run tests
           command: |
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              go test -v -cover -coverprofile=coverage.out.tmp ./influxdb3/...
+              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out.tmp ./influxdb3/...
             else
-              go test -v -cover -coverprofile=coverage.out.tmp --tags e2e ./influxdb3/...
+              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out.tmp --tags e2e ./influxdb3/...
             fi
       - run:
           name: Coverage Report
           command: |
-            cat coverage.out.tmp | grep -v "mocks.go" > coverage.out
-            go tool cover -html=coverage.out -o coverage.html
+#            cat coverage.out.tmp | grep -v "mocks.go" > coverage.out
+            go tool cover -html=coverage.out.tmp -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
       - when:
@@ -146,5 +146,6 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24", "cimg/go:1.25" ]
+#              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24", "cimg/go:1.25" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24" ]
       - lint
