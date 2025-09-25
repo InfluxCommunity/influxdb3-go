@@ -104,13 +104,15 @@ jobs:
           name: Run tests
           command: |
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              go test -v -cover -coverprofile=coverage.out ./influxdb3/...
+              go test -v -cover -coverprofile=coverage.out.tmp ./influxdb3/...
             else
-              go test -v -cover -coverprofile=coverage.out --tags e2e ./influxdb3/...
+              go test -v -cover -coverprofile=coverage.out.tmp --tags e2e ./influxdb3/...
             fi
       - run:
           name: Coverage Report
           command: |
+            cat cover.out.tmp
+            cat cover.out.tmp | grep -v "testutil/mocks.go" > cover.out
             go tool cover -html=coverage.out -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
