@@ -113,6 +113,8 @@ jobs:
           command: |
             cat coverage.out
             grep -v "mocks.go" coverage.out > cover.out
+            echo "SSSS"
+            cat cover.out
             go tool cover -html=cover.out -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
