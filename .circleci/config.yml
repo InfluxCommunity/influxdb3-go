@@ -111,8 +111,8 @@ jobs:
       - run:
           name: Coverage Report
           command: |
-            cat cover.out.tmp
-            cat cover.out.tmp | grep -v "testutil/mocks.go" > cover.out
+            cat coverage.out.tmp
+            cat coverage.out.tmp | grep -v "testutil/mocks.go" > coverage.out
             go tool cover -html=coverage.out -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
