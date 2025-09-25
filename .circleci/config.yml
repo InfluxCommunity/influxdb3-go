@@ -115,8 +115,8 @@ jobs:
             grep -v "mocks.go" coverage.out > cover.out
             echo "SSSS"
             cat cover.out
-            go tool cover -html=cover.out -o coverage.html
-            mv coverage.html /tmp/artifacts
+            go tool cover -html=cover.out -o cover.html
+            mv cover.html /tmp/artifacts
           when: always
       - when:
           condition:
