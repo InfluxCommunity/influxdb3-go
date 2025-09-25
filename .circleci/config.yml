@@ -104,9 +104,9 @@ jobs:
           name: Run tests
           command: |
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              go test -coverprofile=coverage.out ./influxdb3/...
+              go test -coverprofile=coverage.out ./...
             else
-              go test -coverprofile=coverage.out --tags e2e ./influxdb3/...
+              go test -coverprofile=coverage.out --tags e2e ./...
             fi
       - run:
           name: Coverage Report
@@ -145,5 +145,5 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24", "cimg/go:1.25" ]
       - lint
