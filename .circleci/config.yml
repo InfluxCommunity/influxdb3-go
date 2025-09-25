@@ -111,7 +111,8 @@ jobs:
       - run:
           name: Coverage Report
           command: |
-            grep -v "influxdb3/testutil/mocks.go" coverage.out > cover.out
+            cat coverage.out
+            grep -v "mocks.go" coverage.out > cover.out
             go tool cover -html=cover.out -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
