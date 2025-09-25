@@ -112,7 +112,7 @@ jobs:
           name: Coverage Report
           command: |
             grep -v "mocks.go" coverage.out > cover.out
-            go tool cover -func -html=cover.out -o cover.html
+            go tool cover -func=cover.out -o cover.html
             mv cover.html /tmp/artifacts
           when: always
       - when:
