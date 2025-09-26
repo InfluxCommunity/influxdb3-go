@@ -122,7 +122,7 @@ func TestNewWithCertificates(t *testing.T) {
 	})
 	assert.Nil(t, c)
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "error reading testdata/non-existing-file")
+	assert.Regexp(t, `error reading testdata[/\\]non\-existing\-file`, err.Error())
 }
 
 func TestNewWithProxy(t *testing.T) {
