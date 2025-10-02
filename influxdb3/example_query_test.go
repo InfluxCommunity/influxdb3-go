@@ -25,15 +25,12 @@ package influxdb3_test
 import (
 	"context"
 	"log"
-
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
-
-var ctx = context.Background()
 
 func ExampleClient_Query() {
 	client, err := influxdb3.NewFromEnv()
@@ -72,6 +69,7 @@ func ExampleClient_QueryWithParameters() {
 	}
 	defer client.Close()
 
+	ctx := context.Background()
 	// query
 	iterator, _ := client.QueryWithParameters(ctx,
 		`SELECT count(*) FROM weather WHERE location = $location AND time >= now() - interval '5 minutes'`,
@@ -103,7 +101,7 @@ func ExampleClient_QueryWithOptions() {
 	}
 	defer client.Close()
 
-	qIter, _ := client.Query(ctx,
+	qIter, _ := client.Query(context.Background(),
 		`SELECT time,location,name FROM temp WHERE time >= now() - interval '1 hour'`,
 		influxdb3.WithDatabase("building204"),
 		influxdb3.WithPrecision(lineprotocol.Millisecond),
