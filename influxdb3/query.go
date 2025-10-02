@@ -33,7 +33,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/flight"
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -43,43 +42,6 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/metadata"
 )
-
-// RecordReader is an interface for reading Arrow record batches.
-type RecordReader interface {
-	Next() bool
-	RecordBatch() arrow.RecordBatch
-	Err() error
-	Schema() *arrow.Schema
-}
-
-// cancelingRecordReader is a RecordReader that cancels the context when done.
-type cancelingRecordReader struct {
-	reader *flight.Reader
-	cancel context.CancelFunc
-}
-
-func (cr *cancelingRecordReader) Next() bool {
-	n := cr.reader.Next()
-	if !n && cr.cancel != nil {
-		cr.cancel()
-		cr.cancel = nil
-	}
-	return n
-}
-
-func (cr *cancelingRecordReader) RecordBatch() arrow.RecordBatch {
-	return cr.reader.RecordBatch()
-}
-func (cr *cancelingRecordReader) Err() error {
-	return cr.reader.Err()
-}
-func (cr *cancelingRecordReader) Schema() *arrow.Schema {
-	return cr.reader.Schema()
-}
-
-func (cr *cancelingRecordReader) Reader() *flight.Reader {
-	return cr.reader
-}
 
 func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPool, proxyURL *url.URL) error {
 	var transport grpc.DialOption
