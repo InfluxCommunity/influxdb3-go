@@ -23,6 +23,7 @@
 package influxdb3
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -62,9 +63,17 @@ type QueryIterator struct {
 	current map[string]interface{}
 	// Done
 	done bool
+	// Context
+	cancel context.CancelFunc
 }
 
+// NewQueryIterator creates a new QueryIterator instance with the provided flight.Reader.
 func NewQueryIterator(reader *flight.Reader) *QueryIterator {
+	return NewQueryIteratorWithCancel(reader, nil)
+}
+
+// NewQueryIteratorWithCancel creates a new QueryIterator instance with the provided flight.Reader and a cancel function.
+func NewQueryIteratorWithCancel(reader *flight.Reader, cancel context.CancelFunc) *QueryIterator {
 	return &QueryIterator{
 		reader:        reader,
 		record:        nil,
@@ -72,6 +81,7 @@ func NewQueryIterator(reader *flight.Reader) *QueryIterator {
 		indexInRecord: -1,
 		i:             -1,
 		current:       nil,
+		cancel:        cancel,
 	}
 }
 
@@ -87,6 +97,9 @@ func (i *QueryIterator) Next() bool {
 	i.i++
 	for i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
 		if !i.reader.Next() {
+			if i.cancel != nil {
+				i.cancel()
+			}
 			if readError := i.reader.Err(); readError != nil && i.err == nil {
 				i.err = i.reader.Err()
 			}

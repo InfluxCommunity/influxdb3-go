@@ -23,6 +23,7 @@
 package influxdb3
 
 import (
+	"context"
 	"errors"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -41,14 +42,22 @@ type PointValueIterator struct {
 	index int
 	// Current record
 	record arrow.Record
+	// Cancel function to cancel the context
+	cancel context.CancelFunc
 }
 
 // NewPointValueIterator returns a new PointValueIterator
 func NewPointValueIterator(reader *flight.Reader) *PointValueIterator {
+	return NewPointValueIteratorWithCancel(reader, nil)
+}
+
+// NewPointValueIteratorWithCancel returns a new PointValueIterator
+func NewPointValueIteratorWithCancel(reader *flight.Reader, cancel context.CancelFunc) *PointValueIterator {
 	return &PointValueIterator{
 		reader: reader,
 		index:  -1,
 		record: nil,
+		cancel: cancel,
 	}
 }
 
@@ -72,6 +81,9 @@ func (it *PointValueIterator) Next() (*PointValues, error) {
 
 	for it.record == nil || it.index >= int(it.record.NumRows()) {
 		if !it.reader.Next() {
+			if it.cancel != nil {
+				it.cancel()
+			}
 			if err := it.reader.Err(); err != nil {
 				return nil, err
 			}

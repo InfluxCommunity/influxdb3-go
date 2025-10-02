@@ -166,24 +166,24 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 }
 
 func (c *Client) query(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*QueryIterator, error) {
-	reader, err := c.getReader(ctx, query, parameters, options)
+	reader, cancel, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewQueryIterator(reader), nil
+	return NewQueryIteratorWithCancel(reader, cancel), nil
 }
 
 func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*PointValueIterator, error) {
-	reader, err := c.getReader(ctx, query, parameters, options)
+	reader, cancel, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewPointValueIterator(reader), nil
+	return NewPointValueIteratorWithCancel(reader, cancel), nil
 }
 
-func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, error) {
+func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, context.CancelFunc, error) {
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -191,7 +191,7 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 		database = c.config.Database
 	}
 	if database == "" {
-		return nil, errors.New("database not specified")
+		return nil, nil, errors.New("database not specified")
 	}
 
 	var queryType = options.QueryType
@@ -223,7 +223,7 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 
 	ticketJSON, err := json.Marshal(ticketData)
 	if err != nil {
-		return nil, fmt.Errorf("serialize: %w", err)
+		return nil, nil, fmt.Errorf("serialize: %w", err)
 	}
 
 	ticket := &flight.Ticket{Ticket: ticketJSON}
@@ -234,24 +234,31 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 	}
 
 	var _ctx context.Context
+	var cancel context.CancelFunc
 
 	if c.config.QueryTimeout > 0 {
-		var cancel context.CancelFunc
 		_ctx, cancel = context.WithTimeout(ctx, c.config.QueryTimeout)
-		defer cancel()
+		//_ctx, _ = context.WithTimeout(ctx, c.config.QueryTimeout)
+		//defer cancel()
 	} else {
 		_ctx = ctx
 	}
 
 	stream, err := c.queryClient.DoGet(_ctx, ticket, grpcCallOptions...)
 	if err != nil {
-		return nil, fmt.Errorf("flight do get: %w", err)
+		if cancel != nil {
+			cancel()
+		}
+		return nil, nil, fmt.Errorf("flight do get: %w", err)
 	}
 
 	reader, err := flight.NewRecordReader(stream, ipc.WithAllocator(memory.DefaultAllocator))
 	if err != nil {
-		return nil, fmt.Errorf("flight reader: %w", err)
+		if cancel != nil {
+
+		}
+		return nil, nil, fmt.Errorf("flight reader: %w", err)
 	}
 
-	return reader, nil
+	return reader, cancel, nil
 }
