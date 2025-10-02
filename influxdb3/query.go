@@ -33,6 +33,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/flight"
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -42,6 +43,43 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/metadata"
 )
+
+// RecordReader is an interface for reading Arrow record batches.
+type RecordReader interface {
+	Next() bool
+	RecordBatch() arrow.RecordBatch
+	Err() error
+	Schema() *arrow.Schema
+}
+
+// cancelingRecordReader is a RecordReader that cancels the context when done.
+type cancelingRecordReader struct {
+	reader *flight.Reader
+	cancel context.CancelFunc
+}
+
+func (cr *cancelingRecordReader) Next() bool {
+	n := cr.reader.Next()
+	if !n && cr.cancel != nil {
+		cr.cancel()
+		cr.cancel = nil
+	}
+	return n
+}
+
+func (cr *cancelingRecordReader) RecordBatch() arrow.RecordBatch {
+	return cr.reader.RecordBatch()
+}
+func (cr *cancelingRecordReader) Err() error {
+	return cr.reader.Err()
+}
+func (cr *cancelingRecordReader) Schema() *arrow.Schema {
+	return cr.reader.Schema()
+}
+
+func (cr *cancelingRecordReader) Reader() *flight.Reader {
+	return cr.reader
+}
 
 func (c *Client) initializeQueryClient(hostPortURL string, certPool *x509.CertPool, proxyURL *url.URL) error {
 	var transport grpc.DialOption
@@ -166,24 +204,24 @@ func (c *Client) QueryWithOptions(ctx context.Context, options *QueryOptions, qu
 }
 
 func (c *Client) query(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*QueryIterator, error) {
-	reader, cancel, err := c.getReader(ctx, query, parameters, options)
+	reader, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewQueryIteratorWithCancel(reader, cancel), nil
+	return NewQueryIteratorFromReader(reader), nil
 }
 
 func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*PointValueIterator, error) {
-	reader, cancel, err := c.getReader(ctx, query, parameters, options)
+	reader, err := c.getReader(ctx, query, parameters, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewPointValueIteratorWithCancel(reader, cancel), nil
+	return NewPointValueIteratorFomReader(reader), nil
 }
 
-func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, context.CancelFunc, error) {
+func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (RecordReader, error) {
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -191,7 +229,7 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 		database = c.config.Database
 	}
 	if database == "" {
-		return nil, nil, errors.New("database not specified")
+		return nil, errors.New("database not specified")
 	}
 
 	var queryType = options.QueryType
@@ -223,7 +261,7 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 
 	ticketJSON, err := json.Marshal(ticketData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("serialize: %w", err)
+		return nil, fmt.Errorf("serialize: %w", err)
 	}
 
 	ticket := &flight.Ticket{Ticket: ticketJSON}
@@ -238,7 +276,6 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 
 	if c.config.QueryTimeout > 0 {
 		_ctx, cancel = context.WithTimeout(ctx, c.config.QueryTimeout)
-		//_ctx, _ = context.WithTimeout(ctx, c.config.QueryTimeout)
 		//defer cancel()
 	} else {
 		_ctx = ctx
@@ -249,16 +286,19 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 		if cancel != nil {
 			cancel()
 		}
-		return nil, nil, fmt.Errorf("flight do get: %w", err)
+		return nil, fmt.Errorf("flight do get: %w", err)
 	}
 
 	reader, err := flight.NewRecordReader(stream, ipc.WithAllocator(memory.DefaultAllocator))
 	if err != nil {
 		if cancel != nil {
-
+			cancel()
 		}
-		return nil, nil, fmt.Errorf("flight reader: %w", err)
+		return nil, fmt.Errorf("flight reader: %w", err)
 	}
 
-	return reader, cancel, nil
+	if cancel == nil {
+		return reader, nil
+	}
+	return &cancelingRecordReader{reader: reader, cancel: cancel}, nil
 }

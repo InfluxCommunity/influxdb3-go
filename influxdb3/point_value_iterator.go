@@ -37,27 +37,26 @@ var Done = errors.New("no more items in iterator") //nolint:all
 //
 // The PointValueIterator Next function will return response as a *PointValues object representing the current row
 type PointValueIterator struct {
-	reader *flight.Reader
+	reader RecordReader
 	// Index of row of current object in current record
 	index int
 	// Current record
-	record arrow.Record
+	record arrow.RecordBatch
 	// Cancel function to cancel the context
 	cancel context.CancelFunc
 }
 
 // NewPointValueIterator returns a new PointValueIterator
 func NewPointValueIterator(reader *flight.Reader) *PointValueIterator {
-	return NewPointValueIteratorWithCancel(reader, nil)
+	return NewPointValueIteratorFomReader(reader)
 }
 
-// NewPointValueIteratorWithCancel returns a new PointValueIterator
-func NewPointValueIteratorWithCancel(reader *flight.Reader, cancel context.CancelFunc) *PointValueIterator {
+// NewPointValueIteratorFomReader returns a new PointValueIterator from a RecordReader
+func NewPointValueIteratorFomReader(reader RecordReader) *PointValueIterator {
 	return &PointValueIterator{
 		reader: reader,
 		index:  -1,
 		record: nil,
-		cancel: cancel,
 	}
 }
 
@@ -81,19 +80,16 @@ func (it *PointValueIterator) Next() (*PointValues, error) {
 
 	for it.record == nil || it.index >= int(it.record.NumRows()) {
 		if !it.reader.Next() {
-			if it.cancel != nil {
-				it.cancel()
-			}
 			if err := it.reader.Err(); err != nil {
 				return nil, err
 			}
 			return nil, Done
 		}
-		it.record = it.reader.Record()
+		it.record = it.reader.RecordBatch()
 		it.index = 0
 	}
 
-	pointValues := rowToPointValue(it.reader.Record(), it.index)
+	pointValues := rowToPointValue(it.reader.RecordBatch(), it.index)
 	return pointValues, nil
 }
 

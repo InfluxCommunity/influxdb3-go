@@ -23,7 +23,6 @@
 package influxdb3
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -50,9 +49,9 @@ const (
 //   - iterator.AsPoints() returns *PointValues object representing the current row
 //   - iterator.Raw() returns the underlying *flight.Reader object
 type QueryIterator struct {
-	reader *flight.Reader
+	reader RecordReader
 	// Current record
-	record arrow.Record
+	record arrow.RecordBatch
 	// The first err that might occur
 	err error
 	// Index of row of current object in current record
@@ -63,17 +62,15 @@ type QueryIterator struct {
 	current map[string]interface{}
 	// Done
 	done bool
-	// Context
-	cancel context.CancelFunc
 }
 
 // NewQueryIterator creates a new QueryIterator instance with the provided flight.Reader.
 func NewQueryIterator(reader *flight.Reader) *QueryIterator {
-	return NewQueryIteratorWithCancel(reader, nil)
+	return NewQueryIteratorFromReader(reader)
 }
 
-// NewQueryIteratorWithCancel creates a new QueryIterator instance with the provided flight.Reader and a cancel function.
-func NewQueryIteratorWithCancel(reader *flight.Reader, cancel context.CancelFunc) *QueryIterator {
+// NewQueryIteratorFromReader creates a new QueryIterator instance with the provided RecordReader.
+func NewQueryIteratorFromReader(reader RecordReader) *QueryIterator {
 	return &QueryIterator{
 		reader:        reader,
 		record:        nil,
@@ -81,7 +78,6 @@ func NewQueryIteratorWithCancel(reader *flight.Reader, cancel context.CancelFunc
 		indexInRecord: -1,
 		i:             -1,
 		current:       nil,
-		cancel:        cancel,
 	}
 }
 
@@ -97,16 +93,13 @@ func (i *QueryIterator) Next() bool {
 	i.i++
 	for i.record == nil || i.indexInRecord >= int(i.record.NumRows()) {
 		if !i.reader.Next() {
-			if i.cancel != nil {
-				i.cancel()
-			}
 			if readError := i.reader.Err(); readError != nil && i.err == nil {
 				i.err = i.reader.Err()
 			}
 			i.done = true
 			return false
 		}
-		i.record = i.reader.Record()
+		i.record = i.reader.RecordBatch()
 		i.indexInRecord = 0
 	}
 
@@ -133,7 +126,7 @@ func (i *QueryIterator) AsPoints() *PointValues {
 	return rowToPointValue(i.record, i.indexInRecord)
 }
 
-func rowToPointValue(record arrow.Record, rowIndex int) *PointValues {
+func rowToPointValue(record arrow.RecordBatch, rowIndex int) *PointValues {
 	readerSchema := record.Schema()
 	p := NewPointValues("")
 
@@ -220,7 +213,12 @@ func (i *QueryIterator) Err() error { return i.err }
 // Returns:
 //   - The underlying flight.Reader.
 func (i *QueryIterator) Raw() *flight.Reader {
-	return i.reader
+	if r, ok := i.reader.(*cancelingRecordReader); ok {
+		return r.Reader()
+	} else if f, ok := i.reader.(*flight.Reader); ok {
+		return f
+	}
+	return nil
 }
 
 func getArrowValue(arrayNoType arrow.Array, field arrow.Field, i int) (any, responseColumnType, error) {
