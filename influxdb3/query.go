@@ -183,7 +183,7 @@ func (c *Client) queryPointValue(ctx context.Context, query string, parameters Q
 	return NewPointValueIteratorFomReader(reader), nil
 }
 
-func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (RecordReader, error) {
+func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (RecordReader, error) { //nolint:ireturn
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -238,7 +238,6 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 
 	if c.config.QueryTimeout > 0 {
 		_ctx, cancel = context.WithTimeout(ctx, c.config.QueryTimeout)
-		//defer cancel()
 	} else {
 		_ctx = ctx
 	}

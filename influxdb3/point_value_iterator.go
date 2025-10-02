@@ -23,7 +23,6 @@
 package influxdb3
 
 import (
-	"context"
 	"errors"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -42,8 +41,6 @@ type PointValueIterator struct {
 	index int
 	// Current record
 	record arrow.RecordBatch
-	// Cancel function to cancel the context
-	cancel context.CancelFunc
 }
 
 // NewPointValueIterator returns a new PointValueIterator

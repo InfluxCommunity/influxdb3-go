@@ -30,7 +30,7 @@ func (cr *cancelingRecordReader) Next() bool {
 	return n
 }
 
-func (cr *cancelingRecordReader) RecordBatch() arrow.RecordBatch {
+func (cr *cancelingRecordReader) RecordBatch() arrow.RecordBatch { //nolint:ireturn
 	return cr.reader.RecordBatch()
 }
 func (cr *cancelingRecordReader) Err() error {
