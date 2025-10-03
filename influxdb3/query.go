@@ -171,7 +171,7 @@ func (c *Client) query(ctx context.Context, query string, parameters QueryParame
 		return nil, err
 	}
 
-	return NewQueryIterator(reader), nil
+	return NewQueryIteratorFromReader(reader), nil
 }
 
 func (c *Client) queryPointValue(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*PointValueIterator, error) {
@@ -180,10 +180,10 @@ func (c *Client) queryPointValue(ctx context.Context, query string, parameters Q
 		return nil, err
 	}
 
-	return NewPointValueIterator(reader), nil
+	return NewPointValueIteratorFomReader(reader), nil
 }
 
-func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (*flight.Reader, error) {
+func (c *Client) getReader(ctx context.Context, query string, parameters QueryParameters, options *QueryOptions) (RecordReader, error) { //nolint:ireturn
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -234,24 +234,32 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 	}
 
 	var _ctx context.Context
+	var cancel context.CancelFunc
 
 	if c.config.QueryTimeout > 0 {
-		var cancel context.CancelFunc
 		_ctx, cancel = context.WithTimeout(ctx, c.config.QueryTimeout)
-		defer cancel()
 	} else {
 		_ctx = ctx
 	}
 
 	stream, err := c.queryClient.DoGet(_ctx, ticket, grpcCallOptions...)
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		return nil, fmt.Errorf("flight do get: %w", err)
 	}
 
 	reader, err := flight.NewRecordReader(stream, ipc.WithAllocator(memory.DefaultAllocator))
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		return nil, fmt.Errorf("flight reader: %w", err)
 	}
 
-	return reader, nil
+	if cancel == nil {
+		return reader, nil
+	}
+	return &cancelingRecordReader{reader: reader, cancel: cancel}, nil
 }
