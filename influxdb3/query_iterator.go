@@ -45,7 +45,7 @@ const (
 // or users can use the underlying reader directly with the Raw method.
 //
 // The QueryIterator can return responses as one of the following data types:
-//   - iterator.Value() returns map[string]interface{} object representing the current row
+//   - iterator.Value() returns map[string]any object representing the current row
 //   - iterator.AsPoints() returns *PointValues object representing the current row
 //   - iterator.Raw() returns the underlying *flight.Reader object
 type QueryIterator struct {
@@ -59,7 +59,7 @@ type QueryIterator struct {
 	// Total index of current object
 	i int64
 	// Current object
-	current map[string]interface{}
+	current map[string]any
 	// Done
 	done bool
 }
@@ -104,7 +104,7 @@ func (i *QueryIterator) Next() bool {
 	}
 
 	readerSchema := i.reader.Schema()
-	obj := make(map[string]interface{}, len(i.record.Columns()))
+	obj := make(map[string]any, len(i.record.Columns()))
 
 	for ci, col := range i.record.Columns() {
 		field := readerSchema.Field(ci)
@@ -179,8 +179,8 @@ func rowToPointValue(record arrow.RecordBatch, rowIndex int) *PointValues {
 //   - iox::column_type::field::boolean: => bool
 //
 // Returns:
-//   - A map[string]interface{} object representing the current value.
-func (i *QueryIterator) Value() map[string]interface{} {
+//   - A map[string]any object representing the current value.
+func (i *QueryIterator) Value() map[string]any {
 	return i.current
 }
 
@@ -188,7 +188,7 @@ func (i *QueryIterator) Value() map[string]interface{} {
 //
 // Returns:
 //   - The current index value.
-func (i *QueryIterator) Index() interface{} {
+func (i *QueryIterator) Index() any {
 	return i.i
 }
 

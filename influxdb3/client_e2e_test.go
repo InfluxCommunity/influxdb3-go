@@ -1,5 +1,4 @@
 //go:build e2e
-// +build e2e
 
 /*
  The MIT License
@@ -470,7 +469,7 @@ func TestEscapedStringValues(t *testing.T) {
 			"tag3": "escaped\nline and\ttab",
 			"tag4": "preescaped\\nline and\\ttab",
 		},
-		map[string]interface{}{
+		map[string]any{
 			"fVal": 41.3,
 			"sVal": "greetings\nearthlings",
 		}, time.Now())

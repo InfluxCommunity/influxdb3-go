@@ -211,7 +211,7 @@ func (c *Client) getReader(ctx context.Context, query string, parameters QueryPa
 	md.Set("User-Agent", userAgent)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	ticketData := map[string]interface{}{
+	ticketData := map[string]any{
 		"database":   database,
 		"sql_query":  query,
 		"query_type": strings.ToLower(queryType.String()),

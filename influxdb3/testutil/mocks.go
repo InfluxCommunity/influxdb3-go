@@ -200,7 +200,7 @@ func (a *ServAuth) Authenticate(c flight.AuthConn) error {
 	return c.Send([]byte("baz"))
 }
 
-func (a *ServAuth) IsValid(token string) (interface{}, error) {
+func (a *ServAuth) IsValid(token string) (any, error) {
 	if token == "baz" {
 		return "bar", nil
 	}
@@ -302,7 +302,7 @@ func (f *MockFlightServer) writeBlob(fs flight.FlightService_DoGetServer, size i
 // copied from arrow-go/flight/flight_test.go
 
 //nolint:all
-func arrayOf(mem memory.Allocator, a interface{}, valids []bool) arrow.Array {
+func arrayOf(mem memory.Allocator, a any, valids []bool) arrow.Array {
 	if mem == nil {
 		mem = memory.NewGoAllocator()
 	}
