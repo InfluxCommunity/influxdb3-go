@@ -176,7 +176,7 @@ func TestAddLargerThanSize(t *testing.T) {
 	for ct := range pointSet {
 		pointSet[ct] = influxdb3.NewPoint("test",
 			map[string]string{"foo": "bar"},
-			map[string]interface{}{"count": ct + 1},
+			map[string]any{"count": ct + 1},
 			time.Now())
 	}
 
@@ -203,7 +203,7 @@ func TestFlush(t *testing.T) {
 	for ct := range pointSet {
 		pointSet[ct] = influxdb3.NewPoint("test",
 			map[string]string{"foo": "bar"},
-			map[string]interface{}{"count": ct + 1},
+			map[string]any{"count": ct + 1},
 			time.Now())
 	}
 

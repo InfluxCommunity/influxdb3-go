@@ -125,23 +125,23 @@ func TestPointValueIterator(t *testing.T) {
 	it := NewPointValueIterator(fReader)
 
 	var resultSet0 []int64
-	var resultSet1 []interface{}
-	var resultSet2 []interface{}
-	var resultSet3 []interface{}
-	var resultSet4 []interface{}
-	var resultSet5 []interface{}
-	var resultSet6 []interface{}
-	var resultSet7 []interface{}
-	var resultSet8 []interface{}
-	var resultSet9 []interface{}
-	var resultSet10 []interface{}
-	var resultSet11 []interface{}
-	var resultSet12 []interface{}
-	var resultSet13 []interface{}
-	var resultSet14 []interface{}
-	var resultSet15 []interface{}
-	var resultSet16 []interface{}
-	var resultSet17 []interface{}
+	var resultSet1 []any
+	var resultSet2 []any
+	var resultSet3 []any
+	var resultSet4 []any
+	var resultSet5 []any
+	var resultSet6 []any
+	var resultSet7 []any
+	var resultSet8 []any
+	var resultSet9 []any
+	var resultSet10 []any
+	var resultSet11 []any
+	var resultSet12 []any
+	var resultSet13 []any
+	var resultSet14 []any
+	var resultSet15 []any
+	var resultSet16 []any
+	var resultSet17 []any
 
 	for {
 		pointValues, err := it.Next()

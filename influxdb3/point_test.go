@@ -60,8 +60,8 @@ func (s st) String() string {
 
 func TestConvert(t *testing.T) {
 	obj := []struct {
-		val       interface{}
-		targetVal interface{}
+		val       any
+		targetVal any
 	}{
 		{int(-5), int64(-5)},
 		{int8(5), int64(5)},
@@ -95,7 +95,7 @@ func TestConvert(t *testing.T) {
 			assert.Equal(t, reflect.TypeOf(tv.targetVal), reflect.TypeOf(v))
 			if f, ok := tv.targetVal.(float64); ok {
 				val := reflect.ValueOf(tv.val)
-				ft := reflect.TypeOf(float64(0))
+				ft := reflect.TypeFor[float64]()
 				assert.True(t, val.Type().ConvertibleTo(ft))
 				valf := val.Convert(ft)
 				assert.Less(t, math.Abs(f-valf.Float()), 1e-6)
@@ -115,7 +115,7 @@ func TestPoint(t *testing.T) {
 			`host"name`: `ho\st "a"`,
 			`x\" x`:     "a b",
 		},
-		map[string]interface{}{
+		map[string]any{
 			"float64":  80.1234567,
 			"float32":  float32(80.0),
 			"int":      -1234567890,
@@ -163,7 +163,7 @@ func TestPointDefaultTags(t *testing.T) {
 	p := NewPoint("test", map[string]string{
 		"tag1": "a",
 		"tag3": "c",
-	}, map[string]interface{}{
+	}, map[string]any{
 		"float64": 80.1234567,
 	}, time.Unix(60, 70))
 	defaultTags := map[string]string{
@@ -199,7 +199,7 @@ func TestPointWithEscapedTags(t *testing.T) {
 			"tabTag1": "drink\tTab",
 			"tabTag2": "Tab\\tulator",
 		},
-		map[string]interface{}{
+		map[string]any{
 			"fVal": 41.3,
 		}, time.Unix(60, 70))
 
@@ -226,7 +226,7 @@ func TestPointWithEscapedTags(t *testing.T) {
 
 	pInvalid := NewPoint("test", map[string]string{
 		"tag\nbroken": "tag\nvalue with space",
-	}, map[string]interface{}{
+	}, map[string]any{
 		"fVal": 17.2,
 	}, time.Unix(60, 70))
 
@@ -236,7 +236,7 @@ func TestPointWithEscapedTags(t *testing.T) {
 }
 
 func TestPointFields(t *testing.T) {
-	p := NewPoint("test", nil, map[string]interface{}{
+	p := NewPoint("test", nil, map[string]any{
 		"field1": 10,
 		"field2": true,
 	}, time.Unix(60, 70))
@@ -270,7 +270,7 @@ func TestCopy(t *testing.T) {
 	point := NewPoint("test", map[string]string{
 		"tag1": "a",
 		"tag2": "b",
-	}, map[string]interface{}{
+	}, map[string]any{
 		"field1": 10,
 		"field2": true,
 	}, time.Unix(60, 70))
@@ -295,7 +295,7 @@ func TestFromValuesMissingMeasurement(t *testing.T) {
 }
 
 func TestFieldConverterValid(t *testing.T) {
-	validConverterFunc := func(v interface{}) interface{} {
+	validConverterFunc := func(v any) any {
 		switch v := v.(type) {
 		case Int8:
 			return int64(v)
@@ -341,7 +341,7 @@ func TestFieldConverterValid(t *testing.T) {
 }
 
 func TestFieldConverterInvalid(t *testing.T) {
-	invalidConverterFunc := func(v interface{}) interface{} { return v }
+	invalidConverterFunc := func(v any) any { return v }
 	point := createPointWithNamedType(invalidConverterFunc)
 
 	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
@@ -349,7 +349,7 @@ func TestFieldConverterInvalid(t *testing.T) {
 	assert.Nil(t, binary)
 }
 
-func createPointWithNamedType(converter func(interface{}) interface{}) *Point {
+func createPointWithNamedType(converter func(any) any) *Point {
 	point := NewPointWithMeasurement("measurement")
 	point.WithFieldConverter(converter)
 

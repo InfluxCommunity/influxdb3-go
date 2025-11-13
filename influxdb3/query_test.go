@@ -26,6 +26,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -283,19 +284,19 @@ func TestQueryWithQueryTimeoutOK(t *testing.T) {
 
 	assert.Nil(t, qerr)
 	assert.True(t, qIter.Next())
-	strResult := ""
+	var buff strings.Builder
 	fSum := 0.0
 	iSum := int64(0)
 	for qIter.Next() {
 		val := qIter.Value()
-		strResult += val["stringField"].(string)
+		buff.WriteString(val["stringField"].(string))
 		if val["floatField"] != nil {
 			fSum += val["floatField"].(float64)
 		}
 		iSum += val["intField"].(int64)
 	}
 	assert.Nil(t, qIter.Err())
-	assert.Equal(t, "bcde", strResult)
+	assert.Equal(t, "bcde", buff.String())
 	assert.Equal(t, float64(8), fSum)
 	assert.Equal(t, int64(14), iSum)
 }

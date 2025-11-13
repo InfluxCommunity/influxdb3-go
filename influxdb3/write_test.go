@@ -47,7 +47,7 @@ func TestEncode(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name  string
-		s     interface{}
+		s     any
 		line  string
 		error string
 	}{
@@ -274,7 +274,7 @@ func TestEncode(t *testing.T) {
 		},
 		{
 			name: "test map",
-			s: map[string]interface{}{
+			s: map[string]any{
 				"measurement": "air",
 				"sensor":      "SHT31",
 				"temp":        23.5,
@@ -339,7 +339,7 @@ func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]strin
 func returnHTTPError(w http.ResponseWriter, code int, message string) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(fmt.Sprintf(`{"code":"invalid", "message":"%s"}`, message)))
+	_, _ = w.Write([]byte(fmt.Sprintf(`{"code":"invalid", "message":"%s"}`, message))) //nolint:modernize
 }
 
 // compArrays compares arrays
@@ -347,7 +347,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 	if len(b1) != len(b2) {
 		return -1
 	}
-	for i := 0; i < len(b1); i++ { //nolint:intrange
+	for i := range b1 {
 		if b1[i] != b2[i] {
 			return i
 		}
@@ -914,7 +914,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 	err = c.WritePoints(context.Background(), []*Point{p})
 	assert.Error(t, err)
 
-	err = c.WriteData(context.Background(), []interface{}{
+	err = c.WriteData(context.Background(), []any{
 		0,
 	})
 	assert.Error(t, err)
