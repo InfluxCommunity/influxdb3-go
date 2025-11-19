@@ -27,6 +27,7 @@ linters:
     - staticcheck
     - tagliatelle
     - testifylint
+    - unqueryvet
     - varnamelen
     - whitespace
     - wrapcheck

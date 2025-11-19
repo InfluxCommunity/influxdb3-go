@@ -4,6 +4,10 @@
 
 ## 2.11.0 [2025-11-18]
 
+### CI
+
+1. [#195](https://github.com/InfluxCommunity/influxdb3-go/pull/195): Fix pipelines not downloading the correct go images.
+
 ### Features
 
 1. [192](https://github.com/InfluxCommunity/influxdb3-go/pull/192): Add clearer timeout parameters.

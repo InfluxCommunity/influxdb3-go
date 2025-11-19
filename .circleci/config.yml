@@ -59,7 +59,6 @@ commands:
             shasum -a 256 -c codecov.SHA256SUM
             sudo chmod +x codecov
 
-
 jobs:
   tests-go:
     parameters:
@@ -144,5 +143,5 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24", "cimg/go:1.25" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.23", "cimg/go:1.24" ]
       - lint
