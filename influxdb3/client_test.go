@@ -912,46 +912,45 @@ func TestNewServerError(t *testing.T) {
 }
 
 func TestFixUrl(t *testing.T) {
-	boolRef := func(val bool) *bool {
-		b := new(bool)
-		*b = val
-		return b
-	}
-
 	testCases := []*struct {
 		input        string
 		expected     string
-		expectedSafe *bool
+		expectedSafe bool
 	}{
 		{
 			input:        "https://192.168.0.1:85",
 			expected:     "192.168.0.1:85",
-			expectedSafe: boolRef(true),
+			expectedSafe: true,
 		},
 		{
 			input:        "http://192.168.0.1:85",
 			expected:     "192.168.0.1:85",
-			expectedSafe: boolRef(false),
-		},
-		{
-			input:        "192.168.0.1:443",
-			expected:     "192.168.0.1:443",
-			expectedSafe: nil,
-		},
-		{
-			input:        "192.168.0.1:80",
-			expected:     "192.168.0.1:80",
-			expectedSafe: nil,
+			expectedSafe: false,
 		},
 		{
 			input:        "https://192.168.0.1",
 			expected:     "192.168.0.1:443",
-			expectedSafe: boolRef(true),
+			expectedSafe: true,
 		},
 		{
 			input:        "http://192.168.0.1",
 			expected:     "192.168.0.1:80",
-			expectedSafe: boolRef(false),
+			expectedSafe: false,
+		},
+		{
+			input:        "https://192.168.0.5/db",
+			expected:     "192.168.0.5:443/db",
+			expectedSafe: true,
+		},
+		{
+			input:        "http://192.168.0.5/db",
+			expected:     "192.168.0.5:80/db",
+			expectedSafe: false,
+		},
+		{
+			input:        "http://192.168.0.5:8080/db",
+			expected:     "192.168.0.5:8080/db",
+			expectedSafe: false,
 		},
 	}
 
@@ -960,11 +959,7 @@ func TestFixUrl(t *testing.T) {
 			func(t *testing.T) {
 				u, safe := ReplaceURLProtocolWithPort(tc.input)
 				assert.Equal(t, tc.expected, u)
-				if safe == nil || tc.expectedSafe == nil {
-					assert.Equal(t, tc.expectedSafe, safe)
-				} else {
-					assert.Equal(t, *tc.expectedSafe, *safe)
-				}
+				assert.Equal(t, tc.expectedSafe, safe)
 			})
 	}
 }

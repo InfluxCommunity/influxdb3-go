@@ -102,24 +102,21 @@ func New(config ClientConfig) (*Client, error) {
 
 	// Prepare SSL certificate pool (if host URL is secure)
 	var certPool *x509.CertPool
-	hostPortURL, safe := ReplaceURLProtocolWithPort(c.config.Host)
-	if safe == nil || *safe {
+	hostPortURL, secure := ReplaceURLProtocolWithPort(c.config.Host)
+	if config.SSLRootsFilePath != "" && secure {
 		// Use the system certificate pool
 		certPool, err = x509.SystemCertPool()
 		if err != nil {
 			return nil, fmt.Errorf("x509: %w", err)
 		}
 
-		// Set additional SSL root certificates (if configured)
-		if config.SSLRootsFilePath != "" {
-			certs, err := os.ReadFile(config.SSLRootsFilePath)
-			if err != nil {
-				return nil, fmt.Errorf("error reading %s: %w", config.SSLRootsFilePath, err)
-			}
-			ok := certPool.AppendCertsFromPEM(certs)
-			if !ok {
-				slog.Warn("No valid certificates found in " + config.SSLRootsFilePath)
-			}
+		certs, err := os.ReadFile(config.SSLRootsFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading %s: %w", config.SSLRootsFilePath, err)
+		}
+		ok := certPool.AppendCertsFromPEM(certs)
+		if !ok {
+			slog.Warn("No valid certificates found in " + config.SSLRootsFilePath)
 		}
 	}
 
@@ -153,7 +150,7 @@ func New(config ClientConfig) (*Client, error) {
 	}
 
 	// Init FlightSQL client
-	err = c.initializeQueryClient(hostPortURL, certPool, proxyURL)
+	err = c.initializeQueryClient(hostPortURL, secure, proxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("flight client: %w", err)
 	}
