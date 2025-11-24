@@ -180,7 +180,7 @@ The `influxdb3.Client` internally uses 2 client libraries to communicate with an
 
 | ClientConfig Key        | Description                                                                                                                                                                          |
 |-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HTTPClient`            | A custom configured `http.Client` instance can be provided. If set this client instance will be used for write operations.                                                           |  
+| `HTTPClient`            | A custom configured `http.Client` instance can be provided. If set this client instance will be used for write operations.                                                           |
 | `Timeout`               | The overall time limit for requests made by the Client. A negative value means no timeout. Default value: 10 seconds.                                                                |
 | `IdleConnectionTimeout` | Maximum amount of time an idle connection will remain idle before closing itself. A negative value means no timeout. Default value: 90 seconds.                                      |
 | `MaxIdleConnections`    | Maximum number of idle connections. It sets both `transport.MaxIdleConn` and `transport.MaxIdleConnsPerHost` to the same value. A negative value means no limit. Default value: 100. |
@@ -388,10 +388,29 @@ For more information, see the [InfluxDB documentation](https://docs.influxdata.c
 
 ### gRPC Compression
 
-The Go client supports gRPC response compression.
+The Go client supports **gRPC response compression** for query operations.
 
-If the server chooses to compress query responses (e.g., with gzip), the client
-will automatically decompress them. No extra configuration is required.
+**Enabling gRPC Compression:**
+
+To enable gzip compression, import the gzip encoder/decoder once anywhere in your application:
+
+```go
+import _ "google.golang.org/grpc/encoding/gzip"
+```
+
+Once imported, the client will automatically:
+
+- Send the `grpc-accept-encoding: gzip` header in query requests
+- Advertise gzip support to the server
+- Decompress gzipped responses from the server (if the server supports compression)
+
+**Important Notes:**
+
+- Compression registration is **global** in gRPC Go and applies to all gRPC clients in your application
+- Once the gzip encoder is imported (even by a third-party dependency), it **cannot be disabled per-client**
+- If gzip is not imported anywhere in your application, the client will not advertise compression support and the server
+  should send uncompressed responses
+- Request compression is separate from response compression - clients send uncompressed requests by default
 
 ## Run examples
 
