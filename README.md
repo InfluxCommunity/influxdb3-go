@@ -388,29 +388,26 @@ For more information, see the [InfluxDB documentation](https://docs.influxdata.c
 
 ### gRPC Compression
 
-The Go client supports **gRPC response compression** for query operations.
+The Go client has **gRPC response compression enabled by default** for all query operations.
 
-**Enabling gRPC Compression:**
+The client library imports the gzip encoder/decoder internally (`google.golang.org/grpc/encoding/gzip`), which means:
 
-To enable gzip compression, import the gzip encoder/decoder once anywhere in your application:
+- The `grpc-accept-encoding: gzip` header is automatically sent in all query requests
+- Gzip support is advertised to the server
+- Gzipped responses from the server are automatically decompressed
 
-```go
-import _ "google.golang.org/grpc/encoding/gzip"
-```
+**Why compression cannot be disabled:**
 
-Once imported, the client will automatically:
+In gRPC Go, compression codec registration is **global and permanent** - once the gzip package is imported anywhere
+in the process, it registers itself and cannot be unregistered. This is a fundamental design choice in gRPC Go:
 
-- Send the `grpc-accept-encoding: gzip` header in query requests
-- Advertise gzip support to the server
-- Decompress gzipped responses from the server (if the server supports compression)
+- There is no per-client or per-call option to disable response decompression
+- The `grpc.UseCompressor()` call option only controls **request** compression, not response handling
+- Even setting `grpc-accept-encoding` header manually doesn't prevent the client from accepting compressed responses,
+  as the registered codec will still be used for decompression
 
-**Important Notes:**
-
-- Compression registration is **global** in gRPC Go and applies to all gRPC clients in your application
-- Once the gzip encoder is imported (even by a third-party dependency), it **cannot be disabled per-client**
-- If gzip is not imported anywhere in your application, the client will not advertise compression support and the server
-  should send uncompressed responses
-- Request compression is separate from response compression - clients send uncompressed requests by default
+Since this client library imports the gzip codec to ensure compressed responses work correctly, compression
+support is always active for all gRPC clients in your application.
 
 ## Run examples
 
