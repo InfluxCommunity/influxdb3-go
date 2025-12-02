@@ -2,6 +2,11 @@
 
 ## 2.12.0 [unreleased]
 
+### Features
+
+1. [#209](https://github.com/InfluxCommunity/influxdb3-go/pull/209): Document the global nature of gRPC compression in
+   README.md
+
 ## 2.11.0 [2025-11-18]
 
 ### CI
