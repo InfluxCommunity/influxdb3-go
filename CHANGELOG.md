@@ -7,6 +7,10 @@
 1. [#209](https://github.com/InfluxCommunity/influxdb3-go/pull/209): Document the global nature of gRPC compression in
    README.md
 
+### Bug Fixes
+
+1. [#213](https://github.com/InfluxCommunity/influxdb3-go/pull/213): Fixed InfluxDB 3 Core/Enterprise write error deserialization.
+
 ### Dependencies
 
 1. Minimum supported Go version is now 1.24 as required by `google.golang.org/grpc` v1.76.0 - see [grpc-go#8509](https://github.com/grpc/grpc-go/issues/8509)
