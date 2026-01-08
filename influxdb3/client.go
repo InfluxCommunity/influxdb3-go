@@ -368,10 +368,12 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 
 	var httpError struct {
 		ServerError
-		// InfluxDB Edge/OSS error message fields
+		// InfluxDB V3 Core/Ent V3 write error message fields
 		Error string `json:"error"`
-		Data  struct {
+		Data  []struct {
 			ErrorMessage string `json:"error_message"`
+			LineNumber   int    `json:"line_number"`
+			OriginalLine string `json:"original_line"`
 		} `json:"data"`
 	}
 
@@ -393,11 +395,13 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		if err != nil && ctype != "" {
 			httpError.Message = fmt.Sprintf("cannot decode error response: %v", err)
 		}
-		if httpError.Message == "" && httpError.Code == "" {
-			if len(httpError.Data.ErrorMessage) > 0 {
-				httpError.Message = httpError.Data.ErrorMessage
-			} else {
-				httpError.Message = httpError.Error
+		if httpError.Error != "" {
+			httpError.Message = httpError.Error
+			for a, b := range httpError.Data {
+				if a == 0 {
+					httpError.Message += ":"
+				}
+				httpError.Message += fmt.Sprintf("\n\tline %d: %s (%s)", b.LineNumber, b.ErrorMessage, b.OriginalLine)
 			}
 		}
 	}

@@ -737,172 +737,113 @@ func TestMakeAPICall(t *testing.T) {
 	_ = res.Body.Close()
 }
 
-func TestResolveErrorMessage(t *testing.T) {
-	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"invalid","message":"` + errMsg + `"}`))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, "invalid: "+errMsg, err.Error())
-}
+func TestResolveError(t *testing.T) {
+	testCases := []struct {
+		name               string
+		statusCode         int
+		contentType        string
+		headers            map[string]string
+		responseBody       string
+		expectedErrMessage string
+	}{
+		{
+			name:               "V2 JSON message response",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"code":"invalid","message":"compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"}`,
+			expectedErrMessage: "invalid: compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |",
+		},
+		{
+			name:               "HTML response",
+			statusCode:         http.StatusNotFound,
+			contentType:        "text/html",
+			responseBody:       `<html><body><h1>Not found</h1></body></html>`,
+			expectedErrMessage: `<html><body><h1>Not found</h1></body></html>`,
+		},
+		{
+			name:               "Retry-After header",
+			statusCode:         492,
+			contentType:        "text/html",
+			headers:            map[string]string{"Retry-After": "256"},
+			responseBody:       `<html><body><h1>Too many requests</h1></body></html>`,
+			expectedErrMessage: `<html><body><h1>Too many requests</h1></body></html>`,
+		},
+		{
+			name:               "Invalid JSON response",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error": "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"`,
+			expectedErrMessage: "cannot decode error response: unexpected end of JSON input",
+		},
+		{
+			name:               "V3  error field",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error": "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"}`,
+			expectedErrMessage: "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |",
+		},
+		{
+			name:       "V3 error with data field,no content type",
+			statusCode: http.StatusBadRequest,
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
+"line_number":2,"original_line":"temperatureroom=room"},
+{"error_message":"invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
+"line_number":4,"original_line":"temperature,room=roo"}]}`,
+			expectedErrMessage: `partial write of line protocol occurred:
+	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
+	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`,
+		},
+		{
+			name:               "No error message",
+			statusCode:         http.StatusInternalServerError,
+			expectedErrMessage: `500 Internal Server Error`,
+		},
+		{
+			name:               "Plain text response",
+			responseBody:       `error in InfluxQL statement: parsing error: invalid InfluxQL statement at pos 0. Parsing Error: Nom("databases", Fail)`,
+			statusCode:         http.StatusInternalServerError,
+			expectedErrMessage: `error in InfluxQL statement: parsing error: invalid InfluxQL statement at pos 0. Parsing Error: Nom("databases", Fail)`,
+		},
+	}
 
-func TestResolveErrorHTML(t *testing.T) {
-	html := `<html><body><h1>Not found</h1></body></html>`
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "text/html")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(html))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, html, err.Error())
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				for k, v := range tc.headers {
+					w.Header().Add(k, v)
+				}
+				if tc.contentType != "" {
+					w.Header().Set("Content-Type", tc.contentType)
+				} else if tc.responseBody != "" {
+					// Prevent server from auto-setting Content-Type to text/plain
+					w.Header()["Content-Type"] = nil
+				}
+				w.WriteHeader(tc.statusCode)
+				if tc.responseBody != "" {
+					_, _ = w.Write([]byte(tc.responseBody))
+				}
+			}))
+			defer ts.Close()
 
-func TestResolveErrorRetryAfter(t *testing.T) {
-	html := `<html><body><h1>Too many requests</h1></body></html>`
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "text/html")
-		w.Header().Add("Retry-After", "256")
-		w.WriteHeader(492)
-		_, _ = w.Write([]byte(html))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, html, err.Error())
-}
+			client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
+			require.NoError(t, err)
 
-func TestResolveErrorWrongJsonResponse(t *testing.T) {
-	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		// Missing closing }
-		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"`))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, "cannot decode error response: unexpected end of JSON input", err.Error())
-}
+			turl, err := url.Parse(ts.URL)
+			require.NoError(t, err)
 
-func TestResolveErrorEdge(t *testing.T) {
-	errMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"error": "` + errMsg + `"}`))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, errMsg, err.Error())
-}
+			res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
+				endpointURL: turl,
+				queryParams: nil,
+				httpMethod:  "GET",
+				headers:     nil,
+				body:        nil,
+			})
 
-func TestResolveErrorEdgeWithData(t *testing.T) {
-	errMsg := "compilation failed"
-	dataErrMsg := "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"error": "` + errMsg + `", "data": {"error_message": "` + dataErrMsg + `"}}`))
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, dataErrMsg, err.Error())
-}
-
-func TestResolveErrorNoError(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer ts.Close()
-	client, err := New(ClientConfig{Host: ts.URL, Token: "my-token"})
-	require.NoError(t, err)
-	turl, err := url.Parse(ts.URL)
-	require.NoError(t, err)
-	res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
-		endpointURL: turl,
-		queryParams: nil,
-		httpMethod:  "GET",
-		headers:     nil,
-		body:        nil,
-	})
-	assert.Nil(t, res)
-	require.Error(t, err)
-	assert.Equal(t, `500 Internal Server Error`, err.Error())
+			assert.Nil(t, res)
+			require.Error(t, err)
+			assert.Equal(t, tc.expectedErrMessage, err.Error())
+		})
+	}
 }
 
 func TestNewServerError(t *testing.T) {

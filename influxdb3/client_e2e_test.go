@@ -765,3 +765,38 @@ func TestQueryTimeoutDeadlineExceeded(t *testing.T) {
 	assert.NotNil(t, qerr)
 	assert.Regexp(t, "^flight do get: rpc error:.*DeadlineExceeded.*", qerr)
 }
+
+func TestV3WriteError(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	wo := influxdb3.WriteOptions{
+		NoSync: true,
+	}
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:         url,
+		Token:        token,
+		Database:     database,
+		QueryTimeout: time.Millisecond,
+		WriteOptions: &wo,
+	})
+	defer client.Close()
+
+	require.NoError(t, err)
+
+	points := `temperature,room=room1 value=18.94647
+temperatureroom=room2value=20.268019
+temperature,room=room3 value=24.064857
+temperature,room=room4 value=43i`
+
+	err = client.Write(context.Background(), []byte(points))
+
+	em := `partial write of line protocol occurred:
+	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
+	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
+	require.Error(t, err)
+	assert.Equal(t, em, err.Error())
+}
