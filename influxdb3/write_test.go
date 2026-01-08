@@ -323,7 +323,9 @@ func genPoints(count int) []*Point {
 }
 
 func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]string) []byte {
-	var bytes []byte
+	// Preallocate with a modest per-point capacity estimate to avoid repeated growth.
+	capacityHint := 64 * len(points)
+	bytes := make([]byte, 0, capacityHint)
 	var defaultTagsOrNil map[string]string
 	if len(defaultTags) > 0 {
 		defaultTagsOrNil = defaultTags[0]

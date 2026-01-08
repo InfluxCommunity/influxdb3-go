@@ -271,7 +271,7 @@ func TestLPAddLargerThanSize(t *testing.T) {
 	remainder := 3
 	testString := "123456789ABCDEF\n"
 	stringSet := make([]string, ((batchSize/len(testString))*loadFactor)+remainder)
-	verify := make([]byte, 0)
+	verify := make([]byte, 0, len(testString)*len(stringSet))
 	for ct := range stringSet {
 		stringSet[ct] = testString
 		verify = append(verify, []byte(stringSet[ct])...)
