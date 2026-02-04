@@ -3,6 +3,7 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -460,4 +462,46 @@ func arrayOf(mem memory.Allocator, a any, valids []bool) arrow.Array {
 	default:
 		panic(fmt.Errorf("arrdata: invalid data slice type %T", a))
 	}
+}
+
+type ClientTestMiddleware struct {
+}
+
+func (c *ClientTestMiddleware) StartCall(ctx context.Context) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, "sent-from-middleware", "some-value")
+}
+
+type CheckMessageFromMiddlewareFlightServer struct {
+	flight.BaseFlightServer
+}
+
+func (f *CheckMessageFromMiddlewareFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
+	ctx := fs.Context()
+	md, _ := metadata.FromIncomingContext(ctx)
+	values := md.Get("sent-from-middleware")
+	if values == nil || values[0] != "some-value" {
+		return status.Errorf(codes.Internal, "invalid value from middleware")
+	}
+
+	return nil
+}
+
+//nolint:all
+func StartCheckMessageFromMiddlewareFlightServer(t *testing.T) *flight.Server {
+	mockServer := CheckMessageFromMiddlewareFlightServer{}
+	s := flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
+	err := s.Init("localhost:0")
+	if err != nil {
+		assert.Fail(t, err.Error())
+	}
+	s.RegisterFlightService(&mockServer)
+
+	go func() {
+		err := s.Serve()
+		if err != nil {
+			assert.Fail(t, err.Error())
+		}
+	}()
+
+	return &s
 }

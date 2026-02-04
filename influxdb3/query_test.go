@@ -213,6 +213,60 @@ func TestQueryWithLargeResponsePass(t *testing.T) {
 	assert.Nil(t, qIter.Err())
 }
 
+func TestQueryWithMiddlewareSuccess(t *testing.T) {
+	s := *testutil.StartCheckMessageFromMiddlewareFlightServer(t)
+	defer func() {
+		s.Shutdown()
+	}()
+
+	middlewares := []flight.ClientMiddleware{
+		flight.CreateClientMiddleware(&testutil.ClientTestMiddleware{}),
+	}
+
+	client, err := New(ClientConfig{
+		Host:       "http://" + s.Addr().String(),
+		Token:      "my_secret_token",
+		Database:   "explore",
+		Middleware: middlewares,
+	})
+	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
+	_, qErr := client.Query(context.Background(),
+		"SELECT name FROM examples",
+	)
+	require.NotContains(t, qErr.Error(), "invalid value from middleware")
+}
+
+func TestQueryWithMiddlewareFail(t *testing.T) {
+	s := *testutil.StartCheckMessageFromMiddlewareFlightServer(t)
+	defer func() {
+		s.Shutdown()
+	}()
+
+	client, err := New(ClientConfig{
+		Host:       "http://" + s.Addr().String(),
+		Token:      "my_secret_token",
+		Database:   "explore",
+		Middleware: nil,
+	})
+	require.NoError(t, err)
+	defer func(client *Client) {
+		err := client.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(client)
+	_, qErr := client.Query(context.Background(),
+		"SELECT name FROM examples",
+	)
+	require.Contains(t, qErr.Error(), "invalid value from middleware")
+}
+
 func TestQueryWithQueryTimeoutDeadlineExpired(t *testing.T) {
 	s := flight.NewServerWithMiddleware(nil)
 	err := s.Init("localhost:0")
