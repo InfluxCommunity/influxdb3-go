@@ -2,6 +2,10 @@
 
 ## 2.13.0 [unreleased]
 
+### Features
+
+1. [#223](https://github.com/InfluxCommunity/influxdb3-go/pull/223): Support passing middleware functions to the Flight client.
+
 ## 2.12.0 [2026-01-08]
 
 ### Features
