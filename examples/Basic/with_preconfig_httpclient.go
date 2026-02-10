@@ -37,9 +37,9 @@ func main() {
 	}
 
 	/*
-		Creating an Influxdb client with a pre-config Http client.
+		Creating an Influxdb client with a pre-configured Http client.
 		Warning: If you also set Config.MaxIdleConnections or Config.IdleConnectionTimeout,...
-		It will override these properties in your pre-config Http client
+		It will override these properties in your pre-configured Http client
 	*/
 	config := influxdb3.ClientConfig{
 		Host:       url,
