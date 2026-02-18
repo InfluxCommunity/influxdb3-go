@@ -37,7 +37,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/runtime/protoimpl"
@@ -331,7 +330,7 @@ func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]strin
 		defaultTagsOrNil = defaultTags[0]
 	}
 	for _, p := range points {
-		bs, err := p.MarshalBinaryWithDefaultTags(lineprotocol.Millisecond, defaultTagsOrNil)
+		bs, err := p.MarshalBinaryWithDefaultTags(Millisecond, defaultTagsOrNil)
 		require.NoError(t, err)
 		bytes = append(bytes, bs...)
 	}
@@ -369,7 +368,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	}))
 	defer ts.Close()
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 	options.NoSync = false
 	c, err := New(ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -398,7 +397,7 @@ func TestWriteCorrectUrlNoSync(t *testing.T) {
 	defer ts.Close()
 
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -465,7 +464,7 @@ func TestWriteWithNoSyncToV2Server(t *testing.T) {
 	defer ts.Close()
 
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -526,7 +525,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	c.config.WriteOptions.Precision = lineprotocol.Millisecond
+	c.config.WriteOptions.Precision = Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
 	err = c.Write(context.Background(), byts)
@@ -572,7 +571,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 	})
 	options := WriteOptions{
 		Database:    "db-x",
-		Precision:   lineprotocol.Millisecond,
+		Precision:   Millisecond,
 		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
@@ -608,7 +607,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 	})
 	require.NoError(t, err)
 	err = c.WritePoints(context.Background(), points,
-		WithPrecision(lineprotocol.Millisecond),
+		WithPrecision(Millisecond),
 		WithDatabase("db-x"),
 		WithDefaultTags(defaultTags))
 	assert.NoError(t, err)
@@ -748,7 +747,7 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 	})
 	options := WriteOptions{
 		Database:    "db-x",
-		Precision:   lineprotocol.Second,
+		Precision:   Second,
 		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
@@ -802,7 +801,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s},
 		WithDatabase("db-x"),
-		WithPrecision(lineprotocol.Second),
+		WithPrecision(Second),
 		WithDefaultTags(defaultTags))
 	assert.NoError(t, err)
 }
@@ -901,7 +900,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	c.config.WriteOptions.Precision = lineprotocol.Millisecond
+	c.config.WriteOptions.Precision = Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
 
@@ -1182,10 +1181,10 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 }
 
 func TestToV3PrecisionString(t *testing.T) {
-	assert.Equal(t, "nanosecond", toV3PrecisionString(lineprotocol.Nanosecond))
-	assert.Equal(t, "microsecond", toV3PrecisionString(lineprotocol.Microsecond))
-	assert.Equal(t, "millisecond", toV3PrecisionString(lineprotocol.Millisecond))
-	assert.Equal(t, "second", toV3PrecisionString(lineprotocol.Second))
+	assert.Equal(t, "nanosecond", toV3PrecisionString(Nanosecond))
+	assert.Equal(t, "microsecond", toV3PrecisionString(Microsecond))
+	assert.Equal(t, "millisecond", toV3PrecisionString(Millisecond))
+	assert.Equal(t, "second", toV3PrecisionString(Second))
 	assert.Panics(t, func() {
 		toV3PrecisionString(5)
 	})
