@@ -434,6 +434,39 @@ func TestPointDefaultTagsDedupAndSkipEmpty(t *testing.T) {
 	assert.EqualValues(t, "test,tag1=a,tag2=b,tag3=c field=1i 60000000070\n", string(line))
 }
 
+func TestPointTagOrder(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"host":   "h1",
+		"region": "us-east",
+		"rack":   "r1",
+	}, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	line, err := p.marshalBinaryWithOptions(Nanosecond, nil, []string{"region", "host"})
+	require.NoError(t, err)
+	assert.EqualValues(t, "test,region=us-east,host=h1,rack=r1 field=1i 60000000070\n", string(line))
+}
+
+func TestPointTagOrderWithDefaultTags(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"host":   "h1",
+		"region": "us-east",
+	}, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	defaultTags := map[string]string{
+		"rack":   "r1",
+		"zone":   "z1",
+		"region": "ignored-by-point",
+	}
+
+	line, err := p.marshalBinaryWithOptions(Nanosecond, defaultTags, []string{"region", "host", "rack", "host", "missing"})
+	require.NoError(t, err)
+	assert.EqualValues(t, "test,region=us-east,host=h1,rack=r1,zone=z1 field=1i 60000000070\n", string(line))
+}
+
 func TestPointNilAndEmptyDefaultTagsSameOutput(t *testing.T) {
 	p := NewPoint("test", map[string]string{
 		"tag1": "a",

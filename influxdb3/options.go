@@ -55,6 +55,11 @@ type WriteOptions struct {
 	// Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
 	DefaultTags map[string]string
 
+	// TagOrder prioritizes tag key serialization order in line protocol.
+	// Keys listed here are serialized first in the given order when present.
+	// Remaining tags are serialized in deterministic lexicographic order.
+	TagOrder []string
+
 	// Write body larger than the threshold is gzipped. 0 for no compression.
 	GzipThreshold int
 
@@ -98,6 +103,7 @@ type QueryOption = Option
 //   - WithPrecision
 //   - WithGzipThreshold
 //   - WithDefaultTags
+//   - WithTagOrder
 //   - WithNoSync
 type WriteOption = Option
 
@@ -144,6 +150,17 @@ func WithGzipThreshold(gzipThreshold int) Option {
 func WithDefaultTags(tags map[string]string) Option {
 	return func(o *options) {
 		o.DefaultTags = tags
+	}
+}
+
+// WithTagOrder is used to prioritize tag key serialization order in Client.Write methods.
+// Keys listed here are serialized first in the given order when present.
+// Remaining tags are serialized in deterministic lexicographic order.
+func WithTagOrder(tagKeys ...string) Option {
+	return func(o *options) {
+		copied := make([]string, len(tagKeys))
+		copy(copied, tagKeys)
+		o.TagOrder = copied
 	}
 }
 

@@ -235,7 +235,7 @@ func (p *Point) Copy() *Point {
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
 func (p *Point) MarshalBinary(precision Precision) ([]byte, error) {
-	return p.MarshalBinaryWithDefaultTags(precision, nil)
+	return p.marshalBinaryWithOptions(precision, nil, nil)
 }
 
 // MarshalBinaryWithDefaultTags converts the Point to its binary representation in line protocol format with default tags.
@@ -248,11 +248,15 @@ func (p *Point) MarshalBinary(precision Precision) ([]byte, error) {
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
 func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags map[string]string) ([]byte, error) {
+	return p.marshalBinaryWithOptions(precision, defaultTags, nil)
+}
+
+func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[string]string, tagOrder []string) ([]byte, error) {
 	var sb strings.Builder
 
 	escapeKey(&sb, p.Values.MeasurementName, false)
 
-	if err := appendTags(&sb, p.Values.Tags, defaultTags); err != nil {
+	if err := appendTags(&sb, p.Values.Tags, defaultTags, tagOrder); err != nil {
 		return nil, err
 	}
 
@@ -269,45 +273,59 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags ma
 	return []byte(sb.String()), nil
 }
 
-func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[string]string) error {
-	tagKeys := make([]string, 0, len(tags)+len(defaultTags))
+func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[string]string, tagOrder []string) error {
+	if _, exists := tags[""]; exists {
+		return fmt.Errorf("encoding error: invalid tag key %q", "")
+	}
+
+	tagKeySet := make(map[string]struct{}, len(tags)+len(defaultTags))
 	for k := range tags {
-		tagKeys = append(tagKeys, k)
+		if strings.ContainsAny(k, "\n\r\t") {
+			return fmt.Errorf("encoding error: invalid tag key %q", k)
+		}
+		if k != "" {
+			tagKeySet[k] = struct{}{}
+		}
 	}
 	for k := range defaultTags {
-		tagKeys = append(tagKeys, k)
+		if strings.ContainsAny(k, "\n\r\t") {
+			return fmt.Errorf("encoding error: invalid tag key %q", k)
+		}
+		if k != "" {
+			tagKeySet[k] = struct{}{}
+		}
 	}
-	sort.Strings(tagKeys)
 
-	lastKey := ""
-	if len(tagKeys) > 0 && tagKeys[0] == "" {
-		lastKey = "_"
+	tagKeys := make([]string, 0, len(tagKeySet))
+	seenOrderKeys := make(map[string]struct{}, len(tagOrder))
+	for _, tagKey := range tagOrder {
+		if tagKey == "" {
+			continue
+		}
+		if _, seen := seenOrderKeys[tagKey]; seen {
+			continue
+		}
+		seenOrderKeys[tagKey] = struct{}{}
+		if _, exists := tagKeySet[tagKey]; !exists {
+			continue
+		}
+		tagKeys = append(tagKeys, tagKey)
+		delete(tagKeySet, tagKey)
 	}
+	remainingKeys := make([]string, 0, len(tagKeySet))
+	for tagKey := range tagKeySet {
+		remainingKeys = append(remainingKeys, tagKey)
+	}
+	sort.Strings(remainingKeys)
+	tagKeys = append(tagKeys, remainingKeys...)
 
 	for _, tagKey := range tagKeys {
-		if lastKey == tagKey {
-			continue
-		}
-		lastKey = tagKey
-
-		if tagKey == "" {
-			if _, exists := tags[tagKey]; exists {
-				return fmt.Errorf("encoding error: invalid tag key %q", tagKey)
-			}
-			// Empty key from default tags is ignored.
-			continue
-		}
-
-		if strings.ContainsAny(tagKey, "\n\r\t") {
-			return fmt.Errorf("encoding error: invalid tag key %q", tagKey)
-		}
-
 		tagValue, ok := tags[tagKey]
 		if !ok {
 			tagValue = defaultTags[tagKey]
 		}
 
-		if tagKey == "" || tagValue == "" {
+		if tagValue == "" {
 			continue
 		}
 

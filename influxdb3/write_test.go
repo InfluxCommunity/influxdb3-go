@@ -301,6 +301,32 @@ func TestEncode(t *testing.T) {
 	}
 }
 
+func TestEncodeWithTagOrder(t *testing.T) {
+	now := time.Unix(60, 70)
+	pointStruct := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Region      string    `lp:"tag,region"`
+		Temp        float64   `lp:"field,temperature"`
+		Time        time.Time `lp:"timestamp"`
+	}{
+		Measurement: "air",
+		Sensor:      "SHT31",
+		ID:          "10",
+		Region:      "eu-west",
+		Temp:        23.5,
+		Time:        now,
+	}
+
+	options := DefaultWriteOptions
+	options.TagOrder = []string{"region", "sensor"}
+
+	b, err := encode(pointStruct, &options)
+	require.NoError(t, err)
+	assert.Equal(t, "air,region=eu-west,sensor=SHT31,device_id=10 temperature=23.5 60000000070\n", string(b))
+}
+
 func genPoints(count int) []*Point {
 	ps := make([]*Point, count)
 	ts := time.Now()
@@ -613,6 +639,37 @@ func TestWritePointsWithOptions(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestWritePointsWithTagOrder(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.SetTag("rack", "r1")
+	p.SetTag("host", "h1")
+	p.SetTag("region", "us-east")
+	p.SetField("usage", 16.75)
+
+	expectedLine := "cpu,region=us-east,host=h1,rack=r1 usage=16.75\n"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" {
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedLine, string(body))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	err = c.WritePoints(context.Background(), []*Point{p}, WithTagOrder("region", "host"))
+	assert.NoError(t, err)
+}
+
 func TestWriteData(t *testing.T) {
 	now := time.Now()
 	s := sampleDataStruct(now)
@@ -635,6 +692,47 @@ func TestWriteData(t *testing.T) {
 	})
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s})
+	assert.NoError(t, err)
+}
+
+func TestWriteDataWithTagOrder(t *testing.T) {
+	now := time.Unix(60, 70)
+	s := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Region      string    `lp:"tag,region"`
+		Temp        float64   `lp:"field,temperature"`
+		Time        time.Time `lp:"timestamp"`
+	}{
+		Measurement: "air",
+		Sensor:      "SHT31",
+		ID:          "10",
+		Region:      "eu-west",
+		Temp:        23.5,
+		Time:        now,
+	}
+	expectedLine := "air,region=eu-west,sensor=SHT31,device_id=10 temperature=23.5 60000000070\n"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" {
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedLine, string(body))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	err = c.WriteData(context.Background(), []any{s}, WithTagOrder("region", "sensor"))
 	assert.NoError(t, err)
 }
 

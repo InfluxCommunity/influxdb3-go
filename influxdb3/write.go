@@ -113,9 +113,15 @@ func (c *Client) writePoints(ctx context.Context, points []*Point, options *Writ
 	} else {
 		defaultTags = c.config.WriteOptions.DefaultTags
 	}
+	var tagOrder []string
+	if options != nil && options.TagOrder != nil {
+		tagOrder = options.TagOrder
+	} else {
+		tagOrder = c.config.WriteOptions.TagOrder
+	}
 
 	for _, p := range points {
-		bts, err := p.MarshalBinaryWithDefaultTags(precision, defaultTags)
+		bts, err := p.marshalBinaryWithOptions(precision, defaultTags, tagOrder)
 		if err != nil {
 			return err
 		}
@@ -376,7 +382,7 @@ func encode(x any, options *WriteOptions) ([]byte, error) {
 		return nil, errors.New("no struct field with tag 'field'")
 	}
 
-	return point.MarshalBinaryWithDefaultTags(options.Precision, options.DefaultTags)
+	return point.marshalBinaryWithOptions(options.Precision, options.DefaultTags, options.TagOrder)
 }
 
 func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.Type) (any, error) {
