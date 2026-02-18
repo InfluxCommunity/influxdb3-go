@@ -263,6 +263,18 @@ data := []any{s1}
 err = client.WriteData(context.Background(), data)
 ```
 
+#### Control tag order for the first write (InfluxDB 3 Enterprise)
+
+In InfluxDB 3 Enterprise, the first write to a table determines physical tag column order.
+Use `WithTagOrder()` to put high-priority query tags first:
+
+```go
+err = client.WritePoints(context.Background(), points, influxdb3.WithTagOrder("region", "host"))
+```
+
+Listed tags are serialized first in the given order when present.
+All remaining tags are appended in deterministic lexicographic order.
+
 ### Query
 
 Use SQL or InfluxQL to query an InfluxDB v3 database or Cloud Serverless bucket to retrieve data.

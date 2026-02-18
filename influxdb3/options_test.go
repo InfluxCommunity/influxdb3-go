@@ -149,6 +149,16 @@ func TestWriteOptions(t *testing.T) {
 				NoSync:        true,
 			},
 		},
+		{
+			name: "override tag order",
+			opts: va(WithTagOrder("region", "host")),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				TagOrder:      []string{"region", "host"},
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -159,5 +169,15 @@ func TestWriteOptions(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func TestWithTagOrderCopiesInput(t *testing.T) {
+	order := []string{"region", "host"}
+	options := newWriteOptions(&DefaultWriteOptions, []WriteOption{WithTagOrder(order...)})
+	order[0] = "mutated"
+
+	if diff := cmp.Diff([]string{"region", "host"}, options.TagOrder); diff != "" {
+		t.Fatal(diff)
 	}
 }
