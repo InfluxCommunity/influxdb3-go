@@ -23,7 +23,9 @@
 package influxdb3
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 
 	"google.golang.org/grpc"
 )
@@ -149,7 +151,7 @@ func WithGzipThreshold(gzipThreshold int) Option {
 // WithDefaultTags is used to override default tags in Client.Write methods.
 func WithDefaultTags(tags map[string]string) Option {
 	return func(o *options) {
-		o.DefaultTags = tags
+		o.DefaultTags = maps.Clone(tags)
 	}
 }
 
@@ -158,9 +160,7 @@ func WithDefaultTags(tags map[string]string) Option {
 // Remaining tags are serialized in deterministic lexicographic order.
 func WithTagOrder(tagKeys ...string) Option {
 	return func(o *options) {
-		copied := make([]string, len(tagKeys))
-		copy(copied, tagKeys)
-		o.TagOrder = copied
+		o.TagOrder = slices.Clone(tagKeys)
 	}
 }
 
