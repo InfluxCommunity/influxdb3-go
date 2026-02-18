@@ -30,7 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -138,7 +137,7 @@ func TestPoint(t *testing.T) {
 	// Test duplicate tag and duplicate field
 	p.SetTag("ven=dor", "GCP").SetField("uint32", uint32(345780))
 
-	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	line, err := p.MarshalBinary(Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,host"name=ho\st\ "a",id=10ad\=,ven\=dor=GCP,x\"\ x=a\ b "string"="six, \"seven\", eight",bo\ol=false,duration="4h24m3s",float32=80,float64=80.1234567,int=-1234567890i,int16=-3456i,int32=-34567i,int64=-1234567890i,int8=-34i,stri\=ng="six=seven\\, eight",time="2020-03-20T10:30:23.123456789Z",uint=12345677890u,uint\ 64=41234567890u,uint16=3456u,uint32=345780u,uint8=34u 60000000070`+"\n", string(line)) //nolint
 }
@@ -171,21 +170,21 @@ func TestPointDefaultTags(t *testing.T) {
 		"tag3": "f",
 	}
 
-	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	line, err := p.MarshalBinary(Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,tag1=a,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
 
-	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	line, err = p.MarshalBinaryWithDefaultTags(Nanosecond, defaultTags)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=c float64=80.1234567 60000000070`+"\n", string(line))
 
 	p.RemoveTag("tag3")
 
-	line, err = p.MarshalBinary(lineprotocol.Nanosecond)
+	line, err = p.MarshalBinary(Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,tag1=a float64=80.1234567 60000000070`+"\n", string(line))
 
-	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	line, err = p.MarshalBinaryWithDefaultTags(Nanosecond, defaultTags)
 	require.NoError(t, err)
 	assert.EqualValues(t, `test,tag1=a,tag2=b,tag3=f float64=80.1234567 60000000070`+"\n", string(line))
 }
@@ -209,14 +208,14 @@ func TestPointWithEscapedTags(t *testing.T) {
 		"ambiTag": "default\nambiguous\ntag",
 	}
 
-	line, err := p.MarshalBinary(lineprotocol.Nanosecond)
+	line, err := p.MarshalBinary(Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t,
 		"test,ambiTag=ambiguous\\ntag,tabTag1=drink\\tTab,tabTag2=Tab\\tulator,"+
 			"tag1=new\\nline\\ and\\ space,tag2=escaped\\nline\\ and\\ space fVal=41.3 60000000070\n",
 		string(line))
 
-	line, err = p.MarshalBinaryWithDefaultTags(lineprotocol.Nanosecond, defaultTags)
+	line, err = p.MarshalBinaryWithDefaultTags(Nanosecond, defaultTags)
 	require.NoError(t, err)
 	assert.EqualValues(t,
 		"test,ambiTag=ambiguous\\ntag,defTag1=default\\nline\\ and\\ space,"+
@@ -230,7 +229,7 @@ func TestPointWithEscapedTags(t *testing.T) {
 		"fVal": 17.2,
 	}, time.Unix(60, 70))
 
-	_, err = pInvalid.MarshalBinary(lineprotocol.Nanosecond)
+	_, err = pInvalid.MarshalBinary(Nanosecond)
 	require.Error(t, err)
 	assert.EqualValues(t, "encoding error: invalid tag key \"tag\\nbroken\"", err.Error())
 }
@@ -330,7 +329,7 @@ func TestFieldConverterValid(t *testing.T) {
 	}
 	point := createPointWithNamedType(validConverterFunc)
 
-	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
+	binary, err := point.MarshalBinary(Nanosecond)
 	assert.NoError(t, err)
 	line := "measurement " +
 		"bool=true,duration=\"12h11m10s\",float32=9,float64=10," +
@@ -344,7 +343,7 @@ func TestFieldConverterInvalid(t *testing.T) {
 	invalidConverterFunc := func(v any) any { return v }
 	point := createPointWithNamedType(invalidConverterFunc)
 
-	binary, err := point.MarshalBinary(lineprotocol.Nanosecond)
+	binary, err := point.MarshalBinary(Nanosecond)
 	assert.Contains(t, err.Error(), "invalid value for field")
 	assert.Nil(t, binary)
 }
@@ -369,4 +368,97 @@ func createPointWithNamedType(converter func(any) any) *Point {
 	point.SetField("duration", 12*time.Hour+11*time.Minute+10*time.Second)
 
 	return point
+}
+
+func TestPointTimePrecisionConversions(t *testing.T) {
+	p := NewPoint("test", nil, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	cases := []struct {
+		precision Precision
+		expected  string
+	}{
+		{Nanosecond, "test field=1i 60000000070\n"},
+		{Microsecond, "test field=1i 60000000\n"},
+		{Millisecond, "test field=1i 60000\n"},
+		{Second, "test field=1i 60\n"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.precision.String(), func(t *testing.T) {
+			line, err := p.MarshalBinary(tc.precision)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, string(line))
+		})
+	}
+}
+
+func TestPointInvalidPrecisionPanics(t *testing.T) {
+	p := NewPoint("test", nil, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	assert.PanicsWithError(t, "unknown precision value 99", func() {
+		_, _ = p.MarshalBinary(Precision(99))
+	})
+}
+
+func TestPointOnlyNonFiniteFieldsReturnsEmpty(t *testing.T) {
+	p := NewPoint("test", nil, map[string]any{
+		"a": math.NaN(),
+		"b": math.Inf(1),
+		"c": float32(math.Inf(-1)),
+	}, time.Unix(60, 70))
+
+	line, err := p.MarshalBinary(Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, "", string(line))
+}
+
+func TestPointDefaultTagsDedupAndSkipEmpty(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+		"tag3": "c",
+	}, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	line, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
+		"":     "skip-empty-key",
+		"tag2": "b",
+		"tag3": "ignored-because-point-tag-exists",
+		"tag4": "",
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, "test,tag1=a,tag2=b,tag3=c field=1i 60000000070\n", string(line))
+}
+
+func TestPointNilAndEmptyDefaultTagsSameOutput(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag1": "a",
+	}, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
+
+	lineNil, err := p.MarshalBinaryWithDefaultTags(Nanosecond, nil)
+	require.NoError(t, err)
+
+	lineEmpty, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{})
+	require.NoError(t, err)
+
+	assert.EqualValues(t, string(lineNil), string(lineEmpty))
+	assert.EqualValues(t, "test,tag1=a field=1i 60000000070\n", string(lineNil))
+}
+
+func TestPointEscapeCoverage(t *testing.T) {
+	p := NewPoint("me as,ure", map[string]string{
+		"ta g,=": "va l,=",
+	}, map[string]any{
+		"fi eld,=": `qu"o\te`,
+	}, time.Time{})
+
+	line, err := p.MarshalBinary(Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, `me\ as\,ure,ta\ g\,\==va\ l\,\= fi\ eld\,\=="qu\"o\\te"`+"\n", string(line))
 }

@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
 
@@ -104,7 +103,7 @@ func ExampleClient_QueryWithOptions() {
 	qIter, _ := client.Query(context.Background(),
 		`SELECT time,location,name FROM temp WHERE time >= now() - interval '1 hour'`,
 		influxdb3.WithDatabase("building204"),
-		influxdb3.WithPrecision(lineprotocol.Millisecond),
+		influxdb3.WithPrecision(influxdb3.Millisecond),
 		influxdb3.WithGzipThreshold(1_000_000),
 		influxdb3.WithGrpcCallOption(grpc.MaxCallRecvMsgSize(5_000_000)),
 	)

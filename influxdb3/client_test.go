@@ -33,7 +33,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -391,7 +390,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Millisecond,
+					Precision:     Millisecond,
 					GzipThreshold: 64,
 					NoSync:        true,
 				},
@@ -407,7 +406,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
-					Precision:     lineprotocol.Second,
+					Precision:     Second,
 				},
 			},
 		},
@@ -421,7 +420,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
-					Precision:     lineprotocol.Microsecond,
+					Precision:     Microsecond,
 				},
 			},
 		},
@@ -538,7 +537,7 @@ func TestNewFromEnv(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Millisecond,
+					Precision:     Millisecond,
 					GzipThreshold: 64,
 					NoSync:        true,
 				},
@@ -559,7 +558,7 @@ func TestNewFromEnv(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Nanosecond,
+					Precision:     Nanosecond,
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 				},

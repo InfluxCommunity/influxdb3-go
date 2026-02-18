@@ -25,11 +25,11 @@ package influxdb3
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 // Point represents InfluxDB time series point, holding tags and fields
@@ -234,7 +234,7 @@ func (p *Point) Copy() *Point {
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
-func (p *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) {
+func (p *Point) MarshalBinary(precision Precision) ([]byte, error) {
 	return p.MarshalBinaryWithDefaultTags(precision, nil)
 }
 
@@ -247,72 +247,241 @@ func (p *Point) MarshalBinary(precision lineprotocol.Precision) ([]byte, error) 
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
-func (p *Point) MarshalBinaryWithDefaultTags(precision lineprotocol.Precision, defaultTags map[string]string) ([]byte, error) {
-	var enc lineprotocol.Encoder
-	enc.SetPrecision(precision)
-	enc.StartLine(p.Values.MeasurementName)
+func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags map[string]string) ([]byte, error) {
+	var sb strings.Builder
 
-	// N.B. Some customers have requested support for newline and tab chars in tag values (EAR 5476)
-	// Though this is outside the lineprotocol specification, it was supported in
-	// previous GO client versions.
-	replacer := strings.NewReplacer(
-		"\n", "\\n",
-		"\t", "\\t",
-	)
+	escapeKey(&sb, p.Values.MeasurementName, false)
 
-	// sort Tags
-	tagKeys := make([]string, 0, len(p.Values.Tags)+len(defaultTags))
-	for k := range p.Values.Tags {
+	if err := appendTags(&sb, p.Values.Tags, defaultTags); err != nil {
+		return nil, err
+	}
+
+	appendedFields, err := p.appendFields(&sb)
+	if err != nil {
+		return nil, err
+	}
+	if !appendedFields {
+		return []byte{}, nil
+	}
+
+	appendTime(&sb, p.Values.Timestamp, precision)
+	sb.WriteByte('\n')
+	return []byte(sb.String()), nil
+}
+
+func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[string]string) error {
+	tagKeys := make([]string, 0, len(tags)+len(defaultTags))
+	for k := range tags {
 		tagKeys = append(tagKeys, k)
 	}
 	for k := range defaultTags {
 		tagKeys = append(tagKeys, k)
 	}
-
 	sort.Strings(tagKeys)
+
 	lastKey := ""
-	// ensure empty string key is written too
 	if len(tagKeys) > 0 && tagKeys[0] == "" {
 		lastKey = "_"
 	}
+
 	for _, tagKey := range tagKeys {
 		if lastKey == tagKey {
 			continue
 		}
 		lastKey = tagKey
 
-		// N.B. Some customers have requested support for newline and tab chars in tag values (EAR 5476)
-		if value, ok := p.Values.Tags[tagKey]; ok {
-			enc.AddTag(tagKey, replacer.Replace(value))
-		} else {
-			enc.AddTag(tagKey, replacer.Replace(defaultTags[tagKey]))
+		if tagKey == "" {
+			if _, exists := tags[tagKey]; exists {
+				return fmt.Errorf("encoding error: invalid tag key %q", tagKey)
+			}
+			// Empty key from default tags is ignored.
+			continue
 		}
+
+		if strings.ContainsAny(tagKey, "\n\r\t") {
+			return fmt.Errorf("encoding error: invalid tag key %q", tagKey)
+		}
+
+		tagValue, ok := tags[tagKey]
+		if !ok {
+			tagValue = defaultTags[tagKey]
+		}
+
+		if tagKey == "" || tagValue == "" {
+			continue
+		}
+
+		sb.WriteByte(',')
+		escapeKey(sb, tagKey, true)
+		sb.WriteByte('=')
+		escapeKey(sb, tagValue, true)
 	}
 
-	// sort Fields
+	sb.WriteByte(' ')
+	return nil
+}
+
+func (p *Point) appendFields(sb *strings.Builder) (bool, error) {
 	fieldKeys := make([]string, 0, len(p.Values.Fields))
 	for k := range p.Values.Fields {
 		fieldKeys = append(fieldKeys, k)
 	}
 	sort.Strings(fieldKeys)
+
 	converter := p.fieldConverter
 	if converter == nil {
 		converter = convertField
 	}
+
+	appended := false
 	for _, fieldKey := range fieldKeys {
-		fieldValue := converter(p.Values.Fields[fieldKey])
-		value, ok := lineprotocol.NewValue(fieldValue)
-		if !ok {
-			return nil, fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
+		if fieldKey == "" {
+			return false, fmt.Errorf("encoding error: invalid field key %q", fieldKey)
 		}
-		enc.AddField(fieldKey, value)
+
+		fieldValue := converter(p.Values.Fields[fieldKey])
+		if isNotDefined(fieldValue) {
+			continue
+		}
+
+		if appended {
+			sb.WriteByte(',')
+		}
+		escapeKey(sb, fieldKey, true)
+		sb.WriteByte('=')
+
+		if err := appendFieldValue(sb, fieldKey, fieldValue); err != nil {
+			return false, err
+		}
+		appended = true
 	}
 
-	enc.EndLine(p.Values.Timestamp)
-	if err := enc.Err(); err != nil {
-		return nil, fmt.Errorf("encoding error: %w", err)
+	return appended, nil
+}
+
+func appendFieldValue(sb *strings.Builder, fieldKey string, fieldValue any) error {
+	switch value := fieldValue.(type) {
+	case float64:
+		sb.WriteString(strconv.FormatFloat(value, 'g', -1, 64))
+	case float32:
+		sb.WriteString(strconv.FormatFloat(float64(value), 'g', -1, 32))
+	case int:
+		sb.WriteString(strconv.FormatInt(int64(value), 10))
+		sb.WriteByte('i')
+	case int8:
+		sb.WriteString(strconv.FormatInt(int64(value), 10))
+		sb.WriteByte('i')
+	case int16:
+		sb.WriteString(strconv.FormatInt(int64(value), 10))
+		sb.WriteByte('i')
+	case int32:
+		sb.WriteString(strconv.FormatInt(int64(value), 10))
+		sb.WriteByte('i')
+	case int64:
+		sb.WriteString(strconv.FormatInt(value, 10))
+		sb.WriteByte('i')
+	case uint:
+		sb.WriteString(strconv.FormatUint(uint64(value), 10))
+		sb.WriteByte('u')
+	case uint8:
+		sb.WriteString(strconv.FormatUint(uint64(value), 10))
+		sb.WriteByte('u')
+	case uint16:
+		sb.WriteString(strconv.FormatUint(uint64(value), 10))
+		sb.WriteByte('u')
+	case uint32:
+		sb.WriteString(strconv.FormatUint(uint64(value), 10))
+		sb.WriteByte('u')
+	case uint64:
+		sb.WriteString(strconv.FormatUint(value, 10))
+		sb.WriteByte('u')
+	case bool:
+		if value {
+			sb.WriteString("true")
+		} else {
+			sb.WriteString("false")
+		}
+	case string:
+		sb.WriteByte('"')
+		escapeValue(sb, value)
+		sb.WriteByte('"')
+	case []byte:
+		sb.WriteByte('"')
+		escapeValue(sb, string(value))
+		sb.WriteByte('"')
+	default:
+		return fmt.Errorf("invalid value for field %s: %v", fieldKey, fieldValue)
 	}
-	return enc.Bytes(), nil
+	return nil
+}
+
+func appendTime(sb *strings.Builder, timestamp time.Time, precision Precision) {
+	if timestamp.IsZero() {
+		return
+	}
+
+	ts := timestamp.UnixNano()
+	switch precision {
+	case Nanosecond:
+		// no-op
+	case Microsecond:
+		ts /= int64(time.Microsecond)
+	case Millisecond:
+		ts /= int64(time.Millisecond)
+	case Second:
+		ts /= int64(time.Second)
+	default:
+		panic(fmt.Errorf("unknown precision value %d", precision))
+	}
+
+	sb.WriteByte(' ')
+	sb.WriteString(strconv.FormatInt(ts, 10))
+}
+
+func escapeKey(sb *strings.Builder, key string, escapeEqual bool) {
+	for i := 0; i < len(key); i++ {
+		switch key[i] {
+		case '\n':
+			sb.WriteString("\\n")
+			continue
+		case '\r':
+			sb.WriteString("\\r")
+			continue
+		case '\t':
+			sb.WriteString("\\t")
+			continue
+		case ' ', ',':
+			sb.WriteByte('\\')
+		case '=':
+			if escapeEqual {
+				sb.WriteByte('\\')
+			}
+		}
+		sb.WriteByte(key[i])
+	}
+}
+
+func escapeValue(sb *strings.Builder, value string) {
+	for i := 0; i < len(value); i++ {
+		switch value[i] {
+		case '\\', '"':
+			sb.WriteByte('\\')
+		}
+		sb.WriteByte(value[i])
+	}
+}
+
+func isNotDefined(value any) bool {
+	if value == nil {
+		return true
+	}
+	if v, ok := value.(float64); ok {
+		return math.IsNaN(v) || math.IsInf(v, 0)
+	}
+	if v, ok := value.(float32); ok {
+		return math.IsNaN(float64(v)) || math.IsInf(float64(v), 0)
+	}
+	return false
 }
 
 // WithFieldConverter sets a custom field converter function for transforming field values when used.

@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow/flight"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 const (
@@ -273,13 +272,13 @@ func (c *ClientConfig) parsePrecision(precision string) error {
 
 	switch precision {
 	case "ns", "nanosecond":
-		c.WriteOptions.Precision = lineprotocol.Nanosecond
+		c.WriteOptions.Precision = Nanosecond
 	case "us", "microsecond":
-		c.WriteOptions.Precision = lineprotocol.Microsecond
+		c.WriteOptions.Precision = Microsecond
 	case "ms", "millisecond":
-		c.WriteOptions.Precision = lineprotocol.Millisecond
+		c.WriteOptions.Precision = Millisecond
 	case "s", "second":
-		c.WriteOptions.Precision = lineprotocol.Second
+		c.WriteOptions.Precision = Second
 	default:
 		return fmt.Errorf("unsupported precision '%s'", precision)
 	}

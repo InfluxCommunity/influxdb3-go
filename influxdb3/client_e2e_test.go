@@ -39,7 +39,6 @@ import (
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/batching"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -653,7 +652,7 @@ func TestLPBatcher(t *testing.T) {
 			// lag collects the difference for asserts below
 			lag += size - len(ba)
 			results = append(results, ba...)
-			err := client.Write(context.Background(), ba, influxdb3.WithPrecision(lineprotocol.Millisecond))
+			err := client.Write(context.Background(), ba, influxdb3.WithPrecision(influxdb3.Millisecond))
 			if err != nil {
 				assert.Fail(t, "Failed to write ba")
 			}
@@ -675,7 +674,7 @@ func TestLPBatcher(t *testing.T) {
 	// emit anything left over
 	leftover := lpb.Emit()
 	assert.Zero(t, lpb.CurrentLoadSize())
-	err = client.Write(context.Background(), leftover, influxdb3.WithPrecision(lineprotocol.Millisecond))
+	err = client.Write(context.Background(), leftover, influxdb3.WithPrecision(influxdb3.Millisecond))
 	if err != nil {
 		assert.Fail(t, "Failed to write leftover bytes from lpb - LPBatcher")
 	}

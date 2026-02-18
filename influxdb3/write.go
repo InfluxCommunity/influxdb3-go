@@ -35,11 +35,35 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/gzip"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 // timeType is the exact type for the Time
 var timeType = reflect.TypeFor[time.Time]()
+
+// Precision defines timestamp precision for line protocol writes.
+type Precision int
+
+const (
+	Nanosecond Precision = iota
+	Microsecond
+	Millisecond
+	Second
+)
+
+// String converts precision to v2 write API precision value.
+func (p Precision) String() string {
+	switch p {
+	case Nanosecond:
+		return "ns"
+	case Microsecond:
+		return "us"
+	case Millisecond:
+		return "ms"
+	case Second:
+		return "s"
+	}
+	panic(fmt.Errorf("unknown precision value %d", p))
+}
 
 // WritePoints writes all the given points to the server into the given database.
 // The data is written synchronously. Empty batch is skipped.
@@ -77,7 +101,7 @@ func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptio
 
 func (c *Client) writePoints(ctx context.Context, points []*Point, options *WriteOptions) error {
 	var buff []byte
-	var precision lineprotocol.Precision
+	var precision Precision
 	if options != nil {
 		precision = options.Precision
 	} else {
@@ -378,16 +402,16 @@ func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.T
 	return fieldVal, nil
 }
 
-func toV3PrecisionString(precision lineprotocol.Precision) string {
+func toV3PrecisionString(precision Precision) string {
 	switch precision {
-	case lineprotocol.Nanosecond:
+	case Nanosecond:
 		return "nanosecond"
-	case lineprotocol.Microsecond:
+	case Microsecond:
 		return "microsecond"
-	case lineprotocol.Millisecond:
+	case Millisecond:
 		return "millisecond"
-	case lineprotocol.Second:
+	case Second:
 		return "second"
 	}
-	panic(fmt.Errorf("unknown precision: %v", precision))
+	panic(fmt.Errorf("unknown precision value %d", precision))
 }

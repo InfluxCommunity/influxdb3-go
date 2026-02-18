@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -127,10 +126,10 @@ func TestWriteOptions(t *testing.T) {
 		},
 		{
 			name: "override database and precision",
-			opts: va(WithDatabase("db-x"), WithPrecision(lineprotocol.Millisecond)),
+			opts: va(WithDatabase("db-x"), WithPrecision(Millisecond)),
 			want: &WriteOptions{
 				Database:      "db-x",
-				Precision:     lineprotocol.Millisecond,
+				Precision:     Millisecond,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 			},
@@ -139,13 +138,13 @@ func TestWriteOptions(t *testing.T) {
 			name: "override database, precision, GZIP threshold, write no sync",
 			opts: va(
 				WithDatabase("db-x"),
-				WithPrecision(lineprotocol.Millisecond),
+				WithPrecision(Millisecond),
 				WithGzipThreshold(4096),
 				WithNoSync(true),
 			),
 			want: &WriteOptions{
 				Database:      "db-x",
-				Precision:     lineprotocol.Millisecond,
+				Precision:     Millisecond,
 				GzipThreshold: 4096,
 				NoSync:        true,
 			},

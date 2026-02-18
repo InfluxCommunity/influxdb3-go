@@ -25,7 +25,6 @@ package influxdb3
 import (
 	"net/http"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
 
@@ -50,8 +49,8 @@ type WriteOptions struct {
 	Database string
 
 	// Precision of timestamp to use when writing data.
-	// Default value: lineprotocol.Nanosecond
-	Precision lineprotocol.Precision
+	// Default value: Nanosecond
+	Precision Precision
 
 	// Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
 	DefaultTags map[string]string
@@ -77,7 +76,7 @@ var DefaultQueryOptions = QueryOptions{
 
 // DefaultWriteOptions specifies default write options
 var DefaultWriteOptions = WriteOptions{
-	Precision:     lineprotocol.Nanosecond,
+	Precision:     Nanosecond,
 	GzipThreshold: 1_000,
 	NoSync:        false,
 }
@@ -128,7 +127,7 @@ func WithHeader(key, value string) Option {
 }
 
 // WithPrecision is used to override default precision in Client.Write methods.
-func WithPrecision(precision lineprotocol.Precision) Option {
+func WithPrecision(precision Precision) Option {
 	return func(o *options) {
 		o.Precision = precision
 	}
