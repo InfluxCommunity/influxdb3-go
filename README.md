@@ -427,7 +427,7 @@ See the [`examples` folder](./examples/README.md) for complete code examples tha
 
 To run the examples, do the following:
 
-1. Follow instructions to [Install in a Go module](#install-in-a-go-module).
+1. Follow instructions to [Install in a Go module](#in-a-go-module).
 2. Clone this repository.
 3. Change to the [`examples`](./examples/README.md) folder.
 4. [Set environment variables](#instantiate-using-environment-variables) or edit the example file to [instantiate a client with your credentials](#instantiate-a-client-with-influxdb-credentials).
