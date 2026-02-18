@@ -512,6 +512,15 @@ func escapeKey(sb *bytes.Buffer, key string, escapeEqual bool) {
 func escapeValue(sb *bytes.Buffer, value string) {
 	for i := range len(value) {
 		switch value[i] {
+		case '\n':
+			sb.WriteString("\\n")
+			continue
+		case '\r':
+			sb.WriteString("\\r")
+			continue
+		case '\t':
+			sb.WriteString("\\t")
+			continue
 		case '\\', '"':
 			sb.WriteByte('\\')
 		}
