@@ -254,6 +254,11 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags ma
 	return p.marshalBinaryWithOptions(precision, defaultTags, nil)
 }
 
+// WithFieldConverter sets a custom field converter function for transforming field values when used.
+func (p *Point) WithFieldConverter(converter func(any) any) {
+	p.fieldConverter = converter
+}
+
 func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[string]string, tagOrder []string) ([]byte, error) {
 	var sb bytes.Buffer
 
@@ -482,7 +487,7 @@ func appendTime(sb *bytes.Buffer, timestamp time.Time, precision Precision) {
 }
 
 func escapeKey(sb *bytes.Buffer, key string, escapeEqual bool) {
-	for i := 0; i < len(key); i++ {
+	for i := range len(key) {
 		switch key[i] {
 		case '\n':
 			sb.WriteString("\\n")
@@ -505,7 +510,7 @@ func escapeKey(sb *bytes.Buffer, key string, escapeEqual bool) {
 }
 
 func escapeValue(sb *bytes.Buffer, value string) {
-	for i := 0; i < len(value); i++ {
+	for i := range len(value) {
 		switch value[i] {
 		case '\\', '"':
 			sb.WriteByte('\\')
@@ -525,11 +530,6 @@ func isNotDefined(value any) bool {
 		return math.IsNaN(float64(v)) || math.IsInf(float64(v), 0)
 	}
 	return false
-}
-
-// WithFieldConverter sets a custom field converter function for transforming field values when used.
-func (p *Point) WithFieldConverter(converter func(any) any) {
-	p.fieldConverter = converter
 }
 
 // convertField converts any primitive type to types supported by line protocol
