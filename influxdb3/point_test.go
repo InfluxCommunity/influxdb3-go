@@ -234,6 +234,79 @@ func TestPointWithEscapedTags(t *testing.T) {
 	assert.EqualValues(t, "encoding error: invalid tag key \"tag\\nbroken\"", err.Error())
 }
 
+func TestPointEscapeCompatibilityCases(t *testing.T) {
+	cases := []struct {
+		name        string
+		measurement string
+		tags        map[string]string
+		fields      map[string]any
+		expected    string
+	}{
+		{
+			name:        "measurement with space",
+			measurement: "h2 o",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": 2},
+			expected:    "h2\\ o,location=europe level=2i\n",
+		},
+		{
+			name:        "measurement with comma",
+			measurement: "h2,o",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": 2},
+			expected:    "h2\\,o,location=europe level=2i\n",
+		},
+		{
+			name:        "equal sign escaping in tag and field keys",
+			measurement: "h=2o",
+			tags:        map[string]string{"l=ocation": "e=urope"},
+			fields:      map[string]any{"l=evel": 2},
+			expected:    "h=2o,l\\=ocation=e\\=urope l\\=evel=2i\n",
+		},
+		{
+			name:        "tag key and value control characters",
+			measurement: "h\n2\ro\t_data",
+			tags: map[string]string{
+				"new\nline":        "new\nline",
+				"carriage\rreturn": "carriage\rreturn",
+				"t\tab":            "t\tab",
+			},
+			fields:   map[string]any{"level": 2},
+			expected: "h\\n2\\ro\\t_data,carriage\\rreturn=carriage\\rreturn,new\\nline=new\\nline,t\\tab=t\\tab level=2i\n",
+		},
+		{
+			name:        "string field escapes backslash",
+			measurement: "h2o",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": "string esc\\ape value"},
+			expected:    "h2o,location=europe level=\"string esc\\\\ape value\"\n",
+		},
+		{
+			name:        "string field escapes double quote",
+			measurement: "h2o",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": "string esc\"ape value"},
+			expected:    "h2o,location=europe level=\"string esc\\\"ape value\"\n",
+		},
+		{
+			name:        "string field escapes newline carriage return and tab",
+			measurement: "escapee",
+			tags:        nil,
+			fields:      map[string]any{"sVal": "greetings\nearthlings\rfrom\tthe ship"},
+			expected:    "escapee sVal=\"greetings\\nearthlings\\rfrom\\tthe ship\"\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewPoint(tc.measurement, tc.tags, tc.fields, time.Time{})
+			line, err := p.MarshalBinary(Nanosecond)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.expected, string(line))
+		})
+	}
+}
+
 func TestPointFields(t *testing.T) {
 	p := NewPoint("test", nil, map[string]any{
 		"field1": 10,
