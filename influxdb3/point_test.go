@@ -462,7 +462,7 @@ func TestPointTagOrderWithDefaultTags(t *testing.T) {
 		"region": "ignored-by-point",
 	}
 
-	line, err := p.marshalBinaryWithOptions(Nanosecond, defaultTags, []string{"region", "host", "rack", "host", "missing"})
+	line, err := p.marshalBinaryWithOptions(Nanosecond, defaultTags, []string{"", "region", "host", "rack", "host", "missing"})
 	require.NoError(t, err)
 	assert.EqualValues(t, "test,region=us-east,host=h1,rack=r1,zone=z1 field=1i 60000000070\n", string(line))
 }
