@@ -297,27 +297,34 @@ func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[str
 	}
 
 	tagKeys := make([]string, 0, len(tagKeySet))
-	seenOrderKeys := make(map[string]struct{}, len(tagOrder))
-	for _, tagKey := range tagOrder {
-		if tagKey == "" {
-			continue
+	if len(tagOrder) == 0 {
+		for tagKey := range tagKeySet {
+			tagKeys = append(tagKeys, tagKey)
 		}
-		if _, seen := seenOrderKeys[tagKey]; seen {
-			continue
+		sort.Strings(tagKeys)
+	} else {
+		seenOrderKeys := make(map[string]struct{}, len(tagOrder))
+		for _, tagKey := range tagOrder {
+			if tagKey == "" {
+				continue
+			}
+			if _, seen := seenOrderKeys[tagKey]; seen {
+				continue
+			}
+			seenOrderKeys[tagKey] = struct{}{}
+			if _, exists := tagKeySet[tagKey]; !exists {
+				continue
+			}
+			tagKeys = append(tagKeys, tagKey)
+			delete(tagKeySet, tagKey)
 		}
-		seenOrderKeys[tagKey] = struct{}{}
-		if _, exists := tagKeySet[tagKey]; !exists {
-			continue
+		remainingKeys := make([]string, 0, len(tagKeySet))
+		for tagKey := range tagKeySet {
+			remainingKeys = append(remainingKeys, tagKey)
 		}
-		tagKeys = append(tagKeys, tagKey)
-		delete(tagKeySet, tagKey)
+		sort.Strings(remainingKeys)
+		tagKeys = append(tagKeys, remainingKeys...)
 	}
-	remainingKeys := make([]string, 0, len(tagKeySet))
-	for tagKey := range tagKeySet {
-		remainingKeys = append(remainingKeys, tagKey)
-	}
-	sort.Strings(remainingKeys)
-	tagKeys = append(tagKeys, remainingKeys...)
 
 	for _, tagKey := range tagKeys {
 		tagValue, ok := tags[tagKey]
