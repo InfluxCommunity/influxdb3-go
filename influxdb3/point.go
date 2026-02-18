@@ -23,9 +23,12 @@
 package influxdb3
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -252,7 +255,7 @@ func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags ma
 }
 
 func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[string]string, tagOrder []string) ([]byte, error) {
-	var sb strings.Builder
+	var sb bytes.Buffer
 
 	escapeKey(&sb, p.Values.MeasurementName, false)
 
@@ -270,10 +273,10 @@ func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[st
 
 	appendTime(&sb, p.Values.Timestamp, precision)
 	sb.WriteByte('\n')
-	return []byte(sb.String()), nil
+	return sb.Bytes(), nil
 }
 
-func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[string]string, tagOrder []string) error {
+func appendTags(sb *bytes.Buffer, tags map[string]string, defaultTags map[string]string, tagOrder []string) error {
 	tagKeys, err := collectOrderedTagKeys(tags, defaultTags, tagOrder)
 	if err != nil {
 		return err
@@ -335,10 +338,8 @@ func collectTagKeySet(tags map[string]string, defaultTags map[string]string) (ma
 func orderTagKeys(tagKeySet map[string]struct{}, tagOrder []string) []string {
 	tagKeys := make([]string, 0, len(tagKeySet))
 	if len(tagOrder) == 0 {
-		for tagKey := range tagKeySet {
-			tagKeys = append(tagKeys, tagKey)
-		}
-		sort.Strings(tagKeys)
+		tagKeys = slices.Collect(maps.Keys(tagKeySet))
+		slices.Sort(tagKeys)
 		return tagKeys
 	}
 
@@ -358,15 +359,12 @@ func orderTagKeys(tagKeySet map[string]struct{}, tagOrder []string) []string {
 		delete(tagKeySet, tagKey)
 	}
 
-	remainingKeys := make([]string, 0, len(tagKeySet))
-	for tagKey := range tagKeySet {
-		remainingKeys = append(remainingKeys, tagKey)
-	}
-	sort.Strings(remainingKeys)
+	remainingKeys := slices.Collect(maps.Keys(tagKeySet))
+	slices.Sort(remainingKeys)
 	return append(tagKeys, remainingKeys...)
 }
 
-func (p *Point) appendFields(sb *strings.Builder) (bool, error) {
+func (p *Point) appendFields(sb *bytes.Buffer) (bool, error) {
 	fieldKeys := make([]string, 0, len(p.Values.Fields))
 	for k := range p.Values.Fields {
 		fieldKeys = append(fieldKeys, k)
@@ -404,7 +402,7 @@ func (p *Point) appendFields(sb *strings.Builder) (bool, error) {
 	return appended, nil
 }
 
-func appendFieldValue(sb *strings.Builder, fieldKey string, fieldValue any) error {
+func appendFieldValue(sb *bytes.Buffer, fieldKey string, fieldValue any) error {
 	switch value := fieldValue.(type) {
 	case float64:
 		sb.WriteString(strconv.FormatFloat(value, 'g', -1, 64))
@@ -460,7 +458,7 @@ func appendFieldValue(sb *strings.Builder, fieldKey string, fieldValue any) erro
 	return nil
 }
 
-func appendTime(sb *strings.Builder, timestamp time.Time, precision Precision) {
+func appendTime(sb *bytes.Buffer, timestamp time.Time, precision Precision) {
 	if timestamp.IsZero() {
 		return
 	}
@@ -483,7 +481,7 @@ func appendTime(sb *strings.Builder, timestamp time.Time, precision Precision) {
 	sb.WriteString(strconv.FormatInt(ts, 10))
 }
 
-func escapeKey(sb *strings.Builder, key string, escapeEqual bool) {
+func escapeKey(sb *bytes.Buffer, key string, escapeEqual bool) {
 	for i := 0; i < len(key); i++ {
 		switch key[i] {
 		case '\n':
@@ -506,7 +504,7 @@ func escapeKey(sb *strings.Builder, key string, escapeEqual bool) {
 	}
 }
 
-func escapeValue(sb *strings.Builder, value string) {
+func escapeValue(sb *bytes.Buffer, value string) {
 	for i := 0; i < len(value); i++ {
 		switch value[i] {
 		case '\\', '"':

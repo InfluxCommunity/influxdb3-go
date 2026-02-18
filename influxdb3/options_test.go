@@ -181,3 +181,21 @@ func TestWithTagOrderCopiesInput(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestWithDefaultTagsCopiesInput(t *testing.T) {
+	tags := map[string]string{
+		"region": "us-east",
+		"host":   "h1",
+	}
+	options := newWriteOptions(&DefaultWriteOptions, []WriteOption{WithDefaultTags(tags)})
+
+	tags["region"] = "eu-west"
+	tags["rack"] = "r1"
+
+	if diff := cmp.Diff(
+		map[string]string{"region": "us-east", "host": "h1"},
+		options.DefaultTags,
+	); diff != "" {
+		t.Fatal(diff)
+	}
+}
