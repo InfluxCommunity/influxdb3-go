@@ -274,56 +274,9 @@ func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[st
 }
 
 func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[string]string, tagOrder []string) error {
-	if _, exists := tags[""]; exists {
-		return fmt.Errorf("encoding error: invalid tag key %q", "")
-	}
-
-	tagKeySet := make(map[string]struct{}, len(tags)+len(defaultTags))
-	for k := range tags {
-		if strings.ContainsAny(k, "\n\r\t") {
-			return fmt.Errorf("encoding error: invalid tag key %q", k)
-		}
-		if k != "" {
-			tagKeySet[k] = struct{}{}
-		}
-	}
-	for k := range defaultTags {
-		if strings.ContainsAny(k, "\n\r\t") {
-			return fmt.Errorf("encoding error: invalid tag key %q", k)
-		}
-		if k != "" {
-			tagKeySet[k] = struct{}{}
-		}
-	}
-
-	tagKeys := make([]string, 0, len(tagKeySet))
-	if len(tagOrder) == 0 {
-		for tagKey := range tagKeySet {
-			tagKeys = append(tagKeys, tagKey)
-		}
-		sort.Strings(tagKeys)
-	} else {
-		seenOrderKeys := make(map[string]struct{}, len(tagOrder))
-		for _, tagKey := range tagOrder {
-			if tagKey == "" {
-				continue
-			}
-			if _, seen := seenOrderKeys[tagKey]; seen {
-				continue
-			}
-			seenOrderKeys[tagKey] = struct{}{}
-			if _, exists := tagKeySet[tagKey]; !exists {
-				continue
-			}
-			tagKeys = append(tagKeys, tagKey)
-			delete(tagKeySet, tagKey)
-		}
-		remainingKeys := make([]string, 0, len(tagKeySet))
-		for tagKey := range tagKeySet {
-			remainingKeys = append(remainingKeys, tagKey)
-		}
-		sort.Strings(remainingKeys)
-		tagKeys = append(tagKeys, remainingKeys...)
+	tagKeys, err := collectOrderedTagKeys(tags, defaultTags, tagOrder)
+	if err != nil {
+		return err
 	}
 
 	for _, tagKey := range tagKeys {
@@ -344,6 +297,73 @@ func appendTags(sb *strings.Builder, tags map[string]string, defaultTags map[str
 
 	sb.WriteByte(' ')
 	return nil
+}
+
+func collectOrderedTagKeys(tags map[string]string, defaultTags map[string]string, tagOrder []string) ([]string, error) {
+	tagKeySet, err := collectTagKeySet(tags, defaultTags)
+	if err != nil {
+		return nil, err
+	}
+	return orderTagKeys(tagKeySet, tagOrder), nil
+}
+
+func collectTagKeySet(tags map[string]string, defaultTags map[string]string) (map[string]struct{}, error) {
+	if _, exists := tags[""]; exists {
+		return nil, fmt.Errorf("encoding error: invalid tag key %q", "")
+	}
+
+	tagKeySet := make(map[string]struct{}, len(tags)+len(defaultTags))
+	for k := range tags {
+		if strings.ContainsAny(k, "\n\r\t") {
+			return nil, fmt.Errorf("encoding error: invalid tag key %q", k)
+		}
+		if k != "" {
+			tagKeySet[k] = struct{}{}
+		}
+	}
+	for k := range defaultTags {
+		if strings.ContainsAny(k, "\n\r\t") {
+			return nil, fmt.Errorf("encoding error: invalid tag key %q", k)
+		}
+		if k != "" {
+			tagKeySet[k] = struct{}{}
+		}
+	}
+	return tagKeySet, nil
+}
+
+func orderTagKeys(tagKeySet map[string]struct{}, tagOrder []string) []string {
+	tagKeys := make([]string, 0, len(tagKeySet))
+	if len(tagOrder) == 0 {
+		for tagKey := range tagKeySet {
+			tagKeys = append(tagKeys, tagKey)
+		}
+		sort.Strings(tagKeys)
+		return tagKeys
+	}
+
+	seenOrderKeys := make(map[string]struct{}, len(tagOrder))
+	for _, tagKey := range tagOrder {
+		if tagKey == "" {
+			continue
+		}
+		if _, seen := seenOrderKeys[tagKey]; seen {
+			continue
+		}
+		seenOrderKeys[tagKey] = struct{}{}
+		if _, exists := tagKeySet[tagKey]; !exists {
+			continue
+		}
+		tagKeys = append(tagKeys, tagKey)
+		delete(tagKeySet, tagKey)
+	}
+
+	remainingKeys := make([]string, 0, len(tagKeySet))
+	for tagKey := range tagKeySet {
+		remainingKeys = append(remainingKeys, tagKey)
+	}
+	sort.Strings(remainingKeys)
+	return append(tagKeys, remainingKeys...)
 }
 
 func (p *Point) appendFields(sb *strings.Builder) (bool, error) {
