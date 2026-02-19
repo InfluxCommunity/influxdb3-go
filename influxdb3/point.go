@@ -308,14 +308,6 @@ func appendTags(sb *bytes.Buffer, tags map[string]string, defaultTags map[string
 }
 
 func collectOrderedTagKeys(tags map[string]string, defaultTags map[string]string, tagOrder []string) ([]string, error) {
-	tagKeySet, err := collectTagKeySet(tags, defaultTags)
-	if err != nil {
-		return nil, err
-	}
-	return orderTagKeys(tagKeySet, tagOrder), nil
-}
-
-func collectTagKeySet(tags map[string]string, defaultTags map[string]string) (map[string]struct{}, error) {
 	// Keep strict validation for point tags (explicit user point data),
 	// while preserving backward-compatible behavior for default tags where
 	// empty keys are ignored (not treated as hard errors).
@@ -340,15 +332,11 @@ func collectTagKeySet(tags map[string]string, defaultTags map[string]string) (ma
 			tagKeySet[k] = struct{}{}
 		}
 	}
-	return tagKeySet, nil
-}
-
-func orderTagKeys(tagKeySet map[string]struct{}, tagOrder []string) []string {
 	tagKeys := make([]string, 0, len(tagKeySet))
 	if len(tagOrder) == 0 {
 		tagKeys = slices.Collect(maps.Keys(tagKeySet))
 		slices.Sort(tagKeys)
-		return tagKeys
+		return tagKeys, nil
 	}
 
 	seenOrderKeys := make(map[string]struct{}, len(tagOrder))
@@ -369,7 +357,7 @@ func orderTagKeys(tagKeySet map[string]struct{}, tagOrder []string) []string {
 
 	remainingKeys := slices.Collect(maps.Keys(tagKeySet))
 	slices.Sort(remainingKeys)
-	return append(tagKeys, remainingKeys...)
+	return append(tagKeys, remainingKeys...), nil
 }
 
 func (p *Point) appendFields(sb *bytes.Buffer) (bool, error) {
