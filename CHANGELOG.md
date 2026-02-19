@@ -1,6 +1,6 @@
 # Change Log
 
-## 2.13.0 [unreleased]
+## 2.13.0 [2026-02-19]
 
 ### Features
 
