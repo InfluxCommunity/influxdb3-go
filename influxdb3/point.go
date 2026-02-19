@@ -237,6 +237,10 @@ func (p *Point) Copy() *Point {
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
+//
+// Notes:
+//   - nil, NaN, +Inf, and -Inf field values are omitted from line protocol.
+//   - If no fields remain after filtering, MarshalBinary returns an empty byte slice and nil error.
 func (p *Point) MarshalBinary(precision Precision) ([]byte, error) {
 	return p.marshalBinaryWithOptions(precision, nil, nil)
 }
@@ -250,6 +254,10 @@ func (p *Point) MarshalBinary(precision Precision) ([]byte, error) {
 // Returns:
 //   - The binary representation of the Point in line protocol format.
 //   - An error, if any.
+//
+// Field filtering behavior is the same as MarshalBinary:
+// nil, NaN, +Inf, and -Inf field values are omitted, and points with no
+// remaining fields serialize to an empty byte slice.
 func (p *Point) MarshalBinaryWithDefaultTags(precision Precision, defaultTags map[string]string) ([]byte, error) {
 	return p.marshalBinaryWithOptions(precision, defaultTags, nil)
 }

@@ -239,6 +239,11 @@ points := []*influxdb3.Point{p1}
 err = client.WritePoints(context.Background(), points)
 ```
 
+Notes:
+- During `Point` serialization, `nil` and non-finite float field values (`NaN`, `+Inf`, `-Inf`) are omitted.
+- If a point has no remaining fields after filtering, it is skipped on write.
+- If all points are skipped, no write request is sent.
+
 #### Using an annotated struct
 
 You can build data as a `struct` and let `influxdb3` convert it to line protocol:

@@ -67,6 +67,8 @@ func (p Precision) String() string {
 
 // WritePoints writes all the given points to the server into the given database.
 // The data is written synchronously. Empty batch is skipped.
+// Points that serialize to an empty line (for example, all fields are nil/NaN/Inf)
+// are skipped. If all points are skipped, no request is sent and no error is returned.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -265,6 +267,8 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 // Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
 // The points are written synchronously. Empty batch is skipped.
+// During Point serialization, nil, NaN, +Inf, and -Inf field values are omitted.
+// If a point has no remaining fields after filtering, it is skipped.
 //
 // A field with a timestamp must be of type time.Time.
 //
