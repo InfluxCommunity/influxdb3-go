@@ -316,6 +316,9 @@ func collectOrderedTagKeys(tags map[string]string, defaultTags map[string]string
 }
 
 func collectTagKeySet(tags map[string]string, defaultTags map[string]string) (map[string]struct{}, error) {
+	// Keep strict validation for point tags (explicit user point data),
+	// while preserving backward-compatible behavior for default tags where
+	// empty keys are ignored (not treated as hard errors).
 	if _, exists := tags[""]; exists {
 		return nil, fmt.Errorf("encoding error: invalid tag key %q", "")
 	}
