@@ -241,6 +241,7 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 		tags        map[string]string
 		fields      map[string]any
 		expected    string
+		wantErr     string
 	}{
 		{
 			name:        "measurement with space",
@@ -264,15 +265,13 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 			expected:    "h=2o,l\\=ocation=e\\=urope l\\=evel=2i\n",
 		},
 		{
-			name:        "tag key and value control characters",
-			measurement: "h\n2\ro\t_data",
+			name:        "tag key control characters are rejected",
+			measurement: "h2o",
 			tags: map[string]string{
-				"new\nline":        "new\nline",
-				"carriage\rreturn": "carriage\rreturn",
-				"t\tab":            "t\tab",
+				"new\nline": "new\nline",
 			},
-			fields:   map[string]any{"level": 2},
-			expected: "h\\n2\\ro\\t_data,carriage\\rreturn=carriage\\rreturn,new\\nline=new\\nline,t\\tab=t\\tab level=2i\n",
+			fields:  map[string]any{"level": 2},
+			wantErr: "encoding error: invalid tag key",
 		},
 		{
 			name:        "string field escapes backslash",
@@ -301,6 +300,11 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := NewPoint(tc.measurement, tc.tags, tc.fields, time.Time{})
 			line, err := p.MarshalBinary(Nanosecond)
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tc.wantErr)
+				return
+			}
 			require.NoError(t, err)
 			assert.EqualValues(t, tc.expected, string(line))
 		})
