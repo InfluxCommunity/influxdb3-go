@@ -240,6 +240,7 @@ err = client.WritePoints(context.Background(), points)
 ```
 
 Notes:
+
 - During `Point` serialization, `nil` and non-finite float field values (`NaN`, `+Inf`, `-Inf`) are omitted.
 - If a point has no remaining fields after filtering, it is skipped on write.
 - If all points are skipped, no write request is sent.
