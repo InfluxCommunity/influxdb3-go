@@ -379,6 +379,47 @@ func TestFromValuesMissingMeasurement(t *testing.T) {
 	assert.ErrorContains(t, err, "missing measurement")
 }
 
+func TestMarshalBinaryMissingMeasurement(t *testing.T) {
+	cases := []struct {
+		name  string
+		point *Point
+	}{
+		{
+			name:  "nil point",
+			point: nil,
+		},
+		{
+			name:  "nil values",
+			point: &Point{},
+		},
+		{
+			name: "empty measurement in values",
+			point: &Point{
+				Values: &PointValues{
+					Tags:   map[string]string{"host": "h1"},
+					Fields: map[string]any{"value": 1},
+				},
+			},
+		},
+		{
+			name: "new point values with empty measurement",
+			point: func() *Point {
+				p := NewPointWithPointValues(NewPointValues(""))
+				p.SetField("value", 1)
+				return p
+			}(),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := tc.point.MarshalBinary(Nanosecond)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "encoding error: missing measurement")
+		})
+	}
+}
+
 func TestFieldConverterValid(t *testing.T) {
 	validConverterFunc := func(v any) any {
 		switch v := v.(type) {

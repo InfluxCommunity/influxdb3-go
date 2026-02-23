@@ -269,6 +269,10 @@ func (p *Point) WithFieldConverter(converter func(any) any) {
 }
 
 func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[string]string, tagOrder []string) ([]byte, error) {
+	if p == nil || p.Values == nil || p.Values.MeasurementName == "" {
+		return nil, errors.New("encoding error: missing measurement")
+	}
+
 	var sb bytes.Buffer
 
 	escapeKey(&sb, p.Values.MeasurementName, false)
