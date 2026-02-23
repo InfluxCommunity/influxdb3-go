@@ -2,13 +2,16 @@
 
 ## 2.14.0 [unreleased]
 
+### Features
+
+1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
+See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
+
 ## 2.13.0 [2026-02-19]
 
 ### Features
 
 1. [#223](https://github.com/InfluxCommunity/influxdb3-go/pull/223): Support passing middleware functions to the Flight client.
-1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
-See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
 
 ## 2.12.0 [2026-01-08]
 
