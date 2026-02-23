@@ -1,5 +1,10 @@
 //go:build ignore
 
+// NOTE:
+// This file is intentionally excluded from the build for now.
+// It is the planned future implementation of Precision once
+// dependency on github.com/influxdata/line-protocol/v2 is removed.
+
 /*
  The MIT License
 
