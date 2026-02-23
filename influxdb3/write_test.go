@@ -1123,6 +1123,7 @@ func TestMakeHTTPParamsBody(t *testing.T) {
 
 		params, err := c.makeHTTPParams(byts, c.config.WriteOptions)
 		assert.NoError(t, err)
+		assert.Equal(t, "text/plain; charset=utf-8", params.headers.Get("Content-Type"))
 
 		// copy URL
 		urlObj := *params.endpointURL

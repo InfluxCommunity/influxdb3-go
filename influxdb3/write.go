@@ -180,7 +180,7 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	}
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
-	headers := http.Header{"Content-Type": {"application/json"}}
+	headers := http.Header{"Content-Type": {"text/plain; charset=utf-8"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
 		r, err := gzip.CompressWithGzip(body)
 		if err != nil {
