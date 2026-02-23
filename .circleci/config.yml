@@ -103,10 +103,14 @@ jobs:
       - run:
           name: Run tests
           command: |
+            GO_TEST_PREFIX=""
+            if [[ "$(go env GOVERSION)" == go1.24* ]]; then
+              GO_TEST_PREFIX="GOEXPERIMENT=nocoverageredesign"
+            fi
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              GOEXPERIMENT=nocoverageredesign go test -v -race -cover -coverprofile=coverage.out ./...
+              ${GO_TEST_PREFIX} go test -v -race -cover -coverprofile=coverage.out ./...
             else
-              GOEXPERIMENT=nocoverageredesign go test -v -race -cover -coverprofile=coverage.out --tags e2e ./...
+              ${GO_TEST_PREFIX} go test -v -race -cover -coverprofile=coverage.out --tags e2e ./...
             fi
       - run:
           name: Coverage Report
