@@ -274,6 +274,15 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 			wantErr: "encoding error: invalid tag key",
 		},
 		{
+			name:        "field key control characters are rejected",
+			measurement: "h2o",
+			tags:        map[string]string{"location": "europe"},
+			fields: map[string]any{
+				"new\nline": 2,
+			},
+			wantErr: "encoding error: invalid field key",
+		},
+		{
 			name:        "string field escapes backslash",
 			measurement: "h2o",
 			tags:        map[string]string{"location": "europe"},
@@ -491,6 +500,22 @@ func TestPointOnlyNonFiniteFieldsReturnsEmpty(t *testing.T) {
 	line, err := p.MarshalBinary(Nanosecond)
 	require.NoError(t, err)
 	assert.EqualValues(t, "", string(line))
+}
+
+func TestPointNilFieldsAreOmitted(t *testing.T) {
+	var nilBytes []byte
+	var nilMap map[string]string
+
+	p := NewPoint("test", nil, map[string]any{
+		"a": nil,
+		"b": nilBytes,
+		"c": nilMap,
+		"d": 1,
+	}, time.Unix(60, 70))
+
+	line, err := p.MarshalBinary(Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t, "test d=1i 60000000070\n", string(line))
 }
 
 func TestPointDefaultTagsDedupAndSkipEmpty(t *testing.T) {

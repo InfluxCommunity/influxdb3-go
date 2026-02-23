@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -382,7 +383,7 @@ func (p *Point) appendFields(sb *bytes.Buffer) (bool, error) {
 
 	appended := false
 	for _, fieldKey := range fieldKeys {
-		if fieldKey == "" {
+		if fieldKey == "" || strings.ContainsAny(fieldKey, "\n\r\t") {
 			return false, fmt.Errorf("encoding error: invalid field key %q", fieldKey)
 		}
 
@@ -542,6 +543,10 @@ func isNotDefined(value any) bool {
 
 // convertField converts any primitive type to types supported by line protocol
 func convertField(v any) any {
+	if isNilLike(v) {
+		return nil
+	}
+
 	switch v := v.(type) {
 	case bool, int64, uint64, string, float64:
 		return v
@@ -571,5 +576,19 @@ func convertField(v any) any {
 		return v.String()
 	default:
 		return fmt.Sprintf("%v", v)
+	}
+}
+
+func isNilLike(v any) bool {
+	if v == nil {
+		return true
+	}
+
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return rv.IsNil()
+	default:
+		return false
 	}
 }
