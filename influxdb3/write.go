@@ -40,31 +40,6 @@ import (
 // timeType is the exact type for the Time
 var timeType = reflect.TypeFor[time.Time]()
 
-// Precision defines timestamp precision for line protocol writes.
-type Precision int
-
-const (
-	Nanosecond Precision = iota
-	Microsecond
-	Millisecond
-	Second
-)
-
-// String converts precision to v2 write API precision value.
-func (p Precision) String() string {
-	switch p {
-	case Nanosecond:
-		return "ns"
-	case Microsecond:
-		return "us"
-	case Millisecond:
-		return "ms"
-	case Second:
-		return "s"
-	}
-	panic(fmt.Errorf("unknown precision value %d", p))
-}
-
 // WritePoints writes all the given points to the server into the given database.
 // The data is written synchronously. Empty batch is skipped.
 // Points that serialize to an empty line (for example, all fields are nil/NaN/Inf)
