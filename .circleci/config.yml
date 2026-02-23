@@ -64,11 +64,13 @@ jobs:
     parameters:
       go-image:
         type: string
-        default: "cimg/go:1.23"
+        default: "cimg/go:1.24"
       exe:
         type: executor
         default: docker-amd64-image
-    executor: << parameters.exe >>
+    executor:
+      name: << parameters.exe >>
+      go-image: << parameters.go-image >>
     steps:
       - checkout
       - restore_cache:
@@ -143,5 +145,5 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.24", "cimg/go:1.25" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.25" ]
       - lint
