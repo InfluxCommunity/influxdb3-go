@@ -5,7 +5,9 @@
 ### Features
 
 1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
-See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
+   See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
+   - Point and struct writes now use custom line protocol marshaling in this client; dependency on `github.com/influxdata/line-protocol/v2` will be dropped in a future release.
+   - Direct use of `lineprotocol.Precision` is deprecated; prefer `influxdb3.Precision` constants.
 
 ## 2.13.0 [2026-02-19]
 

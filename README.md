@@ -241,6 +241,7 @@ err = client.WritePoints(context.Background(), points)
 
 Notes:
 
+- **Important change:** Point and struct writes now use custom line protocol marshaling in this client; dependency on `github.com/influxdata/line-protocol/v2` will be dropped in a future release. Direct use of `lineprotocol.Precision` is deprecated; prefer `influxdb3.Precision` constants.
 - During `Point` serialization, `nil` and non-finite float field values (`NaN`, `+Inf`, `-Inf`) are omitted.
 - If a point has no remaining fields after filtering, it is skipped on write.
 - If all points are skipped, no write request is sent.
