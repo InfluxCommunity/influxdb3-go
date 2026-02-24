@@ -41,9 +41,13 @@ func TestCancelingRecordReader(t *testing.T) {
 		canceled = true
 	}
 	i := NewQueryIteratorFromReader(&cancelingRecordReader{reader: reader, cancel: cancel})
+	assert.Same(t, reader, i.Raw())
 	for i.Next() {
 		_ = i.Index()
 	}
 	require.NoError(t, i.Err())
 	assert.True(t, canceled)
+
+	nilReaderIterator := NewQueryIteratorFromReader(nil)
+	assert.Nil(t, nilReaderIterator.Raw())
 }
