@@ -204,6 +204,18 @@ func TestNewWithTimeout(t *testing.T) {
 	assert.NotNil(t, c)
 	assert.Equal(t, timeout, c.config.HTTPClient.Timeout)
 
+	// Test WriteTimeout set to no timeout.
+	// WriteTimeout takes precedence over deprecated Timeout.
+	c, err = New(ClientConfig{
+		Host:         "http://localhost:8086",
+		Token:        "my-token",
+		Timeout:      timeout,
+		WriteTimeout: -1, // no timeout
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, time.Duration(0), c.config.HTTPClient.Timeout)
+
 	// Test Timeout set with custom client.
 	customClient := http.Client{Timeout: 456 * time.Second}
 	c, err = New(ClientConfig{
