@@ -106,7 +106,7 @@ jobs:
             if [[ "$(go env GOVERSION)" == go1.24* ]]; then
               export GOEXPERIMENT=nocoverageredesign
             fi
-            PKGS=$(go list ./... | grep -v '/examples/')
+            PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
               go test -v -race -cover -coverprofile=coverage.out ${PKGS}
             else
