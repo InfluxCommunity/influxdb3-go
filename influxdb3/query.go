@@ -67,12 +67,11 @@ func (c *Client) initializeQueryClient(hostPortURL string, secure bool, proxyURL
 		// proxy handling, reducing the risk of introducing vulnerabilities or misconfigurations.
 		// More info: https://github.com/grpc/grpc-go/blob/master/Documentation/proxy.md
 		prevHTTPSProxy := os.Getenv("HTTPS_PROXY")
-		safeUsername := strings.ReplaceAll(proxyURL.String(), "\n", "")
-		safeUsername = strings.ReplaceAll(safeUsername, "\r", "")
+		sanitizedInput := strings.ReplaceAll(strings.ReplaceAll(proxyURL.String(), "\n", ""), "\r", "")
 		if prevHTTPSProxy != "" && prevHTTPSProxy != proxyURL.String() {
 			slog.Warn(
 				fmt.Sprintf("Environment variable HTTPS_PROXY is already set, "+
-					"it's value will be overridden with: %s", safeUsername+""),
+					"it's value will be overridden with: %s", sanitizedInput),
 			)
 		}
 		err := os.Setenv("HTTPS_PROXY", proxyURL.String())
