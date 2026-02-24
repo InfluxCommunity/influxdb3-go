@@ -634,7 +634,7 @@ func TestNewFromEnv(t *testing.T) {
 				Token:        "abc",
 				Database:     "my-db",
 				Organization: "my-org",
-				WriteTimeout: 30 * time.Second,
+				QueryTimeout: 30 * time.Second,
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},
@@ -645,7 +645,7 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_TOKEN":         "abc",
 				"INFLUX_DATABASE":      "my-db",
 				"INFLUX_ORG":           "my-org",
-				"INFLUX_WRITE_TIMEOUT": "half minute",
+				"INFLUX_QUERY_TIMEOUT": "half minute",
 			},
 			err: "time: invalid duration \"half minute\"",
 		},
@@ -684,6 +684,8 @@ func TestNewFromEnv(t *testing.T) {
 				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
 				assert.Equal(t, tc.cfg.Database, c.config.Database)
 				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+				assert.Equal(t, tc.cfg.WriteTimeout, c.config.WriteTimeout)
+				assert.Equal(t, tc.cfg.QueryTimeout, c.config.QueryTimeout)
 			}
 		})
 	}

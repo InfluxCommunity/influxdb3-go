@@ -259,6 +259,13 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 			expected:    "h2\\,o,location=europe level=2i\n",
 		},
 		{
+			name:        "measurement with carriage return",
+			measurement: "h2\ro",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": 2},
+			expected:    "h2\\ro,location=europe level=2i\n",
+		},
+		{
 			name:        "equal sign escaping in tag and field keys",
 			measurement: "h=2o",
 			tags:        map[string]string{"l=ocation": "e=urope"},
