@@ -277,7 +277,7 @@ func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[st
 
 	escapeKey(&sb, p.Values.MeasurementName, false)
 
-	if err := appendTags(&sb, p.Values.Tags, defaultTags, tagOrder); err != nil {
+	if err := p.appendTags(&sb, defaultTags, tagOrder); err != nil {
 		return nil, err
 	}
 
@@ -289,19 +289,19 @@ func (p *Point) marshalBinaryWithOptions(precision Precision, defaultTags map[st
 		return []byte{}, nil
 	}
 
-	appendTime(&sb, p.Values.Timestamp, precision)
+	p.appendTime(&sb, precision)
 	sb.WriteByte('\n')
 	return sb.Bytes(), nil
 }
 
-func appendTags(sb *bytes.Buffer, tags map[string]string, defaultTags map[string]string, tagOrder []string) error {
-	tagKeys, err := collectOrderedTagKeys(tags, defaultTags, tagOrder)
+func (p *Point) appendTags(sb *bytes.Buffer, defaultTags map[string]string, tagOrder []string) error {
+	tagKeys, err := p.collectOrderedTagKeys(defaultTags, tagOrder)
 	if err != nil {
 		return err
 	}
 
 	for _, tagKey := range tagKeys {
-		tagValue, ok := tags[tagKey]
+		tagValue, ok := p.Values.Tags[tagKey]
 		if !ok {
 			tagValue = defaultTags[tagKey]
 		}
@@ -320,7 +320,9 @@ func appendTags(sb *bytes.Buffer, tags map[string]string, defaultTags map[string
 	return nil
 }
 
-func collectOrderedTagKeys(tags map[string]string, defaultTags map[string]string, tagOrder []string) ([]string, error) {
+func (p *Point) collectOrderedTagKeys(defaultTags map[string]string, tagOrder []string) ([]string, error) {
+	tags := p.Values.Tags
+
 	// Keep strict validation for point tags (explicit user point data),
 	// while preserving backward-compatible behavior for default tags where
 	// empty keys are ignored (not treated as hard errors).
@@ -467,7 +469,9 @@ func appendFieldValue(sb *bytes.Buffer, fieldKey string, fieldValue any) error {
 	return nil
 }
 
-func appendTime(sb *bytes.Buffer, timestamp time.Time, precision Precision) {
+func (p *Point) appendTime(sb *bytes.Buffer, precision Precision) {
+	timestamp := p.Values.Timestamp
+
 	if timestamp.IsZero() {
 		return
 	}
