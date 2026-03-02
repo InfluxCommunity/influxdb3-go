@@ -794,7 +794,7 @@ temperature,room=room4 value=43i`
 	err = client.Write(context.Background(), []byte(points))
 
 	em := `partial write of line protocol occurred:
-	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
+	line 2: Expected at least one space character, got end of input (temperatureroom=room)
 	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
 	require.Error(t, err)
 	assert.Equal(t, em, err.Error())
