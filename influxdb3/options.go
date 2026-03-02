@@ -23,9 +23,10 @@
 package influxdb3
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 )
 
@@ -50,11 +51,16 @@ type WriteOptions struct {
 	Database string
 
 	// Precision of timestamp to use when writing data.
-	// Default value: lineprotocol.Nanosecond
-	Precision lineprotocol.Precision
+	// Default value: Nanosecond
+	Precision Precision
 
 	// Tags added to each point during writing. If a point already has a tag with the same key, it is left unchanged.
 	DefaultTags map[string]string
+
+	// TagOrder prioritizes tag key serialization order in line protocol.
+	// Keys listed here are serialized first in the given order when present.
+	// Remaining tags are serialized in deterministic lexicographic order.
+	TagOrder []string
 
 	// Write body larger than the threshold is gzipped. 0 for no compression.
 	GzipThreshold int
@@ -77,7 +83,7 @@ var DefaultQueryOptions = QueryOptions{
 
 // DefaultWriteOptions specifies default write options
 var DefaultWriteOptions = WriteOptions{
-	Precision:     lineprotocol.Nanosecond,
+	Precision:     Nanosecond,
 	GzipThreshold: 1_000,
 	NoSync:        false,
 }
@@ -99,6 +105,7 @@ type QueryOption = Option
 //   - WithPrecision
 //   - WithGzipThreshold
 //   - WithDefaultTags
+//   - WithTagOrder
 //   - WithNoSync
 type WriteOption = Option
 
@@ -128,7 +135,7 @@ func WithHeader(key, value string) Option {
 }
 
 // WithPrecision is used to override default precision in Client.Write methods.
-func WithPrecision(precision lineprotocol.Precision) Option {
+func WithPrecision(precision Precision) Option {
 	return func(o *options) {
 		o.Precision = precision
 	}
@@ -144,7 +151,16 @@ func WithGzipThreshold(gzipThreshold int) Option {
 // WithDefaultTags is used to override default tags in Client.Write methods.
 func WithDefaultTags(tags map[string]string) Option {
 	return func(o *options) {
-		o.DefaultTags = tags
+		o.DefaultTags = maps.Clone(tags)
+	}
+}
+
+// WithTagOrder is used to prioritize tag key serialization order in Client.Write methods.
+// Keys listed here are serialized first in the given order when present.
+// Remaining tags are serialized in deterministic lexicographic order.
+func WithTagOrder(tagKeys ...string) Option {
+	return func(o *options) {
+		o.TagOrder = slices.Clone(tagKeys)
 	}
 }
 

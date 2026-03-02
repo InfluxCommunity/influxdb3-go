@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 func ExampleClient_Write() {
@@ -77,7 +76,7 @@ func ExampleClient_WritePoints() {
 	}
 
 	// write points with options
-	err = client.WritePoints(context.Background(), points, influxdb3.WithPrecision(lineprotocol.Second))
+	err = client.WritePoints(context.Background(), points, influxdb3.WithPrecision(influxdb3.Second))
 	if err != nil {
 		log.Fatal()
 	}

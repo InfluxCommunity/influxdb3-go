@@ -37,7 +37,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/runtime/protoimpl"
@@ -302,6 +301,32 @@ func TestEncode(t *testing.T) {
 	}
 }
 
+func TestEncodeWithTagOrder(t *testing.T) {
+	now := time.Unix(60, 70)
+	pointStruct := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Region      string    `lp:"tag,region"`
+		Temp        float64   `lp:"field,temperature"`
+		Time        time.Time `lp:"timestamp"`
+	}{
+		Measurement: "air",
+		Sensor:      "SHT31",
+		ID:          "10",
+		Region:      "eu-west",
+		Temp:        23.5,
+		Time:        now,
+	}
+
+	options := DefaultWriteOptions
+	options.TagOrder = []string{"region", "sensor"}
+
+	b, err := encode(pointStruct, &options)
+	require.NoError(t, err)
+	assert.Equal(t, "air,region=eu-west,sensor=SHT31,device_id=10 temperature=23.5 60000000070\n", string(b))
+}
+
 func genPoints(count int) []*Point {
 	ps := make([]*Point, count)
 	ts := time.Now()
@@ -331,7 +356,7 @@ func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]strin
 		defaultTagsOrNil = defaultTags[0]
 	}
 	for _, p := range points {
-		bs, err := p.MarshalBinaryWithDefaultTags(lineprotocol.Millisecond, defaultTagsOrNil)
+		bs, err := p.MarshalBinaryWithDefaultTags(Millisecond, defaultTagsOrNil)
 		require.NoError(t, err)
 		bytes = append(bytes, bs...)
 	}
@@ -369,7 +394,7 @@ func TestWriteCorrectUrl(t *testing.T) {
 	}))
 	defer ts.Close()
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 	options.NoSync = false
 	c, err := New(ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -398,7 +423,7 @@ func TestWriteCorrectUrlNoSync(t *testing.T) {
 	defer ts.Close()
 
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -465,7 +490,7 @@ func TestWriteWithNoSyncToV2Server(t *testing.T) {
 	defer ts.Close()
 
 	options := DefaultWriteOptions
-	options.Precision = lineprotocol.Millisecond
+	options.Precision = Millisecond
 
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
@@ -526,7 +551,7 @@ func TestWritePointsAndBytes(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	c.config.WriteOptions.Precision = lineprotocol.Millisecond
+	c.config.WriteOptions.Precision = Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
 	err = c.Write(context.Background(), byts)
@@ -572,7 +597,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 	})
 	options := WriteOptions{
 		Database:    "db-x",
-		Precision:   lineprotocol.Millisecond,
+		Precision:   Millisecond,
 		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
@@ -608,9 +633,40 @@ func TestWritePointsWithOptions(t *testing.T) {
 	})
 	require.NoError(t, err)
 	err = c.WritePoints(context.Background(), points,
-		WithPrecision(lineprotocol.Millisecond),
+		WithPrecision(Millisecond),
 		WithDatabase("db-x"),
 		WithDefaultTags(defaultTags))
+	assert.NoError(t, err)
+}
+
+func TestWritePointsWithTagOrder(t *testing.T) {
+	p := NewPointWithMeasurement("cpu")
+	p.SetTag("rack", "r1")
+	p.SetTag("host", "h1")
+	p.SetTag("region", "us-east")
+	p.SetField("usage", 16.75)
+
+	expectedLine := "cpu,region=us-east,host=h1,rack=r1 usage=16.75\n"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" {
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedLine, string(body))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	err = c.WritePoints(context.Background(), []*Point{p}, WithTagOrder("region", "host"))
 	assert.NoError(t, err)
 }
 
@@ -636,6 +692,47 @@ func TestWriteData(t *testing.T) {
 	})
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s})
+	assert.NoError(t, err)
+}
+
+func TestWriteDataWithTagOrder(t *testing.T) {
+	now := time.Unix(60, 70)
+	s := struct {
+		Measurement string    `lp:"measurement"`
+		Sensor      string    `lp:"tag,sensor"`
+		ID          string    `lp:"tag,device_id"`
+		Region      string    `lp:"tag,region"`
+		Temp        float64   `lp:"field,temperature"`
+		Time        time.Time `lp:"timestamp"`
+	}{
+		Measurement: "air",
+		Sensor:      "SHT31",
+		ID:          "10",
+		Region:      "eu-west",
+		Temp:        23.5,
+		Time:        now,
+	}
+	expectedLine := "air,region=eu-west,sensor=SHT31,device_id=10 temperature=23.5 60000000070\n"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PRI" {
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedLine, string(body))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	c, err := New(ClientConfig{
+		Host:     ts.URL,
+		Token:    "my-token",
+		Database: "my-database",
+	})
+	require.NoError(t, err)
+
+	err = c.WriteData(context.Background(), []any{s}, WithTagOrder("region", "sensor"))
 	assert.NoError(t, err)
 }
 
@@ -748,7 +845,7 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 	})
 	options := WriteOptions{
 		Database:    "db-x",
-		Precision:   lineprotocol.Second,
+		Precision:   Second,
 		DefaultTags: defaultTags,
 	}
 	require.NoError(t, err)
@@ -802,7 +899,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 	require.NoError(t, err)
 	err = c.WriteData(context.Background(), []any{s},
 		WithDatabase("db-x"),
-		WithPrecision(lineprotocol.Second),
+		WithPrecision(Second),
 		WithDefaultTags(defaultTags))
 	assert.NoError(t, err)
 }
@@ -901,7 +998,7 @@ func TestWriteErrorMarshalPoint(t *testing.T) {
 		Database: "my-database",
 	})
 	require.NoError(t, err)
-	c.config.WriteOptions.Precision = lineprotocol.Millisecond
+	c.config.WriteOptions.Precision = Millisecond
 	c.config.WriteOptions.GzipThreshold = 0
 	require.NoError(t, err)
 
@@ -1026,6 +1123,7 @@ func TestMakeHTTPParamsBody(t *testing.T) {
 
 		params, err := c.makeHTTPParams(byts, c.config.WriteOptions)
 		assert.NoError(t, err)
+		assert.Equal(t, "text/plain; charset=utf-8", params.headers.Get("Content-Type"))
 
 		// copy URL
 		urlObj := *params.endpointURL
@@ -1182,10 +1280,10 @@ func TestWriteWithMaxIdleConnections(t *testing.T) {
 }
 
 func TestToV3PrecisionString(t *testing.T) {
-	assert.Equal(t, "nanosecond", toV3PrecisionString(lineprotocol.Nanosecond))
-	assert.Equal(t, "microsecond", toV3PrecisionString(lineprotocol.Microsecond))
-	assert.Equal(t, "millisecond", toV3PrecisionString(lineprotocol.Millisecond))
-	assert.Equal(t, "second", toV3PrecisionString(lineprotocol.Second))
+	assert.Equal(t, "nanosecond", toV3PrecisionString(Nanosecond))
+	assert.Equal(t, "microsecond", toV3PrecisionString(Microsecond))
+	assert.Equal(t, "millisecond", toV3PrecisionString(Millisecond))
+	assert.Equal(t, "second", toV3PrecisionString(Second))
 	assert.Panics(t, func() {
 		toV3PrecisionString(5)
 	})

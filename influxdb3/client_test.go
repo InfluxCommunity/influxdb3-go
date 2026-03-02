@@ -33,7 +33,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -204,6 +203,18 @@ func TestNewWithTimeout(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, timeout, c.config.HTTPClient.Timeout)
+
+	// Test WriteTimeout set to no timeout.
+	// WriteTimeout takes precedence over deprecated Timeout.
+	c, err = New(ClientConfig{
+		Host:         "http://localhost:8086",
+		Token:        "my-token",
+		Timeout:      timeout,
+		WriteTimeout: -1, // no timeout
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, time.Duration(0), c.config.HTTPClient.Timeout)
 
 	// Test Timeout set with custom client.
 	customClient := http.Client{Timeout: 456 * time.Second}
@@ -391,7 +402,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Millisecond,
+					Precision:     Millisecond,
 					GzipThreshold: 64,
 					NoSync:        true,
 				},
@@ -407,7 +418,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
-					Precision:     lineprotocol.Second,
+					Precision:     Second,
 				},
 			},
 		},
@@ -421,7 +432,7 @@ func TestNewFromConnectionString(t *testing.T) {
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
-					Precision:     lineprotocol.Microsecond,
+					Precision:     Microsecond,
 				},
 			},
 		},
@@ -538,7 +549,7 @@ func TestNewFromEnv(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Millisecond,
+					Precision:     Millisecond,
 					GzipThreshold: 64,
 					NoSync:        true,
 				},
@@ -559,7 +570,7 @@ func TestNewFromEnv(t *testing.T) {
 				Organization: "my-org",
 				Database:     "my-db",
 				WriteOptions: &WriteOptions{
-					Precision:     lineprotocol.Nanosecond,
+					Precision:     Nanosecond,
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 				},
@@ -635,7 +646,7 @@ func TestNewFromEnv(t *testing.T) {
 				Token:        "abc",
 				Database:     "my-db",
 				Organization: "my-org",
-				WriteTimeout: 30 * time.Second,
+				QueryTimeout: 30 * time.Second,
 				WriteOptions: &DefaultWriteOptions,
 			},
 		},
@@ -646,7 +657,7 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_TOKEN":         "abc",
 				"INFLUX_DATABASE":      "my-db",
 				"INFLUX_ORG":           "my-org",
-				"INFLUX_WRITE_TIMEOUT": "half minute",
+				"INFLUX_QUERY_TIMEOUT": "half minute",
 			},
 			err: "time: invalid duration \"half minute\"",
 		},
@@ -685,6 +696,8 @@ func TestNewFromEnv(t *testing.T) {
 				assert.Equal(t, tc.cfg.Organization, c.config.Organization)
 				assert.Equal(t, tc.cfg.Database, c.config.Database)
 				assert.Equal(t, tc.cfg.WriteOptions, c.config.WriteOptions)
+				assert.Equal(t, tc.cfg.WriteTimeout, c.config.WriteTimeout)
+				assert.Equal(t, tc.cfg.QueryTimeout, c.config.QueryTimeout)
 			}
 		})
 	}

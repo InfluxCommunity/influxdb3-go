@@ -239,6 +239,13 @@ points := []*influxdb3.Point{p1}
 err = client.WritePoints(context.Background(), points)
 ```
 
+Notes:
+
+- **Important change:** Point and struct writes now use custom line protocol marshaling in this client; dependency on `github.com/influxdata/line-protocol/v2` will be dropped in a future release. Direct use of `lineprotocol.Precision` is deprecated; prefer `influxdb3.Precision` constants.
+- During `Point` serialization, `nil` and non-finite float field values (`NaN`, `+Inf`, `-Inf`) are omitted.
+- If a point has no remaining fields after filtering, it is skipped on write.
+- If all points are skipped, no write request is sent.
+
 #### Using an annotated struct
 
 You can build data as a `struct` and let `influxdb3` convert it to line protocol:
@@ -262,6 +269,18 @@ s1 := struct {
 data := []any{s1}
 err = client.WriteData(context.Background(), data)
 ```
+
+#### Control tag order for the first write (InfluxDB 3 Enterprise)
+
+In InfluxDB 3 Enterprise, the first write to a table determines physical tag column order.
+Use `WithTagOrder()` to put high-priority query tags first:
+
+```go
+err = client.WritePoints(context.Background(), points, influxdb3.WithTagOrder("region", "host"))
+```
+
+Listed tags are serialized first in the given order when present.
+All remaining tags are appended in deterministic lexicographic order.
 
 ### Query
 
@@ -415,7 +434,7 @@ See the [`examples` folder](./examples/README.md) for complete code examples tha
 
 To run the examples, do the following:
 
-1. Follow instructions to [Install in a Go module](#install-in-a-go-module).
+1. Follow instructions to [Install in a Go module](#in-a-go-module).
 2. Clone this repository.
 3. Change to the [`examples`](./examples/README.md) folder.
 4. [Set environment variables](#instantiate-using-environment-variables) or edit the example file to [instantiate a client with your credentials](#instantiate-a-client-with-influxdb-credentials).

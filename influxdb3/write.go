@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/gzip"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 // timeType is the exact type for the Time
@@ -43,6 +42,8 @@ var timeType = reflect.TypeFor[time.Time]()
 
 // WritePoints writes all the given points to the server into the given database.
 // The data is written synchronously. Empty batch is skipped.
+// Points that serialize to an empty line (for example, all fields are nil/NaN/Inf)
+// are skipped. If all points are skipped, no request is sent and no error is returned.
 //
 // Parameters:
 //   - ctx: The context.Context to use for the request.
@@ -77,7 +78,7 @@ func (c *Client) WritePointsWithOptions(ctx context.Context, options *WriteOptio
 
 func (c *Client) writePoints(ctx context.Context, points []*Point, options *WriteOptions) error {
 	var buff []byte
-	var precision lineprotocol.Precision
+	var precision Precision
 	if options != nil {
 		precision = options.Precision
 	} else {
@@ -89,9 +90,15 @@ func (c *Client) writePoints(ctx context.Context, points []*Point, options *Writ
 	} else {
 		defaultTags = c.config.WriteOptions.DefaultTags
 	}
+	var tagOrder []string
+	if options != nil && options.TagOrder != nil {
+		tagOrder = options.TagOrder
+	} else {
+		tagOrder = c.config.WriteOptions.TagOrder
+	}
 
 	for _, p := range points {
-		bts, err := p.MarshalBinaryWithDefaultTags(precision, defaultTags)
+		bts, err := p.marshalBinaryWithOptions(precision, defaultTags, tagOrder)
 		if err != nil {
 			return err
 		}
@@ -173,7 +180,7 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	}
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
-	headers := http.Header{"Content-Type": {"application/json"}}
+	headers := http.Header{"Content-Type": {"text/plain; charset=utf-8"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
 		r, err := gzip.CompressWithGzip(body)
 		if err != nil {
@@ -235,6 +242,8 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 // Each custom point must be annotated with 'lp' prefix and Values measurement, tag, field, or timestamp.
 // A valid point must contain a measurement and at least one field.
 // The points are written synchronously. Empty batch is skipped.
+// During Point serialization, nil, NaN, +Inf, and -Inf field values are omitted.
+// If a point has no remaining fields after filtering, it is skipped.
 //
 // A field with a timestamp must be of type time.Time.
 //
@@ -352,7 +361,7 @@ func encode(x any, options *WriteOptions) ([]byte, error) {
 		return nil, errors.New("no struct field with tag 'field'")
 	}
 
-	return point.MarshalBinaryWithDefaultTags(options.Precision, options.DefaultTags)
+	return point.marshalBinaryWithOptions(options.Precision, options.DefaultTags, options.TagOrder)
 }
 
 func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.Type) (any, error) {
@@ -378,16 +387,16 @@ func fieldValue(name string, f reflect.StructField, v reflect.Value, t reflect.T
 	return fieldVal, nil
 }
 
-func toV3PrecisionString(precision lineprotocol.Precision) string {
+func toV3PrecisionString(precision Precision) string {
 	switch precision {
-	case lineprotocol.Nanosecond:
+	case Nanosecond:
 		return "nanosecond"
-	case lineprotocol.Microsecond:
+	case Microsecond:
 		return "microsecond"
-	case lineprotocol.Millisecond:
+	case Millisecond:
 		return "millisecond"
-	case lineprotocol.Second:
+	case Second:
 		return "second"
 	}
-	panic(fmt.Errorf("unknown precision: %v", precision))
+	panic(fmt.Errorf("unknown precision value %d", precision))
 }

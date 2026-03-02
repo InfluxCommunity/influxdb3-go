@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/influxdata/line-protocol/v2/lineprotocol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -127,10 +126,10 @@ func TestWriteOptions(t *testing.T) {
 		},
 		{
 			name: "override database and precision",
-			opts: va(WithDatabase("db-x"), WithPrecision(lineprotocol.Millisecond)),
+			opts: va(WithDatabase("db-x"), WithPrecision(Millisecond)),
 			want: &WriteOptions{
 				Database:      "db-x",
-				Precision:     lineprotocol.Millisecond,
+				Precision:     Millisecond,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 			},
@@ -139,15 +138,25 @@ func TestWriteOptions(t *testing.T) {
 			name: "override database, precision, GZIP threshold, write no sync",
 			opts: va(
 				WithDatabase("db-x"),
-				WithPrecision(lineprotocol.Millisecond),
+				WithPrecision(Millisecond),
 				WithGzipThreshold(4096),
 				WithNoSync(true),
 			),
 			want: &WriteOptions{
 				Database:      "db-x",
-				Precision:     lineprotocol.Millisecond,
+				Precision:     Millisecond,
 				GzipThreshold: 4096,
 				NoSync:        true,
+			},
+		},
+		{
+			name: "override tag order",
+			opts: va(WithTagOrder("region", "host")),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				TagOrder:      []string{"region", "host"},
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
 			},
 		},
 	}
@@ -160,5 +169,33 @@ func TestWriteOptions(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func TestWithTagOrderCopiesInput(t *testing.T) {
+	order := []string{"region", "host"}
+	options := newWriteOptions(&DefaultWriteOptions, []WriteOption{WithTagOrder(order...)})
+	order[0] = "mutated"
+
+	if diff := cmp.Diff([]string{"region", "host"}, options.TagOrder); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestWithDefaultTagsCopiesInput(t *testing.T) {
+	tags := map[string]string{
+		"region": "us-east",
+		"host":   "h1",
+	}
+	options := newWriteOptions(&DefaultWriteOptions, []WriteOption{WithDefaultTags(tags)})
+
+	tags["region"] = "eu-west"
+	tags["rack"] = "r1"
+
+	if diff := cmp.Diff(
+		map[string]string{"region": "us-east", "host": "h1"},
+		options.DefaultTags,
+	); diff != "" {
+		t.Fatal(diff)
 	}
 }
