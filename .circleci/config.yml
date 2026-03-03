@@ -103,7 +103,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            mkdir -p test-reports
+            mkdir -p test-results
             if [[ "$(go env GOVERSION)" == go1.24* ]]; then
               export GOEXPERIMENT=nocoverageredesign
             fi
@@ -114,7 +114,7 @@ jobs:
               gotestsum --junitfile test-results/junit.xml --format testname -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
       - store_test_results:
-          path: test-reports
+          path: test-results
       - run:
           name: List test results AAA
           command: |
