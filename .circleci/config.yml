@@ -1,13 +1,76 @@
 version: 2.1
 
+parameters:
+  default-go-image:
+    type: string
+    default: "cimg/go:1.24"
+
+executors:
+  docker-amd64-image:
+    parameters:
+      go-image:
+        type: string
+        default: << pipeline.parameters.default-go-image >>
+    docker:
+      - image: <<parameters.go-image>>
+      - image: influxdb:3-core
+        environment:
+          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
+          - INFLUXDB3_OBJECT_STORE=file
+          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+  docker-arm64-image:
+    parameters:
+      go-image:
+        type: string
+        default: << pipeline.parameters.default-go-image >>
+    docker:
+      - image: <<parameters.go-image>>
+      - image: influxdb:3-core
+        environment:
+          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
+          - INFLUXDB3_OBJECT_STORE=file
+          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+    resource_class: arm.medium
+
+commands:
+  upload-codecov-amd64:
+    steps:
+      - run:
+          name: Collecting coverage reports
+          command: |
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            curl -s https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x ./codecov
+            ./codecov
+  upload-codecov-arm64:
+    steps:
+      - run:
+          name: Collecting coverage reports
+          command: |
+            curl -k https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            sudo chmod +x codecov
+
 jobs:
   tests-go:
     parameters:
       go-image:
         type: string
-        default: "cimg/go:1.22"
-    docker:
-      - image: << parameters.go-image >>
+        default: "cimg/go:1.24"
+      exe:
+        type: string
+        default: docker-amd64-image
+    executor:
+      name: << parameters.exe >>
+      go-image: << parameters.go-image >>
     steps:
       - checkout
       - restore_cache:
@@ -31,33 +94,50 @@ jobs:
             go vet  ./...
             go install golang.org/x/lint/golint@latest && golint ./...
       - run:
+          name: Setup InfluxDB service
+          command: |
+            ./scripts/influxdb-setup.sh \
+              --export-url-as TESTING_INFLUXDB_URL \
+              --export-db-as TESTING_INFLUXDB_DATABASE \
+              --export-token-as TESTING_INFLUXDB_TOKEN
+      - run:
           name: Run tests
           command: |
-            if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out ./...
-            else
-              GOEXPERIMENT=nocoverageredesign go test -v -cover -coverprofile=coverage.out --tags e2e ./...
+            mkdir -p /tmp/test-reports
+            if [[ "$(go env GOVERSION)" == go1.24* ]]; then
+              export GOEXPERIMENT=nocoverageredesign
             fi
+            PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
+            if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
+              gotestsum --junitfile /tmp/test-results/junit.xml --format testname -- -v -race -cover -coverprofile=coverage.out ${PKGS}
+            else
+              gotestsum --junitfile /tmp/test-results/junit.xml --format testname -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
+            fi
+      - store_test_results:
+          path: /tmp/test-reports
+      - run:
+          name: List test results AAA
+          command: |
+            echo "test-results"
+            ls -a /tmp/test-results
       - run:
           name: Coverage Report
           command: |
             go tool cover -html=coverage.out -o coverage.html
             mv coverage.html /tmp/artifacts
           when: always
-      - run:
-          name: Report test results to codecov
-          command: |
-            curl -Os https://uploader.codecov.io/latest/linux/codecov
-            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x ./codecov
-            ./codecov
+      - when:
+          condition:
+            equal: [ docker-amd64-image, << parameters.exe >> ]
+          steps:
+            - upload-codecov-amd64
+      - when:
+          condition:
+            equal: [ docker-arm64-image, << parameters.exe >> ]
+          steps:
+            - upload-codecov-arm64
       - store_artifacts:
           path: /tmp/artifacts
-
   lint:
     docker:
       - image: golangci/golangci-lint
@@ -66,11 +146,15 @@ jobs:
       - run:
           name: Lint go code
           command: |
-            golangci-lint run -v
+            golangci-lint run -v 
 
 workflows:
   version: 2
   build:
     jobs:
-      - tests-go
+      - tests-go:
+          matrix:
+            parameters:
+              exe: [ docker-amd64-image, docker-arm64-image ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.25" ]
       - lint
