@@ -113,20 +113,19 @@ jobs:
             else
               gotestsum --junitfile tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
-#      - store_artifacts:
-#          path: tmp/artifacts
-#      - store_artifacts:
-#          path: tmp/test-results
-#          destination: raw-test-output
+      - store_artifacts:
+          path: tmp/artifacts
+      - store_artifacts:
+          path: tmp/test-results
+          destination: raw-test-output
       - store_test_results:
           path: tmp/test-results
       - run:
           name: List test results AAA
           command: |
             echo "List test results AAA"
-            cd tmp/test-results
-            ls -al
-            cat junit.xml
+            cd tmp/artifacts
+            ls -a
           when: always
       - run:
           name: Coverage Report
