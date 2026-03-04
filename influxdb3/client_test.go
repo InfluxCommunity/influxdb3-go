@@ -993,7 +993,6 @@ func TestResolveError(t *testing.T) {
 				assert.Equal(t, "cannot read error response: simulated read error", err.Error())
 			})
 		}
-		})
 	})
 }
 
