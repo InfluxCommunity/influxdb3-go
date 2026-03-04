@@ -24,6 +24,8 @@ package influxdb3
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -31,6 +33,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -465,6 +468,19 @@ func TestNewFromConnectionString(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Body read error", func(t *testing.T) {
+		errResponse := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Status:     "400 Bad Request",
+			Header:     http.Header{"Content-Type": []string{"text/plain"}},
+			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
+		}
+
+		err := (&Client{}).resolveHTTPError(errResponse)
+		require.Error(t, err)
+		assert.Equal(t, "cannot read error response: simulated read error", err.Error())
+	})
 }
 
 func TestNewFromEnv(t *testing.T) {
