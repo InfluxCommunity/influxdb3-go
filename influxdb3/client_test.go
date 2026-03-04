@@ -468,19 +468,6 @@ func TestNewFromConnectionString(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("Body read error", func(t *testing.T) {
-		errResponse := &http.Response{
-			StatusCode: http.StatusBadRequest,
-			Status:     "400 Bad Request",
-			Header:     http.Header{"Content-Type": []string{"text/plain"}},
-			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
-		}
-
-		err := (&Client{}).resolveHTTPError(errResponse)
-		require.Error(t, err)
-		assert.Equal(t, "cannot read error response: simulated read error", err.Error())
-	})
 }
 
 func TestNewFromEnv(t *testing.T) {
@@ -811,12 +798,12 @@ func TestMakeAPICall(t *testing.T) {
 
 func TestResolveError(t *testing.T) {
 	testCases := []struct {
-		name               string
-		statusCode         int
-		contentType        string
-		headers            map[string]string
-		responseBody       string
-		expectedErrMessage     string
+		name                      string
+		statusCode                int
+		contentType               string
+		headers                   map[string]string
+		responseBody              string
+		expectedErrMessage        string
 		expectedPartialWriteError *PartialWriteError
 	}{
 		{
@@ -982,6 +969,32 @@ func TestResolveError(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Body read error", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			contentType string
+		}{
+			{name: "text/plain", contentType: "text/plain"},
+			{name: "application/json", contentType: "application/json"},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				errResponse := &http.Response{
+					StatusCode: http.StatusBadRequest,
+					Status:     "400 Bad Request",
+					Header:     http.Header{"Content-Type": []string{tc.contentType}},
+					Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
+				}
+
+				err := (&Client{}).resolveHTTPError(errResponse)
+				require.Error(t, err)
+				assert.Equal(t, "cannot read error response: simulated read error", err.Error())
+			})
+		}
+		})
+	})
 }
 
 func TestNewServerError(t *testing.T) {
