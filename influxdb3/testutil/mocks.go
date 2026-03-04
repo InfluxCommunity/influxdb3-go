@@ -303,7 +303,7 @@ func (f *MockFlightServer) writeBlob(fs flight.FlightService_DoGetServer, size i
 
 // copied from arrow-go/flight/flight_test.go
 
-//nolint:all
+//nolint:ireturn
 func arrayOf(mem memory.Allocator, a any, valids []bool) arrow.Array {
 	if mem == nil {
 		mem = memory.NewGoAllocator()
