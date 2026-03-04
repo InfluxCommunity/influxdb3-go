@@ -87,8 +87,8 @@ jobs:
       - run:
           name: Create a temp directory for artifacts and test results
           command: |
-            mkdir -p /tmp/artifacts
-            mkdir -p /tmp/test-results
+            mkdir -p tmp/artifacts
+            mkdir -p tmp/test-results
       - run:
           name: Lint go code
           command: |
@@ -109,27 +109,27 @@ jobs:
             fi
             PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              gotestsum --junitfile /tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out ${PKGS}
+              gotestsum --junitfile tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out ${PKGS}
             else
-              gotestsum --junitfile /tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
+              gotestsum --junitfile tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
       - store_artifacts:
-          path: /tmp/artifacts
+          path: tmp/artifacts
       - store_artifacts:
-          path: /tmp/test-results
+          path: tmp/test-results
           destination: raw-test-output
       - store_test_results:
-          path: /tmp/test-results
+          path: tmp/test-results
       - run:
           name: List test results AAA
           command: |
-            cd /tmp/test-results
+            cd tmp/test-results
             cat junit.xml
       - run:
           name: Coverage Report
           command: |
             go tool cover -html=coverage.out -o coverage.html
-            mv coverage.html /tmp/artifacts
+            mv coverage.html tmp/artifacts
           when: always
       - when:
           condition:
