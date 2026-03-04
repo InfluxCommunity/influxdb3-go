@@ -73,5 +73,8 @@ func (e ServerError) Error() string {
 // Unwrap allows errors.As(err, &serverErr) where serverErr is *ServerError
 // when the original error is a *PartialWriteError.
 func (e *PartialWriteError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
 	return &e.ServerError
 }
