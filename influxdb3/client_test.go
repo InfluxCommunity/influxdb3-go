@@ -412,6 +412,22 @@ func TestNewFromConnectionString(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeAcceptPartial",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&writeAcceptPartial=true",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: true,
+				},
+			},
+		},
+		{
 			name: "with precision long value - second",
 			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=second",
 			cfg: &ClientConfig{
@@ -447,6 +463,11 @@ func TestNewFromConnectionString(t *testing.T) {
 		{
 			name: "invalid writeNoSync",
 			cs:   "https://host:8086?token=abc&writeNoSync=truuu",
+			err:  "invalid syntax",
+		},
+		{
+			name: "invalid writeAcceptPartial",
+			cs:   "https://host:8086?token=abc&writeAcceptPartial=truuu",
 			err:  "invalid syntax",
 		},
 	}
@@ -559,6 +580,28 @@ func TestNewFromEnv(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeAcceptPartial env",
+			vars: map[string]string{
+				"INFLUX_HOST":                 "http://host:8086",
+				"INFLUX_TOKEN":                "abc",
+				"INFLUX_ORG":                  "my-org",
+				"INFLUX_DATABASE":             "my-db",
+				"INFLUX_WRITE_ACCEPT_PARTIAL": "true",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: true,
+				},
+			},
+		},
+		{
 			name: "with precision long value",
 			vars: map[string]string{
 				"INFLUX_HOST":      "http://host:8086",
@@ -603,6 +646,15 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_HOST":          "http://host:8086",
 				"INFLUX_TOKEN":         "abc",
 				"INFLUX_WRITE_NO_SYNC": "truuu",
+			},
+			err: "invalid syntax",
+		},
+		{
+			name: "invalid writeAcceptPartial env",
+			vars: map[string]string{
+				"INFLUX_HOST":                 "http://host:8086",
+				"INFLUX_TOKEN":                "abc",
+				"INFLUX_WRITE_ACCEPT_PARTIAL": "truuu",
 			},
 			err: "invalid syntax",
 		},
@@ -705,48 +757,6 @@ func TestNewFromEnv(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestNewFromConnectionStringWriteAcceptPartial(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		c, err := NewFromConnectionString("https://host:8086?token=abc&writeAcceptPartial=true")
-		require.NoError(t, err)
-		require.NotNil(t, c)
-		require.NotNil(t, c.config.WriteOptions)
-		assert.True(t, c.config.WriteOptions.AcceptPartial)
-	})
-
-	t.Run("invalid", func(t *testing.T) {
-		c, err := NewFromConnectionString("https://host:8086?token=abc&writeAcceptPartial=truuu")
-		require.Nil(t, c)
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "invalid syntax")
-	})
-}
-
-func TestNewFromEnvWriteAcceptPartial(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		t.Setenv(envInfluxHost, "http://host:8086")
-		t.Setenv(envInfluxToken, "abc")
-		t.Setenv(envInfluxWriteAcceptPartial, "true")
-
-		c, err := NewFromEnv()
-		require.NoError(t, err)
-		require.NotNil(t, c)
-		require.NotNil(t, c.config.WriteOptions)
-		assert.True(t, c.config.WriteOptions.AcceptPartial)
-	})
-
-	t.Run("invalid", func(t *testing.T) {
-		t.Setenv(envInfluxHost, "http://host:8086")
-		t.Setenv(envInfluxToken, "abc")
-		t.Setenv(envInfluxWriteAcceptPartial, "truuu")
-
-		c, err := NewFromEnv()
-		require.Nil(t, c)
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "invalid syntax")
-	})
 }
 
 func TestMakeAPICall(t *testing.T) {
@@ -1000,6 +1010,11 @@ func TestNewServerError(t *testing.T) {
 	message := "message"
 	err := NewServerError(message)
 	assert.Equal(t, err.Message, message)
+}
+
+func TestPartialWriteErrorUnwrapNil(t *testing.T) {
+	var err *PartialWriteError
+	assert.Nil(t, err.Unwrap())
 }
 
 func TestFixUrl(t *testing.T) {
