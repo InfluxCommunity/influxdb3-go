@@ -871,10 +871,13 @@ func TestResolveError(t *testing.T) {
 			name:        "V3 parsing failed write_lp endpoint",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
-			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
-"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
-			expectedErrMessage: `parsing failed for write_lp endpoint:
-	line 2: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)`,
+			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"` +
+				`invalid column type for column 'temp', expected iox::column_type::field::float, got ` +
+				`iox::column_type::field::string",` +
+				`"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
+			expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
+				"invalid column type for column 'temp', expected iox::column_type::field::float, " +
+				"got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)",
 			expectedPartialWriteError: &PartialWriteError{
 				ServerError: ServerError{
 					StatusCode: http.StatusBadRequest,
