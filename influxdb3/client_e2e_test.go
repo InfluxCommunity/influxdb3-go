@@ -765,22 +765,18 @@ func TestQueryTimeoutDeadlineExceeded(t *testing.T) {
 	assert.Regexp(t, "^flight do get: rpc error:.*DeadlineExceeded.*", qerr)
 }
 
-func TestV3WriteError(t *testing.T) {
+func TestV2WriteError(t *testing.T) {
 	SkipCheck(t)
 
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
-	wo := influxdb3.WriteOptions{
-		NoSync: true,
-	}
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:         url,
 		Token:        token,
 		Database:     database,
 		QueryTimeout: time.Millisecond,
-		WriteOptions: &wo,
 	})
 	defer client.Close()
 
@@ -793,9 +789,7 @@ temperature,room=room4 value=43i`
 
 	err = client.Write(context.Background(), []byte(points))
 
-	em := `partial write of line protocol occurred:
-	line 2: Expected at least one space character, got end of input (temperatureroom=room)
-	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
+	em := `invalid: write buffer error: parsing for line protocol failed`
 	require.Error(t, err)
 	assert.Equal(t, em, err.Error())
 }
