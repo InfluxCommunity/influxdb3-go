@@ -789,7 +789,7 @@ temperature,room=room4 value=43i`
 
 	err = client.Write(context.Background(), []byte(points))
 
-	em := `invalid: write buffer error: parsing for line protocol failed`
+	em := `invalid: write buffer error: line protocol parse failed: Expected at least one space character, got end of input`
 	require.Error(t, err)
 	assert.Equal(t, em, err.Error())
 }
