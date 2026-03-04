@@ -378,7 +378,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	}
 
 	httpError.StatusCode = r.StatusCode
-	httpError.Headers = r.Header
 	if v := r.Header.Get("Retry-After"); v != "" {
 		r, err := strconv.ParseInt(v, 10, 32)
 		if err == nil {
@@ -389,6 +388,8 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		httpError.Message = fmt.Sprintf("cannot read error response: %v", err)
+		httpError.Headers = r.Header
+		return &httpError.ServerError
 	}
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if ctype == "application/json" || ctype == "" {
@@ -411,6 +412,7 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 				)
 			}
 			if len(lineErrors) > 0 {
+				httpError.Headers = r.Header
 				return &PartialWriteError{
 					ServerError: httpError.ServerError,
 					LineErrors:  lineErrors,
@@ -426,6 +428,7 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 	}
 
+	httpError.Headers = r.Header
 	return &httpError.ServerError
 }
 
