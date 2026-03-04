@@ -799,3 +799,46 @@ temperature,room=room4 value=43i`
 	require.Error(t, err)
 	assert.Equal(t, em, err.Error())
 }
+
+func TestAcceptPartialWriteError(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+	defer client.Close()
+
+	points := `temperature,room=room1 value=18.94647
+temperatureroom=room2value=20.268019
+temperature,room=room3 value=24.064857
+temperature,room=room4 value=43i`
+
+	err = client.Write(context.Background(), []byte(points), influxdb3.WithAcceptPartial(true))
+	require.Error(t, err)
+
+	var partialErr *influxdb3.PartialWriteError
+	require.True(t, errors.As(err, &partialErr))
+	require.NotNil(t, partialErr)
+	require.NotEmpty(t, partialErr.LineErrors)
+
+	lineNumbers := map[int]struct{}{}
+	for _, lineErr := range partialErr.LineErrors {
+		lineNumbers[lineErr.LineNumber] = struct{}{}
+		assert.NotEmpty(t, lineErr.ErrorMessage)
+		assert.NotEmpty(t, lineErr.OriginalLine)
+	}
+	assert.Contains(t, lineNumbers, 2)
+	assert.Contains(t, lineNumbers, 4)
+
+	var serverErr *influxdb3.ServerError
+	require.True(t, errors.As(err, &serverErr))
+	require.NotNil(t, serverErr)
+	assert.Equal(t, partialErr.StatusCode, serverErr.StatusCode)
+}
