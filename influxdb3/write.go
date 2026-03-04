@@ -187,24 +187,16 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"text/plain; charset=utf-8"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
-		r, err := gzip.CompressWithGzip(body)
+		r, err := gzip.CompressWithGzip(buff)
 		if err != nil {
 			return nil, fmt.Errorf("unable to compress body: %w", err)
 		}
 
-		// This is necessary for Request.GetBody to be set by NewRequest, ensuring that
-		// the Transport can retry the request when a network error occurs.
-		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/request.go#L884
-		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/transport.go#L89-L92
-		//
-		// It is particularly useful for handling transient errors in HTTP/2 and persistent
-		// connections in standard HTTP.
+		// The request body must be replayable so NewRequest can set GetBody.
+		// CompressWithGzip returns a replayable reader.
+		// This is particularly useful for transient HTTP/2 errors and persistent connections.
 		// Additionally, it helps manage graceful HTTP/2 shutdowns (e.g. GOAWAY frames).
-		b, err := io.ReadAll(r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read compressed body: %w", err)
-		}
-		body = bytes.NewReader(b)
+		body = r
 
 		headers["Content-Encoding"] = []string{"gzip"}
 	}
