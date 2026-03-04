@@ -822,20 +822,25 @@ temperature,room=room4 value=43i`
 
 	err = client.Write(context.Background(), []byte(points), influxdb3.WithAcceptPartial(true))
 	require.Error(t, err)
+	em := `partial write of line protocol occurred:
+	line 2: Expected at least one space character, got end of input (temperatureroom=room)
+	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
+	assert.Equal(t, em, err.Error())
 
 	var partialErr *influxdb3.PartialWriteError
 	require.True(t, errors.As(err, &partialErr))
 	require.NotNil(t, partialErr)
-	require.NotEmpty(t, partialErr.LineErrors)
-
-	lineNumbers := map[int]struct{}{}
-	for _, lineErr := range partialErr.LineErrors {
-		lineNumbers[lineErr.LineNumber] = struct{}{}
-		assert.NotEmpty(t, lineErr.ErrorMessage)
-		assert.NotEmpty(t, lineErr.OriginalLine)
-	}
-	assert.Contains(t, lineNumbers, 2)
-	assert.Contains(t, lineNumbers, 4)
+	require.Len(t, partialErr.LineErrors, 2)
+	assert.Equal(t, influxdb3.PartialWriteLineError{
+		ErrorMessage: "Expected at least one space character, got end of input",
+		LineNumber:   2,
+		OriginalLine: "temperatureroom=room",
+	}, partialErr.LineErrors[0])
+	assert.Equal(t, influxdb3.PartialWriteLineError{
+		ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
+		LineNumber:   4,
+		OriginalLine: "temperature,room=roo",
+	}, partialErr.LineErrors[1])
 
 	var serverErr *influxdb3.ServerError
 	require.True(t, errors.As(err, &serverErr))
