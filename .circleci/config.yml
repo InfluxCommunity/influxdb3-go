@@ -113,11 +113,14 @@ jobs:
             else
               gotestsum --junitfile tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
+      - run:
+          name: Build Go Application
+          command: |
+            go build -o tmp/artifacts
       - store_artifacts:
           path: tmp/artifacts
       - store_artifacts:
           path: tmp/test-results
-          destination: raw-test-output
       - store_test_results:
           path: tmp/test-results
       - run:

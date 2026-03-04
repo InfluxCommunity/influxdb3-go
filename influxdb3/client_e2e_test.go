@@ -150,7 +150,7 @@ func TestWriteAndQueryExample(t *testing.T) {
 	assert.True(t, hasValue)
 	value := iterator.Value()
 	assert.Equal(t, tagValue, value[tagKey])
-	assert.Equal(t, 15.5, value["temp"])
+	assert.Equal(t, 15.59, value["temp"])
 	assert.Equal(t, int64(80), value["index"])
 	assert.Equal(t, uint64(800), value["uindex"])
 	assert.Equal(t, true, value["valid"])
