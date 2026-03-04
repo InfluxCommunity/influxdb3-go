@@ -85,9 +85,10 @@ jobs:
           paths:
             - "/go/pkg/mod"
       - run:
-          name: Create a temp directory for artifacts
+          name: Create a temp directory for artifacts and test results
           command: |
             mkdir -p /tmp/artifacts
+            mkdir -p /tmp/test-results
       - run:
           name: Lint go code
           command: |
@@ -103,18 +104,18 @@ jobs:
       - run:
           name: Run tests
           command: |
-            mkdir -p test-results
             if [[ "$(go env GOVERSION)" == go1.24* ]]; then
               export GOEXPERIMENT=nocoverageredesign
             fi
             PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              gotestsum --junitfile test-results/junit.xml --format testname -- -v -race -cover -coverprofile=coverage.out ${PKGS}
+              gotestsum --junitfile /tmp/test-results/junit.xml -- -race -covermode=atomic -coverprofile=coverage.out ${PKGS}
+#              gotestsum --junitfile /tmp/test-results/unit-tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic -coverpkg '.,./api/...,./internal/.../,./log/...' -tags e2e ./...
             else
-              gotestsum --junitfile test-results/junit.xml --format testname -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
+              gotestsum --junitfile /tmp/test-results/junit.xml -- -race -covermode=atomic -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
       - store_test_results:
-          path: test-results
+          path: /tmp/test-results
       - run:
           name: List test results AAA
           command: |
