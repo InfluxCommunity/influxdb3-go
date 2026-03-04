@@ -892,6 +892,20 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
+			name:               "V3 error with invalid data string",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+		},
+		{
+			name:               "V3 error with empty data object",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+		},
+		{
 			name:               "No error message",
 			statusCode:         http.StatusInternalServerError,
 			expectedErrMessage: `500 Internal Server Error`,
