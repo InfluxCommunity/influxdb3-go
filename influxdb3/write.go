@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -33,8 +34,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/gzip"
 )
 
 // timeType is the exact type for the Time
@@ -187,13 +186,13 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"text/plain; charset=utf-8"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
-		r, err := gzip.CompressWithGzip(buff)
+		r, err := compressWithGzip(buff)
 		if err != nil {
 			return nil, fmt.Errorf("unable to compress body: %w", err)
 		}
 
 		// The request body must be replayable so NewRequest can set GetBody.
-		// CompressWithGzip returns a replayable reader.
+		// compressWithGzip returns a replayable reader.
 		// This is particularly useful for transient HTTP/2 errors and persistent connections.
 		// Additionally, it helps manage graceful HTTP/2 shutdowns (e.g. GOAWAY frames).
 		body = r
@@ -400,4 +399,18 @@ func toV3PrecisionString(precision Precision) string {
 		return "second"
 	}
 	panic(fmt.Errorf("unknown precision value %d", precision))
+}
+
+// compressWithGzip compresses data and returns it as a replayable bytes.Reader.
+func compressWithGzip(data []byte) (*bytes.Reader, error) {
+	var compressed bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressed)
+	if _, err := gzipWriter.Write(data); err != nil {
+		_ = gzipWriter.Close()
+		return nil, err
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(compressed.Bytes()), nil
 }
