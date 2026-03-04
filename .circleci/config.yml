@@ -109,9 +109,9 @@ jobs:
             fi
             PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
             if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              gotestsum --junitfile /tmp/test-results/junit.xml -v -race -cover -coverprofile=coverage.out ${PKGS}
+              gotestsum --junitfile /tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out ${PKGS}
             else
-              gotestsum --junitfile /tmp/test-results/junit.xml -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
+              gotestsum --junitfile /tmp/test-results/junit.xml -- -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
             fi
       - store_test_results:
           path: /tmp/test-results
