@@ -290,21 +290,21 @@ When only some lines fail, the client returns a `*PartialWriteError` with line-l
 
 ```go
 lp := []byte(
-	"temperature,region=us-east,host=server-1 value=60.25\n" +
-		"temperatureregion=us-east,host=server-1 value=60.25",
+    "temperature,region=us-east,host=server-1 value=60.25\n" +
+        "temperatureregion=us-east,host=server-1 value=60.25",
 )
 
 err = client.Write(context.Background(), lp, influxdb3.WithAcceptPartial(true))
 if err != nil {
-	var partialErr *influxdb3.PartialWriteError
-	if errors.As(err, &partialErr) {
-		for _, lineErr := range partialErr.LineErrors {
-			fmt.Printf("line %d failed: %s (%s)\n",
-				lineErr.LineNumber, lineErr.ErrorMessage, lineErr.OriginalLine)
-		}
-	} else {
-		fmt.Println(err)
-	}
+    var partialErr *influxdb3.PartialWriteError
+    if errors.As(err, &partialErr) {
+        for _, lineErr := range partialErr.LineErrors {
+            fmt.Printf("line %d failed: %s (%s)\n",
+                lineErr.LineNumber, lineErr.ErrorMessage, lineErr.OriginalLine)
+        }
+    } else {
+        fmt.Println(err)
+    }
 }
 ```
 
