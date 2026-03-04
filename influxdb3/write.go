@@ -236,7 +236,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
 			// Server does not support the v3 write API, can't use NoSync/AcceptPartial options.
 			return fmt.Errorf(
-				"server doesn't support v3 write options on this backend (NoSync=%t, AcceptPartial=%t; supported by InfluxDB 3 Core/Enterprise servers only)",
+				"server doesn't support v3 write options (NoSync=%t, AcceptPartial=%t; supported by InfluxDB 3 Core/Enterprise servers only)",
 				options.NoSync,
 				options.AcceptPartial,
 			)

@@ -560,7 +560,7 @@ func TestWriteWithNoSyncToV2Server(t *testing.T) {
 	err = c.Write(context.Background(), []byte("a f=1"))
 	// should fail, as v3 API is not supported
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "server doesn't support v3 write options on this backend (NoSync=true, AcceptPartial=false; supported by InfluxDB 3 Core/Enterprise servers only)")
+	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=true, AcceptPartial=false")
 
 	// options.AcceptPartial = true
 	options = DefaultWriteOptions
@@ -572,7 +572,7 @@ func TestWriteWithNoSyncToV2Server(t *testing.T) {
 	err = c.Write(context.Background(), []byte("a f=1"))
 	// should fail, as v3 API is not supported
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "server doesn't support v3 write options on this backend (NoSync=false, AcceptPartial=true; supported by InfluxDB 3 Core/Enterprise servers only)")
+	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=false, AcceptPartial=true")
 }
 
 func TestWritePointsAndBytes(t *testing.T) {
