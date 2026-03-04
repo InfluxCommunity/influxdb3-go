@@ -127,6 +127,7 @@ jobs:
             cd tmp/test-results
             ls -al
             cat junit.xml
+          when: always
       - run:
           name: Coverage Report
           command: |
