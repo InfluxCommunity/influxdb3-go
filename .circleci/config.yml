@@ -123,6 +123,7 @@ jobs:
       - run:
           name: List test results AAA
           command: |
+            echo "List test results AAA"
             cd tmp/test-results
             ls -al
             cat junit.xml
