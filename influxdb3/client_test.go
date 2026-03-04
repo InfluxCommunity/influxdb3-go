@@ -980,30 +980,29 @@ func TestResolveError(t *testing.T) {
 		})
 	}
 
-	t.Run("Body read error", func(t *testing.T) {
-		testCases := []struct {
-			name        string
-			contentType string
-		}{
-			{name: "text/plain", contentType: "text/plain"},
-			{name: "application/json", contentType: "application/json"},
+}
+
+func TestResolveErrorBodyReadError(t *testing.T) {
+	testCases := []struct {
+		name        string
+		contentType string
+	}{
+		{name: "text/plain", contentType: "text/plain"},
+		{name: "application/json", contentType: "application/json"},
+	}
+
+	for _, tc := range testCases {
+		errResponse := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Status:     "400 Bad Request",
+			Header:     http.Header{"Content-Type": []string{tc.contentType}},
+			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
 		}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				errResponse := &http.Response{
-					StatusCode: http.StatusBadRequest,
-					Status:     "400 Bad Request",
-					Header:     http.Header{"Content-Type": []string{tc.contentType}},
-					Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
-				}
-
-				err := (&Client{}).resolveHTTPError(errResponse)
-				require.Error(t, err)
-				assert.Equal(t, "cannot read error response: simulated read error", err.Error())
-			})
-		}
-	})
+		err := (&Client{}).resolveHTTPError(errResponse)
+		require.Error(t, err, tc.name)
+		assert.Equal(t, "cannot read error response: simulated read error", err.Error(), tc.name)
+	}
 }
 
 func TestNewServerError(t *testing.T) {
