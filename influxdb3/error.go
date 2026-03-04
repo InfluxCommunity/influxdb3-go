@@ -41,6 +41,22 @@ type ServerError struct {
 	Headers http.Header `json:"headers"`
 }
 
+// PartialWriteLineError describes a single line-level write failure returned by /api/v3/write_lp.
+type PartialWriteLineError struct {
+	// ErrorMessage describes why the line failed.
+	ErrorMessage string `json:"error_message"`
+	// LineNumber is a 1-based line index in the submitted payload.
+	LineNumber int `json:"line_number"`
+	// OriginalLine is the line content reported by server.
+	OriginalLine string `json:"original_line"`
+}
+
+// PartialWriteError represents a /api/v3/write_lp error that carries per-line failure details.
+type PartialWriteError struct {
+	ServerError
+	LineErrors []PartialWriteLineError
+}
+
 // NewServerError returns new with just a message
 func NewServerError(message string) *ServerError {
 	return &ServerError{Message: message}
@@ -52,4 +68,9 @@ func (e ServerError) Error() string {
 		return fmt.Sprintf("%s: %s", e.Code, e.Message)
 	}
 	return e.Message
+}
+
+// Unwrap allows errors.As(err, *ServerError) on a PartialWriteError.
+func (e *PartialWriteError) Unwrap() error {
+	return &e.ServerError
 }

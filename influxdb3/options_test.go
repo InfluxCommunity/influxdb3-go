@@ -135,18 +135,20 @@ func TestWriteOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "override database, precision, GZIP threshold, write no sync",
+			name: "override database, precision, GZIP threshold, write no sync and accept partial",
 			opts: va(
 				WithDatabase("db-x"),
 				WithPrecision(Millisecond),
 				WithGzipThreshold(4096),
 				WithNoSync(true),
+				WithAcceptPartial(true),
 			),
 			want: &WriteOptions{
 				Database:      "db-x",
 				Precision:     Millisecond,
 				GzipThreshold: 4096,
 				NoSync:        true,
+				AcceptPartial: true,
 			},
 		},
 		{
@@ -157,6 +159,16 @@ func TestWriteOptions(t *testing.T) {
 				TagOrder:      []string{"region", "host"},
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
+			},
+		},
+		{
+			name: "override accept partial",
+			opts: va(WithAcceptPartial(true)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: true,
 			},
 		},
 	}

@@ -162,14 +162,19 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	var body io.Reader
 	var u *url.URL
 	var params url.Values
-	if options.NoSync {
-		// Setting no_sync=true is supported only in the v3 API.
+	if options.NoSync || options.AcceptPartial {
+		// no_sync and accept_partial are supported only in the v3 API.
 		u, _ = c.apiURL.Parse("v3/write_lp")
 		params = u.Query()
 		params.Set("org", c.config.Organization)
 		params.Set("db", database)
 		params.Set("precision", toV3PrecisionString(precision))
-		params.Set("no_sync", "true")
+		if options.NoSync {
+			params.Set("no_sync", "true")
+		}
+		if options.AcceptPartial {
+			params.Set("accept_partial", "true")
+		}
 	} else {
 		// By default, use the v2 API.
 		u, _ = c.apiURL.Parse("v2/write")
@@ -227,14 +232,27 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		var svErr *ServerError
-		if options.NoSync && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
+		if (options.NoSync || options.AcceptPartial) && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
-			// Server does not support the v3 write API, can't use the NoSync option.
-			return errors.New("server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+			// Server does not support the v3 write API, can't use NoSync/AcceptPartial options.
+			return unsupportedV3WriteOptionsError(options)
 		}
 		return err
 	}
 	return resp.Body.Close()
+}
+
+func unsupportedV3WriteOptionsError(options *WriteOptions) error {
+	switch {
+	case options.NoSync && options.AcceptPartial:
+		return errors.New("server doesn't support write with NoSync=true or AcceptPartial=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+	case options.NoSync:
+		return errors.New("server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+	case options.AcceptPartial:
+		return errors.New("server doesn't support write with AcceptPartial=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+	default:
+		return errors.New("server doesn't support write with v3-only options (supported by InfluxDB 3 Core/Enterprise servers only)")
+	}
 }
 
 // WriteData encodes fields of custom points into line protocol

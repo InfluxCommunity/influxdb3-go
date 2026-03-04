@@ -671,6 +671,7 @@ func TestNewFromEnv(t *testing.T) {
 		os.Unsetenv(envInfluxPrecision)
 		os.Unsetenv(envInfluxGzipThreshold)
 		os.Unsetenv(envInfluxWriteNoSync)
+		os.Unsetenv(envInfluxWriteAcceptPartial)
 		os.Unsetenv(envInfluxWriteTimeout)
 		os.Unsetenv(envInfluxQueryTimeout)
 	}
@@ -701,6 +702,48 @@ func TestNewFromEnv(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewFromConnectionStringWriteAcceptPartial(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		c, err := NewFromConnectionString("https://host:8086?token=abc&writeAcceptPartial=true")
+		require.NoError(t, err)
+		require.NotNil(t, c)
+		require.NotNil(t, c.config.WriteOptions)
+		assert.True(t, c.config.WriteOptions.AcceptPartial)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		c, err := NewFromConnectionString("https://host:8086?token=abc&writeAcceptPartial=truuu")
+		require.Nil(t, c)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "invalid syntax")
+	})
+}
+
+func TestNewFromEnvWriteAcceptPartial(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		t.Setenv(envInfluxHost, "http://host:8086")
+		t.Setenv(envInfluxToken, "abc")
+		t.Setenv(envInfluxWriteAcceptPartial, "true")
+
+		c, err := NewFromEnv()
+		require.NoError(t, err)
+		require.NotNil(t, c)
+		require.NotNil(t, c.config.WriteOptions)
+		assert.True(t, c.config.WriteOptions.AcceptPartial)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		t.Setenv(envInfluxHost, "http://host:8086")
+		t.Setenv(envInfluxToken, "abc")
+		t.Setenv(envInfluxWriteAcceptPartial, "truuu")
+
+		c, err := NewFromEnv()
+		require.Nil(t, c)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "invalid syntax")
+	})
 }
 
 func TestMakeAPICall(t *testing.T) {
@@ -757,7 +800,8 @@ func TestResolveError(t *testing.T) {
 		contentType        string
 		headers            map[string]string
 		responseBody       string
-		expectedErrMessage string
+		expectedErrMessage     string
+		expectedPartialWriteError *PartialWriteError
 	}{
 		{
 			name:               "V2 JSON message response",
@@ -805,6 +849,44 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: `partial write of line protocol occurred:
 	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
 	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`,
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
+						LineNumber:   2,
+						OriginalLine: "temperatureroom=room",
+					},
+					{
+						ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
+						LineNumber:   4,
+						OriginalLine: "temperature,room=roo",
+					},
+				},
+			},
+		},
+		{
+			name:        "V3 parsing failed write_lp endpoint",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
+			expectedErrMessage: `parsing failed for write_lp endpoint:
+	line 2: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)`,
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+						LineNumber:   2,
+						OriginalLine: "home,room=Sunroom temp=hi 1735549200",
+					},
+				},
+			},
 		},
 		{
 			name:               "No error message",
@@ -855,6 +937,16 @@ func TestResolveError(t *testing.T) {
 			assert.Nil(t, res)
 			require.Error(t, err)
 			assert.Equal(t, tc.expectedErrMessage, err.Error())
+			if tc.expectedPartialWriteError != nil {
+				var partialWriteErr *PartialWriteError
+				require.ErrorAs(t, err, &partialWriteErr)
+				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, partialWriteErr.StatusCode)
+				assert.Equal(t, tc.expectedPartialWriteError.LineErrors, partialWriteErr.LineErrors)
+
+				var serverErr *ServerError
+				require.ErrorAs(t, err, &serverErr)
+				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, serverErr.StatusCode)
+			}
 		})
 	}
 }
