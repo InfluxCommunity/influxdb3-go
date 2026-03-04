@@ -183,8 +183,8 @@ func WithNoSync(noSync bool) Option {
 	}
 }
 
-// WithAcceptPartial is used to enable partial write acceptance in Client.Write methods.
-// This option routes writes through /api/v3/write_lp with accept_partial=true.
+// WithAcceptPartial overrides AcceptPartial in Client.Write methods.
+// When true, writes are routed through /api/v3/write_lp with accept_partial=true.
 func WithAcceptPartial(acceptPartial bool) Option {
 	return func(o *options) {
 		o.AcceptPartial = acceptPartial
