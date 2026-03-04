@@ -107,11 +107,7 @@ jobs:
               export GOEXPERIMENT=nocoverageredesign
             fi
             PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
-            if [[ "$CIRCLE_BRANCH" == pull/* ]]; then
-              go test -v -race -cover -coverprofile=coverage.out ${PKGS}
-            else
-              go test -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
-            fi
+            go test -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
       - run:
           name: Coverage Report
           command: |
