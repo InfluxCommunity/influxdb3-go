@@ -11,7 +11,7 @@ import (
 
 func main() {
 	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:     os.Getenv("INFLUX_URL"),
+		Host:     os.Getenv("INFLUX_HOST"),
 		Token:    os.Getenv("INFLUX_TOKEN"),
 		Database: os.Getenv("INFLUX_DATABASE"),
 	})
