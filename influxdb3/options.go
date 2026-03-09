@@ -69,11 +69,21 @@ type WriteOptions struct {
 	// NoSync=true means faster write but without the confirmation that the data was persisted.
 	//
 	// Note: This option is supported by InfluxDB 3 Core and Enterprise servers only.
-	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated)
+	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Cloud Serverless/Dedicated)
 	// the write operation will fail with an error.
 	//
 	// Default value: false.
 	NoSync bool
+
+	// AcceptPartial controls whether /api/v3/write_lp accepts partial writes.
+	// When true, the client uses the v3 write endpoint and sets accept_partial=true.
+	//
+	// Note: This option is supported by InfluxDB 3 Core and Enterprise servers only.
+	// For other InfluxDB server types (InfluxDB Clustered, InfluxDB Cloud Serverless/Dedicated)
+	// the write operation will fail with an error.
+	//
+	// Default value: false.
+	AcceptPartial bool
 }
 
 // DefaultQueryOptions specifies default query options
@@ -86,6 +96,7 @@ var DefaultWriteOptions = WriteOptions{
 	Precision:     Nanosecond,
 	GzipThreshold: 1_000,
 	NoSync:        false,
+	AcceptPartial: false,
 }
 
 // Option is a functional option type that can be passed to Client.Query and Client.Write methods.
@@ -107,6 +118,7 @@ type QueryOption = Option
 //   - WithDefaultTags
 //   - WithTagOrder
 //   - WithNoSync
+//   - WithAcceptPartial
 type WriteOption = Option
 
 // WithDatabase is used to override default database in Client.Query and Client.Write methods.
@@ -164,10 +176,18 @@ func WithTagOrder(tagKeys ...string) Option {
 	}
 }
 
-// WithNoSync is used to override default tags in Client.Write methods.
+// WithNoSync is used to override default NoSync setting in Client.Write methods.
 func WithNoSync(noSync bool) Option {
 	return func(o *options) {
 		o.NoSync = noSync
+	}
+}
+
+// WithAcceptPartial overrides AcceptPartial in Client.Write methods.
+// When true, writes are routed through /api/v3/write_lp with accept_partial=true.
+func WithAcceptPartial(acceptPartial bool) Option {
+	return func(o *options) {
+		o.AcceptPartial = acceptPartial
 	}
 }
 

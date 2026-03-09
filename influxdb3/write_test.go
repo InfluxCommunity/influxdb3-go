@@ -471,6 +471,50 @@ func TestWriteCorrectUrlNoSync(t *testing.T) {
 	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
 	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(false))
 	assert.NoError(t, err)
+
+	// options.AcceptPartial = true
+	options = DefaultWriteOptions
+	options.Precision = Millisecond
+	options.AcceptPartial = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// WithAcceptPartial(true)
+	options = DefaultWriteOptions
+	options.Precision = Millisecond
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"), WithAcceptPartial(true))
+	assert.NoError(t, err)
+
+	// options.NoSync=true & options.AcceptPartial=true
+	options = DefaultWriteOptions
+	options.Precision = Millisecond
+	options.NoSync = true
+	options.AcceptPartial = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	assert.NoError(t, err)
+
+	// options.NoSync=true & options.AcceptPartial=true & WithNoSync(false)
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(false))
+	assert.NoError(t, err)
+
+	// options.NoSync=true & options.AcceptPartial=true & WithAcceptPartial(false)
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"), WithAcceptPartial(false))
+	assert.NoError(t, err)
 }
 
 func TestWriteWithNoSyncToV2Server(t *testing.T) {
@@ -516,7 +560,19 @@ func TestWriteWithNoSyncToV2Server(t *testing.T) {
 	err = c.Write(context.Background(), []byte("a f=1"))
 	// should fail, as v3 API is not supported
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=true, AcceptPartial=false")
+
+	// options.AcceptPartial = true
+	options = DefaultWriteOptions
+	options.Precision = Millisecond
+	options.AcceptPartial = true
+	c, err = New(clientConfig)
+	require.NoError(t, err)
+	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
+	err = c.Write(context.Background(), []byte("a f=1"))
+	// should fail, as v3 API is not supported
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=false, AcceptPartial=true")
 }
 
 func TestWritePointsAndBytes(t *testing.T) {
