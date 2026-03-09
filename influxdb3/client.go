@@ -245,6 +245,8 @@ func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, con
 //   - gzipThreshold - payload size threshold for gzipping data
 //   - writeNoSync - bool value whether to skip waiting for WAL persistence on write.
 //     (See WriteOptions.NoSync for more details)
+//   - writeAcceptPartial - bool value whether to accept partial writes on v3 write endpoint.
+//     (See WriteOptions.AcceptPartial for more details)
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
@@ -265,6 +267,8 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 //   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
 //   - INFLUX_WRITE_NO_SYNC - bool value whether to skip waiting for WAL persistence on write
 //     (See WriteOptions.NoSync for more details)
+//   - INFLUX_WRITE_ACCEPT_PARTIAL - bool value whether to accept partial writes on v3 write endpoint
+//     (See WriteOptions.AcceptPartial for more details)
 //   - INFLUX_WRITE_TIMEOUT - duration value (e.g. 10s) to determine how long to wait for a write response
 //   - INFLUX_QUERY_TIMEOUT - duration value (e.g. 10s) applied to queries for calculating a context response Deadline
 func NewFromEnv() (*Client, error) {
@@ -369,12 +373,8 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	var httpError struct {
 		ServerError
 		// InfluxDB V3 Core/Ent V3 write error message fields
-		Error string `json:"error"`
-		Data  []struct {
-			ErrorMessage string `json:"error_message"`
-			LineNumber   int    `json:"line_number"`
-			OriginalLine string `json:"original_line"`
-		} `json:"data"`
+		Error string          `json:"error"`
+		Data  json.RawMessage `json:"data"`
 	}
 
 	httpError.StatusCode = r.StatusCode
@@ -387,7 +387,9 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		httpError.Message = fmt.Sprintf("cannot read error response:: %v", err)
+		httpError.Message = fmt.Sprintf("cannot read error response: %v", err)
+		httpError.Headers = r.Header
+		return &httpError.ServerError
 	}
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if ctype == "application/json" || ctype == "" {
@@ -397,11 +399,24 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			for a, b := range httpError.Data {
-				if a == 0 {
+			lineErrors := parsePartialWriteLineErrors(httpError.Data)
+			for i, lineError := range lineErrors {
+				if i == 0 {
 					httpError.Message += ":"
 				}
-				httpError.Message += fmt.Sprintf("\n\tline %d: %s (%s)", b.LineNumber, b.ErrorMessage, b.OriginalLine)
+				httpError.Message += fmt.Sprintf(
+					"\n\tline %d: %s (%s)",
+					lineError.LineNumber,
+					lineError.ErrorMessage,
+					lineError.OriginalLine,
+				)
+			}
+			if len(lineErrors) > 0 {
+				httpError.Headers = r.Header
+				return &PartialWriteError{
+					ServerError: httpError.ServerError,
+					LineErrors:  lineErrors,
+				}
 			}
 		}
 	}
@@ -414,6 +429,43 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	}
 
 	httpError.Headers = r.Header
-
 	return &httpError.ServerError
+}
+
+func parsePartialWriteLineErrors(raw json.RawMessage) []PartialWriteLineError {
+	if len(raw) == 0 || strings.EqualFold(strings.TrimSpace(string(raw)), "null") {
+		return nil
+	}
+
+	var rawItems []json.RawMessage
+	if err := json.Unmarshal(raw, &rawItems); err == nil {
+		lineErrors := make([]PartialWriteLineError, 0, len(rawItems))
+		for _, rawItem := range rawItems {
+			lineError, ok := parsePartialWriteLineError(rawItem)
+			if ok {
+				lineErrors = append(lineErrors, lineError)
+			}
+		}
+		return lineErrors
+	}
+
+	lineError, ok := parsePartialWriteLineError(raw)
+	if ok {
+		return []PartialWriteLineError{lineError}
+	}
+
+	return nil
+}
+
+func parsePartialWriteLineError(raw json.RawMessage) (PartialWriteLineError, bool) {
+	var lineError PartialWriteLineError
+	if err := json.Unmarshal(raw, &lineError); err != nil {
+		return PartialWriteLineError{}, false
+	}
+
+	if lineError.LineNumber == 0 && lineError.ErrorMessage == "" && lineError.OriginalLine == "" {
+		return PartialWriteLineError{}, false
+	}
+
+	return lineError, true
 }

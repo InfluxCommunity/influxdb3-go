@@ -74,6 +74,7 @@ In a Go file, import the `influxdb3` package to use it in your code:
 import (
   "context"
   "encoding/json"
+  "errors"
   "fmt"
   "os"
 
@@ -281,6 +282,31 @@ err = client.WritePoints(context.Background(), points, influxdb3.WithTagOrder("r
 
 Listed tags are serialized first in the given order when present.
 All remaining tags are appended in deterministic lexicographic order.
+
+#### Accept partial writes and inspect failed lines
+
+Use `WithAcceptPartial(true)` to accept partial writes.
+When only some lines fail, the client returns a `*PartialWriteError` with line-level details.
+
+```go
+lp := []byte(
+    "temperature,region=us-east,host=server-1 value=60.25\n" +
+        "temperatureregion=us-east,host=server-1 value=60.25",
+)
+
+err = client.Write(context.Background(), lp, influxdb3.WithAcceptPartial(true))
+if err != nil {
+    var partialErr *influxdb3.PartialWriteError
+    if errors.As(err, &partialErr) {
+        for _, lineErr := range partialErr.LineErrors {
+            fmt.Printf("line %d failed: %s (%s)\n",
+                lineErr.LineNumber, lineErr.ErrorMessage, lineErr.OriginalLine)
+        }
+    } else {
+        fmt.Println(err)
+    }
+}
+```
 
 ### Query
 

@@ -24,6 +24,8 @@ package influxdb3
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -31,6 +33,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -409,6 +412,22 @@ func TestNewFromConnectionString(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeAcceptPartial",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&writeAcceptPartial=true",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: true,
+				},
+			},
+		},
+		{
 			name: "with precision long value - second",
 			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=second",
 			cfg: &ClientConfig{
@@ -444,6 +463,11 @@ func TestNewFromConnectionString(t *testing.T) {
 		{
 			name: "invalid writeNoSync",
 			cs:   "https://host:8086?token=abc&writeNoSync=truuu",
+			err:  "invalid syntax",
+		},
+		{
+			name: "invalid writeAcceptPartial",
+			cs:   "https://host:8086?token=abc&writeAcceptPartial=truuu",
 			err:  "invalid syntax",
 		},
 	}
@@ -556,6 +580,28 @@ func TestNewFromEnv(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeAcceptPartial env",
+			vars: map[string]string{
+				"INFLUX_HOST":                 "http://host:8086",
+				"INFLUX_TOKEN":                "abc",
+				"INFLUX_ORG":                  "my-org",
+				"INFLUX_DATABASE":             "my-db",
+				"INFLUX_WRITE_ACCEPT_PARTIAL": "true",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: true,
+				},
+			},
+		},
+		{
 			name: "with precision long value",
 			vars: map[string]string{
 				"INFLUX_HOST":      "http://host:8086",
@@ -600,6 +646,15 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_HOST":          "http://host:8086",
 				"INFLUX_TOKEN":         "abc",
 				"INFLUX_WRITE_NO_SYNC": "truuu",
+			},
+			err: "invalid syntax",
+		},
+		{
+			name: "invalid writeAcceptPartial env",
+			vars: map[string]string{
+				"INFLUX_HOST":                 "http://host:8086",
+				"INFLUX_TOKEN":                "abc",
+				"INFLUX_WRITE_ACCEPT_PARTIAL": "truuu",
 			},
 			err: "invalid syntax",
 		},
@@ -671,6 +726,7 @@ func TestNewFromEnv(t *testing.T) {
 		os.Unsetenv(envInfluxPrecision)
 		os.Unsetenv(envInfluxGzipThreshold)
 		os.Unsetenv(envInfluxWriteNoSync)
+		os.Unsetenv(envInfluxWriteAcceptPartial)
 		os.Unsetenv(envInfluxWriteTimeout)
 		os.Unsetenv(envInfluxQueryTimeout)
 	}
@@ -752,12 +808,13 @@ func TestMakeAPICall(t *testing.T) {
 
 func TestResolveError(t *testing.T) {
 	testCases := []struct {
-		name               string
-		statusCode         int
-		contentType        string
-		headers            map[string]string
-		responseBody       string
-		expectedErrMessage string
+		name                      string
+		statusCode                int
+		contentType               string
+		headers                   map[string]string
+		responseBody              string
+		expectedErrMessage        string
+		expectedPartialWriteError *PartialWriteError
 	}{
 		{
 			name:               "V2 JSON message response",
@@ -805,6 +862,61 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: `partial write of line protocol occurred:
 	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
 	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`,
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
+						LineNumber:   2,
+						OriginalLine: "temperatureroom=room",
+					},
+					{
+						ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
+						LineNumber:   4,
+						OriginalLine: "temperature,room=roo",
+					},
+				},
+			},
+		},
+		{
+			name:        "V3 parsing failed write_lp endpoint",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"` +
+				`invalid column type for column 'temp', expected iox::column_type::field::float, got ` +
+				`iox::column_type::field::string",` +
+				`"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
+			expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
+				"invalid column type for column 'temp', expected iox::column_type::field::float, " +
+				"got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)",
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+						LineNumber:   2,
+						OriginalLine: "home,room=Sunroom temp=hi 1735549200",
+					},
+				},
+			},
+		},
+		{
+			name:               "V3 error with invalid data string",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+		},
+		{
+			name:               "V3 error with empty data object",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
+			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
 			name:               "No error message",
@@ -855,7 +967,41 @@ func TestResolveError(t *testing.T) {
 			assert.Nil(t, res)
 			require.Error(t, err)
 			assert.Equal(t, tc.expectedErrMessage, err.Error())
+			if tc.expectedPartialWriteError != nil {
+				var partialWriteErr *PartialWriteError
+				require.ErrorAs(t, err, &partialWriteErr)
+				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, partialWriteErr.StatusCode)
+				assert.Equal(t, tc.expectedPartialWriteError.LineErrors, partialWriteErr.LineErrors)
+
+				var serverErr *ServerError
+				require.ErrorAs(t, err, &serverErr)
+				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, serverErr.StatusCode)
+			}
 		})
+	}
+
+}
+
+func TestResolveErrorBodyReadError(t *testing.T) {
+	testCases := []struct {
+		name        string
+		contentType string
+	}{
+		{name: "text/plain", contentType: "text/plain"},
+		{name: "application/json", contentType: "application/json"},
+	}
+
+	for _, tc := range testCases {
+		errResponse := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Status:     "400 Bad Request",
+			Header:     http.Header{"Content-Type": []string{tc.contentType}},
+			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
+		}
+
+		err := (&Client{}).resolveHTTPError(errResponse)
+		require.Error(t, err, tc.name)
+		assert.Equal(t, "cannot read error response: simulated read error", err.Error(), tc.name)
 	}
 }
 
@@ -863,6 +1009,11 @@ func TestNewServerError(t *testing.T) {
 	message := "message"
 	err := NewServerError(message)
 	assert.Equal(t, err.Message, message)
+}
+
+func TestPartialWriteErrorUnwrapNil(t *testing.T) {
+	var err *PartialWriteError
+	assert.Nil(t, err.Unwrap())
 }
 
 func TestFixUrl(t *testing.T) {

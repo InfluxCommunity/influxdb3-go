@@ -647,64 +647,74 @@ func TestPointEscapeCoverage(t *testing.T) {
 	assert.EqualValues(t, `me\ as\,ure,ta\ g\,\==va\ l\,\= fi\ eld\,\=="qu\"o\\te"`+"\n", string(line))
 }
 
-func TestPointSerializerCoverageCases(t *testing.T) {
-	t.Run("default tag key control characters are rejected", func(t *testing.T) {
-		p := NewPoint("test", map[string]string{
-			"tag": "a",
-		}, map[string]any{
-			"field": 1,
-		}, time.Unix(60, 70))
+func TestDefaultTagKeyControlChars(t *testing.T) {
+	p := NewPoint("test", map[string]string{
+		"tag": "a",
+	}, map[string]any{
+		"field": 1,
+	}, time.Unix(60, 70))
 
-		_, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
-			"bad\nkey": "x",
-		})
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "encoding error: invalid tag key")
+	_, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
+		"bad\nkey": "x",
 	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "encoding error: invalid tag key")
+}
 
-	t.Run("appendFieldValue supports all types", func(t *testing.T) {
-		cases := []struct {
-			name     string
-			value    any
-			expected string
-			wantErr  string
-		}{
-			{name: "float64", value: float64(1.5), expected: "1.5"},
-			{name: "float32", value: float32(1.25), expected: "1.25"},
-			{name: "int", value: int(-1), expected: "-1i"},
-			{name: "int8", value: int8(-2), expected: "-2i"},
-			{name: "int16", value: int16(-3), expected: "-3i"},
-			{name: "int32", value: int32(-4), expected: "-4i"},
-			{name: "int64", value: int64(-5), expected: "-5i"},
-			{name: "uint", value: uint(1), expected: "1u"},
-			{name: "uint8", value: uint8(2), expected: "2u"},
-			{name: "uint16", value: uint16(3), expected: "3u"},
-			{name: "uint32", value: uint32(4), expected: "4u"},
-			{name: "uint64", value: uint64(5), expected: "5u"},
-			{name: "bool true", value: true, expected: "true"},
-			{name: "bool false", value: false, expected: "false"},
-			{name: "string", value: "text", expected: `"text"`},
-			{name: "bytes", value: []byte(`x"y`), expected: `"x\"y"`},
-			{name: "invalid type", value: struct{}{}, wantErr: "invalid value for field"},
+func TestAppendFieldValue(t *testing.T) {
+	cases := []struct {
+		name     string
+		value    any
+		expected string
+		wantErr  string
+	}{
+		{name: "float64", value: float64(1.5), expected: "1.5"},
+		{name: "float32", value: float32(1.25), expected: "1.25"},
+		{name: "int", value: int(-1), expected: "-1i"},
+		{name: "int8", value: int8(-2), expected: "-2i"},
+		{name: "int16", value: int16(-3), expected: "-3i"},
+		{name: "int32", value: int32(-4), expected: "-4i"},
+		{name: "int64", value: int64(-5), expected: "-5i"},
+		{name: "uint", value: uint(1), expected: "1u"},
+		{name: "uint8", value: uint8(2), expected: "2u"},
+		{name: "uint16", value: uint16(3), expected: "3u"},
+		{name: "uint32", value: uint32(4), expected: "4u"},
+		{name: "uint64", value: uint64(5), expected: "5u"},
+		{name: "bool true", value: true, expected: "true"},
+		{name: "bool false", value: false, expected: "false"},
+		{name: "string", value: "text", expected: `"text"`},
+		{name: "bytes", value: []byte(`x"y`), expected: `"x\"y"`},
+		{name: "invalid type", value: struct{}{}, wantErr: "invalid value for field"},
+	}
+
+	for _, tc := range cases {
+		var sb bytes.Buffer
+		err := appendFieldValue(&sb, "f", tc.value)
+		if tc.wantErr != "" {
+			require.Errorf(t, err, "case=%s", tc.name)
+			assert.ErrorContainsf(t, err, tc.wantErr, "case=%s", tc.name)
+			continue
 		}
+		require.NoErrorf(t, err, "case=%s", tc.name)
+		assert.Equalf(t, tc.expected, sb.String(), "case=%s", tc.name)
+	}
+}
 
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				var sb bytes.Buffer
-				err := appendFieldValue(&sb, "f", tc.value)
-				if tc.wantErr != "" {
-					require.Error(t, err)
-					assert.ErrorContains(t, err, tc.wantErr)
-					return
-				}
-				require.NoError(t, err)
-				assert.Equal(t, tc.expected, sb.String())
-			})
-		}
-	})
+func TestIsNotDefined(t *testing.T) {
+	cases := []struct {
+		name     string
+		value    any
+		expected bool
+	}{
+		{name: "nil", value: nil, expected: true},
+		{name: "float32 nan", value: float32(math.NaN()), expected: true},
+		{name: "float32 finite", value: float32(1.25), expected: false},
+		{name: "float64 inf", value: math.Inf(1), expected: true},
+		{name: "float64 finite", value: float64(2.5), expected: false},
+		{name: "string", value: "x", expected: false},
+	}
 
-	t.Run("isNotDefined handles float32 NaN and finite", func(t *testing.T) {
-		assert.True(t, isNotDefined(float32(math.NaN())))
-		assert.False(t, isNotDefined(float32(1.25)))
-	})
+	for _, tc := range cases {
+		assert.Equalf(t, tc.expected, isNotDefined(tc.value), "case=%s", tc.name)
+	}
 }

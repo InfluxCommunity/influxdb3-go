@@ -765,22 +765,18 @@ func TestQueryTimeoutDeadlineExceeded(t *testing.T) {
 	assert.Regexp(t, "^flight do get: rpc error:.*DeadlineExceeded.*", qerr)
 }
 
-func TestV3WriteError(t *testing.T) {
+func TestV2WriteError(t *testing.T) {
 	SkipCheck(t)
 
 	url := os.Getenv("TESTING_INFLUXDB_URL")
 	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
 	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
 
-	wo := influxdb3.WriteOptions{
-		NoSync: true,
-	}
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:         url,
 		Token:        token,
 		Database:     database,
 		QueryTimeout: time.Millisecond,
-		WriteOptions: &wo,
 	})
 	defer client.Close()
 
@@ -793,9 +789,55 @@ temperature,room=room4 value=43i`
 
 	err = client.Write(context.Background(), []byte(points))
 
+	em := `invalid: write buffer error: line protocol parse failed: Expected at least one space character, got end of input`
+	require.Error(t, err)
+	assert.Equal(t, em, err.Error())
+}
+
+func TestAcceptPartialWriteError(t *testing.T) {
+	SkipCheck(t)
+
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+	defer client.Close()
+
+	points := `temperature,room=room1 value=18.94647
+temperatureroom=room2value=20.268019
+temperature,room=room3 value=24.064857
+temperature,room=room4 value=43i`
+
+	err = client.Write(context.Background(), []byte(points), influxdb3.WithAcceptPartial(true))
+	require.Error(t, err)
 	em := `partial write of line protocol occurred:
 	line 2: Expected at least one space character, got end of input (temperatureroom=room)
 	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
-	require.Error(t, err)
 	assert.Equal(t, em, err.Error())
+
+	var partialErr *influxdb3.PartialWriteError
+	require.True(t, errors.As(err, &partialErr))
+	require.NotNil(t, partialErr)
+	require.Len(t, partialErr.LineErrors, 2)
+	assert.Equal(t, influxdb3.PartialWriteLineError{
+		ErrorMessage: "Expected at least one space character, got end of input",
+		LineNumber:   2,
+		OriginalLine: "temperatureroom=room",
+	}, partialErr.LineErrors[0])
+	assert.Equal(t, influxdb3.PartialWriteLineError{
+		ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
+		LineNumber:   4,
+		OriginalLine: "temperature,room=roo",
+	}, partialErr.LineErrors[1])
+
+	var serverErr *influxdb3.ServerError
+	require.True(t, errors.As(err, &serverErr))
+	require.NotNil(t, serverErr)
+	assert.Equal(t, partialErr.StatusCode, serverErr.StatusCode)
 }

@@ -35,26 +35,28 @@ import (
 )
 
 const (
-	envInfluxHost          = "INFLUX_HOST"
-	envInfluxToken         = "INFLUX_TOKEN"
-	envInfluxAuthScheme    = "INFLUX_AUTH_SCHEME"
-	envInfluxOrg           = "INFLUX_ORG"
-	envInfluxDatabase      = "INFLUX_DATABASE"
-	envInfluxPrecision     = "INFLUX_PRECISION"
-	envInfluxGzipThreshold = "INFLUX_GZIP_THRESHOLD"
-	envInfluxWriteNoSync   = "INFLUX_WRITE_NO_SYNC"
-	envInfluxWriteTimeout  = "INFLUX_WRITE_TIMEOUT"
-	envInfluxQueryTimeout  = "INFLUX_QUERY_TIMEOUT"
+	envInfluxHost               = "INFLUX_HOST"
+	envInfluxToken              = "INFLUX_TOKEN"
+	envInfluxAuthScheme         = "INFLUX_AUTH_SCHEME"
+	envInfluxOrg                = "INFLUX_ORG"
+	envInfluxDatabase           = "INFLUX_DATABASE"
+	envInfluxPrecision          = "INFLUX_PRECISION"
+	envInfluxGzipThreshold      = "INFLUX_GZIP_THRESHOLD"
+	envInfluxWriteNoSync        = "INFLUX_WRITE_NO_SYNC"
+	envInfluxWriteAcceptPartial = "INFLUX_WRITE_ACCEPT_PARTIAL"
+	envInfluxWriteTimeout       = "INFLUX_WRITE_TIMEOUT"
+	envInfluxQueryTimeout       = "INFLUX_QUERY_TIMEOUT"
 )
 
 const (
-	connStrInfluxToken         = "token"
-	connStrInfluxAuthScheme    = "authScheme"
-	connStrInfluxOrg           = "org"
-	connStrInfluxDatabase      = "database"
-	connStrInfluxPrecision     = "precision"
-	connStrInfluxGzipThreshold = "gzipThreshold"
-	connStrInfluxWriteNoSync   = "writeNoSync"
+	connStrInfluxToken              = "token"
+	connStrInfluxAuthScheme         = "authScheme"
+	connStrInfluxOrg                = "org"
+	connStrInfluxDatabase           = "database"
+	connStrInfluxPrecision          = "precision"
+	connStrInfluxGzipThreshold      = "gzipThreshold"
+	connStrInfluxWriteNoSync        = "writeNoSync"
+	connStrInfluxWriteAcceptPartial = "writeAcceptPartial"
 )
 
 const (
@@ -209,6 +211,11 @@ func (c *ClientConfig) parse(connectionString string) error {
 			return err
 		}
 	}
+	if writeAcceptPartial, ok := values[connStrInfluxWriteAcceptPartial]; ok {
+		if err := c.parseWriteAcceptPartial(writeAcceptPartial[0]); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -242,6 +249,11 @@ func (c *ClientConfig) env() error {
 	}
 	if writeNoSync, ok := os.LookupEnv(envInfluxWriteNoSync); ok {
 		if err := c.parseWriteNoSync(writeNoSync); err != nil {
+			return err
+		}
+	}
+	if writeAcceptPartial, ok := os.LookupEnv(envInfluxWriteAcceptPartial); ok {
+		if err := c.parseWriteAcceptPartial(writeAcceptPartial); err != nil {
 			return err
 		}
 	}
@@ -316,6 +328,23 @@ func (c *ClientConfig) parseWriteNoSync(strVal string) error {
 	}
 
 	c.WriteOptions.NoSync = value
+
+	return nil
+}
+
+// parseWriteAcceptPartial parses and sets write option AcceptPartial.
+func (c *ClientConfig) parseWriteAcceptPartial(strVal string) error {
+	if c.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.WriteOptions = &options
+	}
+
+	value, err := strconv.ParseBool(strVal)
+	if err != nil {
+		return err
+	}
+
+	c.WriteOptions.AcceptPartial = value
 
 	return nil
 }
