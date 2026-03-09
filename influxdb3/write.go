@@ -24,6 +24,7 @@ package influxdb3
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -33,8 +34,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/gzip"
 )
 
 // timeType is the exact type for the Time
@@ -162,14 +161,19 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	var body io.Reader
 	var u *url.URL
 	var params url.Values
-	if options.NoSync {
-		// Setting no_sync=true is supported only in the v3 API.
+	if options.NoSync || options.AcceptPartial {
+		// no_sync and accept_partial are supported only in the v3 API.
 		u, _ = c.apiURL.Parse("v3/write_lp")
 		params = u.Query()
 		params.Set("org", c.config.Organization)
 		params.Set("db", database)
 		params.Set("precision", toV3PrecisionString(precision))
-		params.Set("no_sync", "true")
+		if options.NoSync {
+			params.Set("no_sync", "true")
+		}
+		if options.AcceptPartial {
+			params.Set("accept_partial", "true")
+		}
 	} else {
 		// By default, use the v2 API.
 		u, _ = c.apiURL.Parse("v2/write")
@@ -182,24 +186,16 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	body = bytes.NewReader(buff)
 	headers := http.Header{"Content-Type": {"text/plain; charset=utf-8"}}
 	if gzipThreshold > 0 && len(buff) >= gzipThreshold {
-		r, err := gzip.CompressWithGzip(body)
+		r, err := compressWithGzip(buff)
 		if err != nil {
 			return nil, fmt.Errorf("unable to compress body: %w", err)
 		}
 
-		// This is necessary for Request.GetBody to be set by NewRequest, ensuring that
-		// the Transport can retry the request when a network error occurs.
-		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/request.go#L884
-		// See: https://github.com/golang/go/blob/726d898c92ed0159f283f324478d00f15419f476/src/net/http/transport.go#L89-L92
-		//
-		// It is particularly useful for handling transient errors in HTTP/2 and persistent
-		// connections in standard HTTP.
+		// The request body must be replayable so NewRequest can set GetBody.
+		// compressWithGzip returns a replayable reader.
+		// This is particularly useful for transient HTTP/2 errors and persistent connections.
 		// Additionally, it helps manage graceful HTTP/2 shutdowns (e.g. GOAWAY frames).
-		b, err := io.ReadAll(r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read compressed body: %w", err)
-		}
-		body = bytes.NewReader(b)
+		body = r
 
 		headers["Content-Encoding"] = []string{"gzip"}
 	}
@@ -227,10 +223,14 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		var svErr *ServerError
-		if options.NoSync && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
+		if (options.NoSync || options.AcceptPartial) && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
-			// Server does not support the v3 write API, can't use the NoSync option.
-			return errors.New("server doesn't support write with NoSync=true (supported by InfluxDB 3 Core/Enterprise servers only)")
+			// Server does not support the v3 write API, can't use NoSync/AcceptPartial options.
+			return fmt.Errorf(
+				"server doesn't support v3 write options (NoSync=%t, AcceptPartial=%t; supported by InfluxDB 3 Core/Enterprise servers only)",
+				options.NoSync,
+				options.AcceptPartial,
+			)
 		}
 		return err
 	}
@@ -399,4 +399,18 @@ func toV3PrecisionString(precision Precision) string {
 		return "second"
 	}
 	panic(fmt.Errorf("unknown precision value %d", precision))
+}
+
+// compressWithGzip compresses data and returns it as a replayable bytes.Reader.
+func compressWithGzip(data []byte) (*bytes.Reader, error) {
+	var compressed bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressed)
+	if _, err := gzipWriter.Write(data); err != nil {
+		_ = gzipWriter.Close()
+		return nil, err
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(compressed.Bytes()), nil
 }
