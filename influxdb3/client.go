@@ -349,7 +349,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 		req.Header.Set("Authorization", c.authorization)
 	}
 
-	resp, err := c.config.HTTPClient.Do(req) //nolint:gosec // it is caller's responsibility to use trusted host
+	resp, err := c.config.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %w", fullURL, err)
 	}
