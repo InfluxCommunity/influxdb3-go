@@ -10,6 +10,7 @@
    - Direct use of `lineprotocol.Precision` is deprecated; prefer `influxdb3.Precision` constants.
 2. [#234](https://github.com/InfluxCommunity/influxdb3-go/pull/234): Support partial writes via `WithAcceptPartial` write option.
    See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
+3. [#238](https://github.com/InfluxCommunity/influxdb3-go/pull/238): Support `arrow.NULL` data type in query response iterator.
 
 ## 2.13.0 [2026-02-19]
 
