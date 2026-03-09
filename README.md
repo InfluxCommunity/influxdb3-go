@@ -138,7 +138,7 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
      <summary>linux/macos</summary>
 
    ```sh
-   export INFLUX_URL="https://cluster.influxdata.io/"
+   export INFLUX_HOST="https://cluster.influxdata.io/"
    export INFLUX_TOKEN="DATABASE_TOKEN"
    export INFLUX_DATABASE="DATABASE_NAME"
    ```
@@ -149,7 +149,7 @@ Replace the following with your own [credentials](#influxdb-v3-credentials):
      <summary>windows</summary>
 
    ```powershell
-   setx INFLUX_URL "https://cluster.influxdata.io/"
+   setx INFLUX_HOST "https://cluster.influxdata.io/"
    setx INFLUX_TOKEN "DATABASE_TOKEN"
    setx INFLUX_DATABASE "DATABASE_NAME"
    ```

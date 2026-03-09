@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// Retrieve credentials from environment variables.
-	url := os.Getenv("INFLUX_URL")
+	host := os.Getenv("INFLUX_HOST")
 	token := os.Getenv("INFLUX_TOKEN")
 	database := os.Getenv("INFLUX_DATABASE")
 
@@ -42,7 +42,7 @@ func main() {
 		It will override these properties in your pre-configured Http client
 	*/
 	config := influxdb3.ClientConfig{
-		Host:       url,
+		Host:       host,
 		Token:      token,
 		Database:   database,
 		HTTPClient: httpClient,

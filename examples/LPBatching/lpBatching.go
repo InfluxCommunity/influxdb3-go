@@ -21,7 +21,7 @@ func main() {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Retrieve credentials from environment variables.
-	url := os.Getenv("INFLUX_URL")
+	host := os.Getenv("INFLUX_HOST")
 	token := os.Getenv("INFLUX_TOKEN")
 	database := os.Getenv("INFLUX_DATABASE")
 
@@ -32,7 +32,7 @@ func main() {
 
 	// Instantiate a client using your credentials.
 	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:     url,
+		Host:     host,
 		Token:    token,
 		Database: database,
 	})
