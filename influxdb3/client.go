@@ -409,17 +409,13 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
 			if isWriteEndpoint(endpointPath) {
-				lineErrors := parsePartialWriteLineErrors(httpError.Data)
-				for i, lineError := range lineErrors {
+				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
+
+				for i, detail := range details {
 					if i == 0 {
 						httpError.Message += ":"
 					}
-					httpError.Message += fmt.Sprintf(
-						"\n\tline %d: %s (%s)",
-						lineError.LineNumber,
-						lineError.ErrorMessage,
-						lineError.OriginalLine,
-					)
+					httpError.Message += "\n\t" + detail
 				}
 				if len(lineErrors) > 0 {
 					httpError.Headers = r.Header
@@ -443,29 +439,85 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 	return &httpError.ServerError
 }
 
-func parsePartialWriteLineErrors(raw json.RawMessage) []PartialWriteLineError {
+func parsePartialWriteLineErrorInfo(raw json.RawMessage) ([]PartialWriteLineError, []string) {
 	if len(raw) == 0 || strings.EqualFold(strings.TrimSpace(string(raw)), "null") {
-		return nil
+		return nil, nil
 	}
 
-	var rawItems []json.RawMessage
-	if err := json.Unmarshal(raw, &rawItems); err == nil {
-		lineErrors := make([]PartialWriteLineError, 0, len(rawItems))
-		for _, rawItem := range rawItems {
-			lineError, ok := parsePartialWriteLineError(rawItem)
-			if ok {
-				lineErrors = append(lineErrors, lineError)
-			}
-		}
-		return lineErrors
+	if lineErrors, ok := parsePartialWriteTypedDataArray(raw); ok {
+		return lineErrors, formatPartialWriteLineErrorDetails(lineErrors)
+	}
+
+	if details, ok := parsePartialWriteRawArrayDetails(raw); ok {
+		return nil, details
 	}
 
 	lineError, ok := parsePartialWriteLineError(raw)
 	if ok {
-		return []PartialWriteLineError{lineError}
+		lineErrors := []PartialWriteLineError{lineError}
+		return lineErrors, formatPartialWriteLineErrorDetails(lineErrors)
 	}
 
-	return nil
+	return nil, nil
+}
+
+type partialWriteDataItem struct {
+	ErrorMessage string `json:"error_message"`
+	LineNumber   int    `json:"line_number"`
+	OriginalLine string `json:"original_line"`
+}
+
+func parsePartialWriteTypedDataArray(raw json.RawMessage) ([]PartialWriteLineError, bool) {
+	var items []*partialWriteDataItem
+	if err := json.Unmarshal(raw, &items); err != nil {
+		return nil, false
+	}
+
+	lineErrors := make([]PartialWriteLineError, 0, len(items))
+	for _, item := range items {
+		if item == nil || item.ErrorMessage == "" {
+			continue
+		}
+		lineErrors = append(lineErrors, PartialWriteLineError{
+			ErrorMessage: item.ErrorMessage,
+			LineNumber:   item.LineNumber,
+			OriginalLine: item.OriginalLine,
+		})
+	}
+	return lineErrors, true
+}
+
+func formatPartialWriteLineErrorDetails(lineErrors []PartialWriteLineError) []string {
+	details := make([]string, 0, len(lineErrors))
+	for _, lineError := range lineErrors {
+		if lineError.LineNumber != 0 && lineError.OriginalLine != "" {
+			details = append(details, fmt.Sprintf(
+				"line %d: %s (%s)",
+				lineError.LineNumber,
+				lineError.ErrorMessage,
+				lineError.OriginalLine,
+			))
+		} else if lineError.ErrorMessage != "" {
+			details = append(details, lineError.ErrorMessage)
+		}
+	}
+	return details
+}
+
+func parsePartialWriteRawArrayDetails(raw json.RawMessage) ([]string, bool) {
+	var rawItems []json.RawMessage
+	if err := json.Unmarshal(raw, &rawItems); err != nil {
+		return nil, false
+	}
+
+	details := make([]string, 0, len(rawItems))
+	for _, rawItem := range rawItems {
+		s := strings.TrimSpace(string(rawItem))
+		if s != "" && !strings.EqualFold(s, "null") {
+			details = append(details, s)
+		}
+	}
+	return details, true
 }
 
 func parsePartialWriteLineError(raw json.RawMessage) (PartialWriteLineError, bool) {
