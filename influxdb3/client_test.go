@@ -815,6 +815,7 @@ func TestResolveError(t *testing.T) {
 		responseBody              string
 		expectedErrMessage        string
 		expectedPartialWriteError *PartialWriteError
+		requestPath               string
 	}{
 		{
 			name:               "V2 JSON message response",
@@ -879,6 +880,7 @@ func TestResolveError(t *testing.T) {
 					},
 				},
 			},
+			requestPath: "/api/v3/write_lp",
 		},
 		{
 			name:        "V3 parsing failed write_lp endpoint",
@@ -903,6 +905,16 @@ func TestResolveError(t *testing.T) {
 					},
 				},
 			},
+			requestPath: "/api/v3/write_lp",
+		},
+		{
+			name:        "V3 error with data field on non-write endpoint",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
+"line_number":2,"original_line":"temperatureroom=room"}]}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+			requestPath:        "/api/v1/ping",
 		},
 		{
 			name:               "V3 error with invalid data string",
@@ -955,6 +967,9 @@ func TestResolveError(t *testing.T) {
 
 			turl, err := url.Parse(ts.URL)
 			require.NoError(t, err)
+			if tc.requestPath != "" {
+				turl.Path = tc.requestPath
+			}
 
 			res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 				endpointURL: turl,
@@ -999,7 +1014,7 @@ func TestResolveErrorBodyReadError(t *testing.T) {
 			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
 		}
 
-		err := (&Client{}).resolveHTTPError(errResponse)
+		err := (&Client{}).resolveHTTPError(errResponse, "/api/v2/write")
 		require.Error(t, err, tc.name)
 		assert.Equal(t, "cannot read error response: simulated read error", err.Error(), tc.name)
 	}

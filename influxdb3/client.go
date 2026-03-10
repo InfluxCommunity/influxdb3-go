@@ -353,7 +353,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %w", fullURL, err)
 	}
-	err = c.resolveHTTPError(resp)
+	err = c.resolveHTTPError(resp, params.endpointURL.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +361,16 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 }
 
 // resolveHTTPError parses host error response and returns error with human-readable message
-func (c *Client) resolveHTTPError(r *http.Response) error {
+func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
+	isWriteEndpoint := func(path string) bool {
+		switch strings.TrimPrefix(path, "/") {
+		case "api/v2/write", "api/v3/write_lp":
+			return true
+		default:
+			return false
+		}
+	}
+
 	// successful status code range
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return nil
@@ -399,23 +408,25 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			lineErrors := parsePartialWriteLineErrors(httpError.Data)
-			for i, lineError := range lineErrors {
-				if i == 0 {
-					httpError.Message += ":"
+			if isWriteEndpoint(endpointPath) {
+				lineErrors := parsePartialWriteLineErrors(httpError.Data)
+				for i, lineError := range lineErrors {
+					if i == 0 {
+						httpError.Message += ":"
+					}
+					httpError.Message += fmt.Sprintf(
+						"\n\tline %d: %s (%s)",
+						lineError.LineNumber,
+						lineError.ErrorMessage,
+						lineError.OriginalLine,
+					)
 				}
-				httpError.Message += fmt.Sprintf(
-					"\n\tline %d: %s (%s)",
-					lineError.LineNumber,
-					lineError.ErrorMessage,
-					lineError.OriginalLine,
-				)
-			}
-			if len(lineErrors) > 0 {
-				httpError.Headers = r.Header
-				return &PartialWriteError{
-					ServerError: httpError.ServerError,
-					LineErrors:  lineErrors,
+				if len(lineErrors) > 0 {
+					httpError.Headers = r.Header
+					return &PartialWriteError{
+						ServerError: httpError.ServerError,
+						LineErrors:  lineErrors,
+					}
 				}
 			}
 		}
