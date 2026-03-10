@@ -471,7 +471,7 @@ func parsePartialWriteTypedDataArray(raw json.RawMessage) ([]PartialWriteLineErr
 			OriginalLine: item.OriginalLine,
 		})
 	}
-	return lineErrors, true
+	return lineErrors, len(lineErrors) > 0
 }
 
 func formatPartialWriteLineErrorDetails(lineErrors []PartialWriteLineError) []string {

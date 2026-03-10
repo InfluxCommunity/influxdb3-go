@@ -959,6 +959,14 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
+			name:         "V3 write error with array item without error_message falls back to raw details",
+			statusCode:   http.StatusBadRequest,
+			contentType:  "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"line_number":2,"original_line":"bad lp"}]}`,
+			expectedErrMessage: "partial write of line protocol occurred:\n" +
+				"\t{\"line_number\":2,\"original_line\":\"bad lp\"}",
+		},
+		{
 			name:               "V3 write error with empty data object",
 			statusCode:         http.StatusBadRequest,
 			contentType:        "application/json",
