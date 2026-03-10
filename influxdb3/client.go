@@ -402,7 +402,7 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 	}
 
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ctype == "application/json" || ctype == "" {
+	if ctype == "application/json" || ctype == "" { //nolint:nestif
 		err := json.Unmarshal(body, &httpError)
 		if err != nil && ctype != "" {
 			httpError.Message = fmt.Sprintf("cannot decode error response: %v", err)
