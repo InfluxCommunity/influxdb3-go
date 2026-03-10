@@ -2,6 +2,12 @@
 
 ## 2.14.0 [unreleased]
 
+### CI
+
+1. [#244](https://github.com/InfluxCommunity/influxdb3-go/pull/244):
+   - Update dependencies for vulnerabilities scan.
+   - Update test to modernize wait group usage.
+
 ### Features
 
 1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
