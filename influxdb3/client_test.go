@@ -884,11 +884,11 @@ func TestResolveError(t *testing.T) {
 			name:        "V3 write error parsing failed write_lp endpoint",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
-			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"` +
+			responseBody: `{"error":"partial write of line protocol occurred","data":{"error_message":"` +
 				`invalid column type for column 'temp', expected iox::column_type::field::float, got ` +
 				`iox::column_type::field::string",` +
 				`"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
-			expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
+			expectedErrMessage: "partial write of line protocol occurred:\n\tline 2: " +
 				"invalid column type for column 'temp', expected iox::column_type::field::float, " +
 				"got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)",
 			expectedPartialWriteError: &PartialWriteError{
@@ -905,7 +905,7 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
-			name:         "V3 write rror with textual line_number falls back to raw detail",
+			name:         "V3 write error with textual line_number falls back to raw detail",
 			statusCode:   http.StatusBadRequest,
 			contentType:  "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}`,
