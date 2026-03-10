@@ -846,14 +846,14 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: "cannot decode error response: unexpected end of JSON input",
 		},
 		{
-			name:               "V3  error field",
+			name:               "V3 write error field",
 			statusCode:         http.StatusBadRequest,
 			contentType:        "application/json",
 			responseBody:       `{"error": "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"}`,
 			expectedErrMessage: "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |",
 		},
 		{
-			name:       "V3 error with data field,no content type",
+			name:       "V3 write error with data field,no content type",
 			statusCode: http.StatusBadRequest,
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
 "line_number":2,"original_line":"temperatureroom=room"},
@@ -881,7 +881,7 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
-			name:        "V3 parsing failed write_lp endpoint",
+			name:        "V3 write error parsing failed write_lp endpoint",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
 			responseBody: `{"error":"parsing failed for write_lp endpoint","data":{"error_message":"` +
@@ -905,7 +905,7 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
-			name:         "V3 error with textual line_number falls back to raw detail",
+			name:         "V3 write rror with textual line_number falls back to raw detail",
 			statusCode:   http.StatusBadRequest,
 			contentType:  "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}`,
@@ -913,7 +913,7 @@ func TestResolveError(t *testing.T) {
 				"\t{\"error_message\":\"bad line\",\"line_number\":\"x\",\"original_line\":\"bad lp\"}",
 		},
 		{
-			name:         "V3 error with primitive item falls back to raw details",
+			name:         "V3 write error with primitive item falls back to raw details",
 			statusCode:   http.StatusBadRequest,
 			contentType:  "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[1,{"error_message":"bad line","line_number":2,"original_line":"bad lp"}]}`,
@@ -922,7 +922,7 @@ func TestResolveError(t *testing.T) {
 				"\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}",
 		},
 		{
-			name:         "V3 error with array of strings falls back to raw details",
+			name:         "V3 write error with array of strings falls back to raw details",
 			statusCode:   http.StatusBadRequest,
 			contentType:  "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":["bad line 1","bad line 2"]}`,
@@ -931,22 +931,35 @@ func TestResolveError(t *testing.T) {
 				"\t\"bad line 2\"",
 		},
 		{
-			name:        "V3 error with data field on non-write endpoint",
+			name:        "V3 write error with data field on non-write endpoint",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
 "line_number":2,"original_line":"temperatureroom=room"}]}`,
-			expectedErrMessage: "partial write of line protocol occurred",
+			expectedErrMessage: `partial write of line protocol occurred:
+	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)`,
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
+						LineNumber:   2,
+						OriginalLine: "temperatureroom=room",
+					},
+				},
+			},
 		},
 		{
-			name:               "V3 error with invalid data string",
+			name:               "V3 write error with invalid data string",
 			statusCode:         http.StatusBadRequest,
 			contentType:        "application/json",
 			responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
 			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
-			name:               "V3 error with empty data object",
+			name:               "V3 write error with empty data object",
 			statusCode:         http.StatusBadRequest,
 			contentType:        "application/json",
 			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
@@ -990,9 +1003,6 @@ func TestResolveError(t *testing.T) {
 			turl, err := url.Parse(ts.URL)
 			require.NoError(t, err)
 			turl.Path = "/api/v3/write_lp"
-			if tc.name == "V3 error with data field on non-write endpoint" {
-				turl.Path = "/api/v1/ping"
-			}
 
 			res, err := client.makeAPICall(context.Background(), httpParams{ //nolint:bodyclose
 				endpointURL: turl,
@@ -1037,7 +1047,7 @@ func TestResolveErrorBodyReadError(t *testing.T) {
 			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
 		}
 
-		err := (&Client{}).resolveHTTPError(errResponse, "/api/v2/write")
+		err := (&Client{}).resolveHTTPError(errResponse)
 		require.Error(t, err, tc.name)
 		assert.Equal(t, "cannot read error response: simulated read error", err.Error(), tc.name)
 	}

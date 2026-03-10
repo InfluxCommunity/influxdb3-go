@@ -353,7 +353,7 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	if err != nil {
 		return nil, fmt.Errorf("error calling %s: %w", fullURL, err)
 	}
-	err = c.resolveHTTPError(resp, params.endpointURL.Path)
+	err = c.resolveHTTPError(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -361,23 +361,12 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 }
 
 // resolveHTTPError parses host error response and returns error with human-readable message
-func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
-	isWriteEndpoint := func(path string) bool {
-		switch strings.TrimPrefix(path, "/") {
-		case "api/v2/write", "api/v3/write_lp":
-			return true
-		default:
-			return false
-		}
-	}
-
+func (c *Client) resolveHTTPError(r *http.Response) error {
 	// successful status code range
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return nil
 	}
-	defer func() {
-		_ = r.Body.Close()
-	}()
+	defer r.Body.Close()
 
 	var httpError struct {
 		ServerError
@@ -409,7 +398,7 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 		}
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			if isWriteEndpoint(endpointPath) {
+			if strings.Contains(httpError.Error, "partial write") {
 				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
 				if len(details) > 0 {
 					httpError.Message += ":\n\t" + strings.Join(details, "\n\t")
