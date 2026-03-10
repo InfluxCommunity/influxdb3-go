@@ -881,7 +881,7 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
-			name:        "V3 write error parsing failed write_lp endpoint",
+			name:        "V3 write error with data object parses as partial",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":{"error_message":"` +
@@ -931,7 +931,7 @@ func TestResolveError(t *testing.T) {
 				"\t\"bad line 2\"",
 		},
 		{
-			name:        "V3 write error with data field on non-write endpoint",
+			name:        "V3 write error with data field parses as partial",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
