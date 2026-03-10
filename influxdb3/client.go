@@ -400,6 +400,7 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 		httpError.Headers = r.Header
 		return &httpError.ServerError
 	}
+
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if ctype == "application/json" || ctype == "" {
 		err := json.Unmarshal(body, &httpError)
@@ -410,12 +411,8 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 			httpError.Message = httpError.Error
 			if isWriteEndpoint(endpointPath) {
 				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
-
-				for i, detail := range details {
-					if i == 0 {
-						httpError.Message += ":"
-					}
-					httpError.Message += "\n\t" + detail
+				if len(details) > 0 {
+					httpError.Message += ":\n\t" + strings.Join(details, "\n\t")
 				}
 				if len(lineErrors) > 0 {
 					httpError.Headers = r.Header
@@ -427,6 +424,7 @@ func (c *Client) resolveHTTPError(r *http.Response, endpointPath string) error {
 			}
 		}
 	}
+
 	if httpError.Message == "" {
 		if len(body) > 0 {
 			httpError.Message = string(body)
