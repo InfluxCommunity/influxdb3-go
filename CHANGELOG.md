@@ -8,6 +8,7 @@
    - Update dependencies for vulnerabilities scan.
    - Update test to modernize wait group usage.
    - The minimum supported Go version has increased for this release.
+
 ### Features
 
 1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
