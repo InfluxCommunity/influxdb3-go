@@ -151,11 +151,13 @@ func TestThreadSafety(t *testing.T) {
 	)
 
 	for range 25 {
-		wg.Go(func() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			for range 4 {
 				b.Add(&influxdb3.Point{})
 			}
-		})
+		}()
 	}
 
 	wg.Wait()
