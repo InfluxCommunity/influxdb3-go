@@ -249,13 +249,11 @@ func TestLPThreadSafety(t *testing.T) {
 		}))
 
 	for range 25 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range 4 {
 				lpb.Add(testString)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
