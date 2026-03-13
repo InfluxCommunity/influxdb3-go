@@ -1033,6 +1033,22 @@ func TestResolveError(t *testing.T) {
 				},
 			},
 			{
+				name:         "V3 write error with typed item missing line details keeps message-only detail",
+				statusCode:   http.StatusBadRequest,
+				contentType:  "application/json",
+				responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line"}]}`,
+				expectedErrMessage: "partial write of line protocol occurred:\n" +
+					"\tbad line",
+				expectedPartialWriteError: &PartialWriteError{
+					ServerError: ServerError{
+						StatusCode: http.StatusBadRequest,
+					},
+					LineErrors: []PartialWriteLineError{
+						{ErrorMessage: "bad line"},
+					},
+				},
+			},
+			{
 				name:               "V3 write error with invalid data string",
 				statusCode:         http.StatusBadRequest,
 				contentType:        "application/json",
@@ -1047,18 +1063,25 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: "partial write of line protocol occurred:\n" +
 				"\t{\"line_number\":2,\"original_line\":\"bad lp\"}",
 		},
-		{
-			name:               "V3 write error with empty data object",
-			statusCode:         http.StatusBadRequest,
-			contentType:        "application/json",
-			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
-			expectedErrMessage: "partial write of line protocol occurred",
-		},
-		{
-			name:               "No error message",
-			statusCode:         http.StatusInternalServerError,
-			expectedErrMessage: `500 Internal Server Error`,
-		},
+			{
+				name:               "V3 write error with empty data object",
+				statusCode:         http.StatusBadRequest,
+				contentType:        "application/json",
+				responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
+				expectedErrMessage: "partial write of line protocol occurred",
+			},
+			{
+				name:               "V3 write error with null data",
+				statusCode:         http.StatusBadRequest,
+				contentType:        "application/json",
+				responseBody:       `{"error":"partial write of line protocol occurred","data":null}`,
+				expectedErrMessage: "partial write of line protocol occurred",
+			},
+			{
+				name:               "No error message",
+				statusCode:         http.StatusInternalServerError,
+				expectedErrMessage: `500 Internal Server Error`,
+			},
 		{
 			name:               "Plain text response",
 			responseBody:       `error in InfluxQL statement: parsing error: invalid InfluxQL statement at pos 0. Parsing Error: Nom("databases", Fail)`,
