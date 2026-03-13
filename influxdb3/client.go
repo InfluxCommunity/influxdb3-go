@@ -365,8 +365,8 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 }
 
 const (
-	msgPartialWriteOccurred = "partial write of line protocol occurred" // v3 endpoint with accept_partil=true error
-	msgParsingFailedLp      = "parsing failed for write_lp endpoint"    // v3 endpoint with accept_partil=false
+	msgPartialWriteOccurred = "partial write of line protocol occurred" // v3 endpoint with accept_partial=true error
+	msgParsingFailedLp      = "parsing failed for write_lp endpoint"    // v3 endpoint with accept_partial=false
 )
 
 // resolveHTTPError parses host error response and returns error with human-readable message
