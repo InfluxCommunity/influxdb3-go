@@ -446,7 +446,8 @@ func TestWriteError(t *testing.T) {
 
 	err = client.Write(context.Background(), []byte("test,type=negative val="))
 	require.Error(t, err)
-	assert.NotPanics(t, func() { _ = err.(*influxdb3.ServerError) })
+	var serverErr *influxdb3.ServerError
+	require.ErrorAs(t, err, &serverErr)
 }
 
 func TestEscapedStringValues(t *testing.T) {

@@ -79,6 +79,7 @@ linters:
         path: influxdb3/query_iterator\.go,influxdb3/point_value_iterator\.go
       - linters:
           - goconst
+          - maintidx
           - paralleltest
           - tagalign
           - testableexamples
