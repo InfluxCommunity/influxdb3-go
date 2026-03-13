@@ -4,13 +4,13 @@
 
 ### Features
 
-1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `TagOrder` write option.
+1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
    See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
    - Point and struct writes now use custom line protocol marshaling in this client; dependency on `github.com/influxdata/line-protocol/v2` will be dropped in a future release.
    - Direct use of `lineprotocol.Precision` is deprecated; prefer `influxdb3.Precision` constants.
 2. [#234](https://github.com/InfluxCommunity/influxdb3-go/pull/234): Support partial writes via `AcceptPartial` write option.
    See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
-3. [#238](https://github.com/InfluxCommunity/influxdb3-go/pull/238): Support `arrow.NULL` data type in query response iterator
+3. [#238](https://github.com/InfluxCommunity/influxdb3-go/pull/238): Support `arrow.NULL` data type in query response iterator.
 
 ### BREAKING CHANGES
 
