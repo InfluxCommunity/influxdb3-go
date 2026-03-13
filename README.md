@@ -309,7 +309,7 @@ if err != nil {
 }
 ```
 
-With InfluxDB Core/Enterprise, when a write contains rejected lines and returns an error, the message starts with:
+With InfluxDB Core/Enterprise, when a write request fails due to one or more invalid lines, the error message starts with:
 
 - `partial write of line protocol occurred` when partial writes are enabled.
 - `parsing failed for write_lp endpoint` when partial writes are disabled.
