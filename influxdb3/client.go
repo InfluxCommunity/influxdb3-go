@@ -245,8 +245,10 @@ func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, con
 //   - gzipThreshold - payload size threshold for gzipping data
 //   - writeNoSync - bool value whether to skip waiting for WAL persistence on write.
 //     (See WriteOptions.NoSync for more details)
-//   - writeAcceptPartial - bool value whether to accept partial writes on v3 write endpoint.
+//   - writeAcceptPartial - bool value whether to accept partial writes.
 //     (See WriteOptions.AcceptPartial for more details)
+//   - writeUseV2Api - bool value whether to use V2 compatibility write API.
+//     (See WriteOptions.UseV2Api for more details)
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
@@ -267,8 +269,10 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 //   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
 //   - INFLUX_WRITE_NO_SYNC - bool value whether to skip waiting for WAL persistence on write
 //     (See WriteOptions.NoSync for more details)
-//   - INFLUX_WRITE_ACCEPT_PARTIAL - bool value whether to accept partial writes on v3 write endpoint
+//   - INFLUX_WRITE_ACCEPT_PARTIAL - bool value whether to accept partial writes
 //     (See WriteOptions.AcceptPartial for more details)
+//   - INFLUX_WRITE_USE_V2_API - bool value whether to use V2 compatibility write API
+//     (See WriteOptions.UseV2Api for more details)
 //   - INFLUX_WRITE_TIMEOUT - duration value (e.g. 10s) to determine how long to wait for a write response
 //   - INFLUX_QUERY_TIMEOUT - duration value (e.g. 10s) applied to queries for calculating a context response Deadline
 func NewFromEnv() (*Client, error) {

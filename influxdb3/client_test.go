@@ -429,6 +429,23 @@ func TestNewFromConnectionString(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeUseV2Api",
+			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&writeUseV2Api=true",
+			cfg: &ClientConfig{
+				Host:         "https://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      true,
+				},
+			},
+		},
+		{
 			name: "with precision long value - second",
 			cs:   "https://host:8086?token=abc&org=my-org&database=my-db&precision=second",
 			cfg: &ClientConfig{
@@ -471,6 +488,11 @@ func TestNewFromConnectionString(t *testing.T) {
 		{
 			name: "invalid writeAcceptPartial",
 			cs:   "https://host:8086?token=abc&writeAcceptPartial=truuu",
+			err:  "invalid syntax",
+		},
+		{
+			name: "invalid writeUseV2Api",
+			cs:   "https://host:8086?token=abc&writeUseV2Api=truuu",
 			err:  "invalid syntax",
 		},
 	}
@@ -606,6 +628,29 @@ func TestNewFromEnv(t *testing.T) {
 			},
 		},
 		{
+			name: "with writeUseV2Api env",
+			vars: map[string]string{
+				"INFLUX_HOST":             "http://host:8086",
+				"INFLUX_TOKEN":            "abc",
+				"INFLUX_ORG":              "my-org",
+				"INFLUX_DATABASE":         "my-db",
+				"INFLUX_WRITE_USE_V2_API": "true",
+			},
+			cfg: &ClientConfig{
+				Host:         "http://host:8086",
+				Token:        "abc",
+				Organization: "my-org",
+				Database:     "my-db",
+				WriteOptions: &WriteOptions{
+					Precision:     DefaultWriteOptions.Precision,
+					GzipThreshold: DefaultWriteOptions.GzipThreshold,
+					NoSync:        DefaultWriteOptions.NoSync,
+					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      true,
+				},
+			},
+		},
+		{
 			name: "with precision long value",
 			vars: map[string]string{
 				"INFLUX_HOST":      "http://host:8086",
@@ -660,6 +705,15 @@ func TestNewFromEnv(t *testing.T) {
 				"INFLUX_HOST":                 "http://host:8086",
 				"INFLUX_TOKEN":                "abc",
 				"INFLUX_WRITE_ACCEPT_PARTIAL": "truuu",
+			},
+			err: "invalid syntax",
+		},
+		{
+			name: "invalid writeUseV2Api env",
+			vars: map[string]string{
+				"INFLUX_HOST":             "http://host:8086",
+				"INFLUX_TOKEN":            "abc",
+				"INFLUX_WRITE_USE_V2_API": "truuu",
 			},
 			err: "invalid syntax",
 		},
@@ -732,6 +786,7 @@ func TestNewFromEnv(t *testing.T) {
 		os.Unsetenv(envInfluxGzipThreshold)
 		os.Unsetenv(envInfluxWriteNoSync)
 		os.Unsetenv(envInfluxWriteAcceptPartial)
+		os.Unsetenv(envInfluxWriteUseV2Api)
 		os.Unsetenv(envInfluxWriteTimeout)
 		os.Unsetenv(envInfluxQueryTimeout)
 	}
