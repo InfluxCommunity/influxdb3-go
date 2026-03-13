@@ -787,7 +787,7 @@ temperatureroom=room2value=20.268019
 temperature,room=room3 value=24.064857
 temperature,room=room4 value=43i`
 
-	err = client.Write(context.Background(), []byte(points))
+	err = client.Write(context.Background(), []byte(points), influxdb3.WithUseV2Api(true))
 
 	em := `invalid: write buffer error: line protocol parse failed: Expected at least one space character, got end of input`
 	require.Error(t, err)
@@ -809,35 +809,103 @@ func TestAcceptPartialWriteError(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	points := `temperature,room=room1 value=18.94647
-temperatureroom=room2value=20.268019
-temperature,room=room3 value=24.064857
-temperature,room=room4 value=43i`
+	points := `home,room=Sunroom temp=96 1735545600
+home,room=Sunroom temp="hi" 1735545610
+home,room=Sunroom temp=88i 1735545620`
 
-	err = client.Write(context.Background(), []byte(points), influxdb3.WithAcceptPartial(true))
-	require.Error(t, err)
-	em := `partial write of line protocol occurred:
-	line 2: Expected at least one space character, got end of input (temperatureroom=room)
-	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`
-	assert.Equal(t, em, err.Error())
+	testCases := []struct {
+		name               string
+		options            []influxdb3.WriteOption
+		expectedMessage    string
+		expectContains     bool
+		expectPartialError bool
+		expectedLineErrors []influxdb3.PartialWriteLineError
+	}{
+		{
+			name: "AcceptPartial=true",
+			options: []influxdb3.WriteOption{
+				influxdb3.WithAcceptPartial(true),
+			},
+			expectedMessage: `partial write of line protocol occurred:
+	line 2: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string (home,room=Sunroom te)
+	line 3: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::integer (home,room=Sunroom te)`,
+			expectPartialError: true,
+			expectedLineErrors: []influxdb3.PartialWriteLineError{
+				{
+					ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+					LineNumber:   2,
+					OriginalLine: "home,room=Sunroom te",
+				},
+				{
+					ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::integer",
+					LineNumber:   3,
+					OriginalLine: "home,room=Sunroom te",
+				},
+			},
+		},
+		{
+			name: "AcceptPartial=false",
+			options: []influxdb3.WriteOption{
+				influxdb3.WithAcceptPartial(false),
+			},
+			expectedMessage:    "parsing failed for write_lp endpoint",
+			expectContains:     true,
+			expectPartialError: true,
+			expectedLineErrors: []influxdb3.PartialWriteLineError{
+				{
+					ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+					LineNumber:   2,
+					OriginalLine: "home,room=Sunroom te",
+				},
+			},
+		},
+		{
+			name: "UseV2Api=true (default AcceptPartial=true)",
+			options: []influxdb3.WriteOption{
+				influxdb3.WithUseV2Api(true),
+			},
+			expectedMessage:    "invalid: write buffer error: line protocol parse failed: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+			expectContains:     true,
+			expectPartialError: false,
+		},
+		{
+			name: "UseV2Api=true and AcceptPartial=false",
+			options: []influxdb3.WriteOption{
+				influxdb3.WithUseV2Api(true),
+				influxdb3.WithAcceptPartial(false),
+			},
+			expectedMessage:    "invalid: write buffer error: line protocol parse failed: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+			expectContains:     true,
+			expectPartialError: false,
+		},
+	}
 
-	var partialErr *influxdb3.PartialWriteError
-	require.True(t, errors.As(err, &partialErr))
-	require.NotNil(t, partialErr)
-	require.Len(t, partialErr.LineErrors, 2)
-	assert.Equal(t, influxdb3.PartialWriteLineError{
-		ErrorMessage: "Expected at least one space character, got end of input",
-		LineNumber:   2,
-		OriginalLine: "temperatureroom=room",
-	}, partialErr.LineErrors[0])
-	assert.Equal(t, influxdb3.PartialWriteLineError{
-		ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
-		LineNumber:   4,
-		OriginalLine: "temperature,room=roo",
-	}, partialErr.LineErrors[1])
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err = client.Write(context.Background(), []byte(points), tc.options...)
+			require.Error(t, err)
+			if tc.expectContains {
+				assert.Contains(t, err.Error(), tc.expectedMessage)
+			} else {
+				assert.Equal(t, tc.expectedMessage, err.Error())
+			}
 
-	var serverErr *influxdb3.ServerError
-	require.True(t, errors.As(err, &serverErr))
-	require.NotNil(t, serverErr)
-	assert.Equal(t, partialErr.StatusCode, serverErr.StatusCode)
+			var partialErr *influxdb3.PartialWriteError
+			if tc.expectPartialError {
+				require.True(t, errors.As(err, &partialErr))
+				require.NotNil(t, partialErr)
+				require.NotEmpty(t, tc.expectedLineErrors)
+				assert.Equal(t, tc.expectedLineErrors, partialErr.LineErrors)
+			} else {
+				assert.False(t, errors.As(err, &partialErr))
+			}
+
+			var serverErr *influxdb3.ServerError
+			require.True(t, errors.As(err, &serverErr))
+			require.NotNil(t, serverErr)
+			if tc.expectPartialError {
+				assert.Equal(t, partialErr.StatusCode, serverErr.StatusCode)
+			}
+		})
+	}
 }

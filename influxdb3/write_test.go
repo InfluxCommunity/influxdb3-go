@@ -383,7 +383,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 }
 
 func TestWriteCorrectUrl(t *testing.T) {
-	correctPath := "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
+	correctPath := "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -410,169 +410,257 @@ func TestWriteCorrectUrl(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWriteCorrectUrlNoSync(t *testing.T) {
+func TestWriteToV3Server(t *testing.T) {
+	type testCase struct {
+		name        string
+		init        func(*WriteOptions)
+		opts        []WriteOption
+		correctPath string
+		expectedErr string
+	}
+
+	testCases := []testCase{
+		{
+			name:        "options NoSync unset",
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options NoSync false",
+			init: func(o *WriteOptions) {
+				o.NoSync = false
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options NoSync true",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
+		},
+		{
+			name: "WithNoSync true",
+			init: func(o *WriteOptions) {
+				o.NoSync = false
+			},
+			opts:        []WriteOption{WithNoSync(true)},
+			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
+		},
+		{
+			name: "WithNoSync false",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+			},
+			opts:        []WriteOption{WithNoSync(false)},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options AcceptPartial true",
+			init: func(o *WriteOptions) {
+				o.AcceptPartial = true
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name:        "WithAcceptPartial true",
+			opts:        []WriteOption{WithAcceptPartial(true)},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options NoSync true and AcceptPartial true",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+				o.AcceptPartial = true
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options NoSync true and AcceptPartial true with WithNoSync false",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+				o.AcceptPartial = true
+			},
+			opts:        []WriteOption{WithNoSync(false)},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+		},
+		{
+			name: "options NoSync true and AcceptPartial true with WithAcceptPartial false",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+				o.AcceptPartial = true
+			},
+			opts:        []WriteOption{WithAcceptPartial(false)},
+			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&no_sync=true&org=my-org&precision=millisecond",
+		},
+	}
+
 	var correctPath string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
 			return
+		}
+		if correctPath == "" {
+			t.Fatalf("unexpected request: %s", r.URL.String())
 		}
 		assert.EqualValues(t, correctPath, r.URL.String())
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
 
-	options := DefaultWriteOptions
-	options.Precision = Millisecond
-
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
 		Token:        "my-token",
 		Organization: "my-org",
 		Database:     "my-database",
-		WriteOptions: &options,
 	}
 
-	// options.NoSync unset
-	c, err := New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := DefaultWriteOptions
+			options.Precision = Millisecond
+			if tc.init != nil {
+				tc.init(&options)
+			}
+			clientConfig.WriteOptions = &options
 
-	// options.NoSync = false
-	options.NoSync = false
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
+			c, err := New(clientConfig)
+			require.NoError(t, err)
 
-	// options.NoSync = true
-	options.NoSync = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
-
-	// options.NoSync = false & WithNoSync(true)
-	options.NoSync = false
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(true))
-	assert.NoError(t, err)
-
-	// options.NoSync = true & WithNoSync(false)
-	options.NoSync = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
-	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(false))
-	assert.NoError(t, err)
-
-	// options.AcceptPartial = true
-	options = DefaultWriteOptions
-	options.Precision = Millisecond
-	options.AcceptPartial = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
-
-	// WithAcceptPartial(true)
-	options = DefaultWriteOptions
-	options.Precision = Millisecond
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"), WithAcceptPartial(true))
-	assert.NoError(t, err)
-
-	// options.NoSync=true & options.AcceptPartial=true
-	options = DefaultWriteOptions
-	options.Precision = Millisecond
-	options.NoSync = true
-	options.AcceptPartial = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
-
-	// options.NoSync=true & options.AcceptPartial=true & WithNoSync(false)
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"), WithNoSync(false))
-	assert.NoError(t, err)
-
-	// options.NoSync=true & options.AcceptPartial=true & WithAcceptPartial(false)
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"), WithAcceptPartial(false))
-	assert.NoError(t, err)
+			correctPath = tc.correctPath
+			err = c.Write(context.Background(), []byte("a f=1"), tc.opts...)
+			if tc.expectedErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedErr)
+			}
+		})
+	}
 }
 
-func TestWriteWithNoSyncToV2Server(t *testing.T) {
+func TestWriteToV2Server(t *testing.T) {
+	type testCase struct {
+		name        string
+		init        func(*WriteOptions)
+		opts        []WriteOption
+		correctPath string
+		expectedErr string
+	}
+
+	testCases := []testCase{
+		{
+			name: "options NoSync false routed to v3 and fails on v2-only backend",
+			init: func(o *WriteOptions) {
+				o.NoSync = false
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
+			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:false,AcceptPartial:true})",
+		},
+		{
+			name: "options UseV2Api true with default AcceptPartial true uses v2 endpoint",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+			},
+			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
+		},
+		{
+			name: "options NoSync true routed to v3 and fails on v2-only backend",
+			init: func(o *WriteOptions) {
+				o.NoSync = true
+			},
+			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
+			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:true,AcceptPartial:true})",
+		},
+		{
+			name: "options AcceptPartial false routed to v3 and fails on v2-only backend",
+			init: func(o *WriteOptions) {
+				o.AcceptPartial = false
+			},
+			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&org=my-org&precision=millisecond",
+			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:false,AcceptPartial:false})",
+		},
+		{
+			name: "options UseV2Api true with AcceptPartial false uses v2 endpoint",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+				o.AcceptPartial = false
+			},
+			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
+		},
+		{
+			name: "options UseV2Api true with WithAcceptPartial true uses v2 endpoint",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+			},
+			opts:        []WriteOption{WithAcceptPartial(true)},
+			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
+		},
+		{
+			name: "options UseV2Api true with WithNoSync true",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+			},
+			opts:        []WriteOption{WithNoSync(true)},
+			expectedErr: "invalid write options: NoSync cannot be used in V2 API",
+		},
+		{
+			name: "options UseV2Api true AcceptPartial false and WithNoSync true",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+				o.AcceptPartial = false
+			},
+			opts:        []WriteOption{WithNoSync(true)},
+			expectedErr: "invalid write options: NoSync cannot be used in V2 API",
+		},
+	}
+
 	var correctPath string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
 			return
 		}
+		if correctPath == "" {
+			t.Fatalf("unexpected request: %s", r.URL.String())
+		}
+		assert.EqualValues(t, correctPath, r.URL.String())
 		// Fails on v3 API calls.
 		if strings.Contains(r.URL.Path, "/api/v3/") {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
 		}
-		assert.EqualValues(t, correctPath, r.URL.String())
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
-
-	options := DefaultWriteOptions
-	options.Precision = Millisecond
 
 	clientConfig := ClientConfig{
 		Host:         ts.URL + "/path/",
 		Token:        "my-token",
 		Organization: "my-org",
 		Database:     "my-database",
-		WriteOptions: &options,
 	}
 
-	// options.NoSync = false
-	options.NoSync = false
-	c, err := New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms" // v2 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	assert.NoError(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := DefaultWriteOptions
+			options.Precision = Millisecond
+			if tc.init != nil {
+				tc.init(&options)
+			}
+			clientConfig.WriteOptions = &options
 
-	// options.NoSync = true
-	options.NoSync = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	// should fail, as v3 API is not supported
-	require.Error(t, err)
-	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=true, AcceptPartial=false")
+			c, err := New(clientConfig)
+			require.NoError(t, err)
 
-	// options.AcceptPartial = true
-	options = DefaultWriteOptions
-	options.Precision = Millisecond
-	options.AcceptPartial = true
-	c, err = New(clientConfig)
-	require.NoError(t, err)
-	correctPath = "/path/api/v3/write_lp?accept_partial=true&db=my-database&org=my-org&precision=millisecond" // v3 call
-	err = c.Write(context.Background(), []byte("a f=1"))
-	// should fail, as v3 API is not supported
-	require.Error(t, err)
-	assert.ErrorContains(t, err, "server doesn't support v3 write options (NoSync=false, AcceptPartial=true")
+			correctPath = tc.correctPath
+			err = c.Write(context.Background(), []byte("a f=1"), tc.opts...)
+			if tc.expectedErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedErr)
+			}
+		})
+	}
 }
 
 func TestWritePointsAndBytes(t *testing.T) {
@@ -632,7 +720,7 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := points2bytes(t, points, defaultTags)
-	correctPath := "/api/v2/write?bucket=db-x&org=&precision=ms"
+	correctPath := "/api/v3/write_lp?db=db-x&org=&precision=millisecond"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -652,9 +740,10 @@ func TestWritePointsWithOptionsDeprecated(t *testing.T) {
 		Database: "my-database",
 	})
 	options := WriteOptions{
-		Database:    "db-x",
-		Precision:   Millisecond,
-		DefaultTags: defaultTags,
+		Database:      "db-x",
+		Precision:     Millisecond,
+		DefaultTags:   defaultTags,
+		AcceptPartial: true,
 	}
 	require.NoError(t, err)
 	err = c.WritePointsWithOptions(context.Background(), &options, points...)
@@ -668,7 +757,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := points2bytes(t, points, defaultTags)
-	correctPath := "/api/v2/write?bucket=db-x&org=&precision=ms"
+	correctPath := "/api/v3/write_lp?db=db-x&org=&precision=millisecond"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -880,7 +969,7 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,rack=main,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
-	correctPath := "/api/v2/write?bucket=db-x&org=my-org&precision=s"
+	correctPath := "/api/v3/write_lp?db=db-x&org=my-org&precision=second"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -900,9 +989,10 @@ func TestWriteDataWithOptionsDeprecated(t *testing.T) {
 		Database:     "my-database",
 	})
 	options := WriteOptions{
-		Database:    "db-x",
-		Precision:   Second,
-		DefaultTags: defaultTags,
+		Database:      "db-x",
+		Precision:     Second,
+		DefaultTags:   defaultTags,
+		AcceptPartial: true,
 	}
 	require.NoError(t, err)
 	err = c.WriteDataWithOptions(context.Background(), &options, s)
@@ -933,7 +1023,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,rack=main,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
-	correctPath := "/api/v2/write?bucket=db-x&org=my-org&precision=s"
+	correctPath := "/api/v3/write_lp?db=db-x&org=my-org&precision=second"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
