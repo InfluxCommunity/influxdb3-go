@@ -104,6 +104,7 @@ func TestWriteOptions(t *testing.T) {
 		name string
 		opts []WriteOption
 		want *WriteOptions
+		err  string
 	}{
 		{
 			name: "default",
@@ -122,6 +123,7 @@ func TestWriteOptions(t *testing.T) {
 				Precision:     DefaultWriteOptions.Precision,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: DefaultWriteOptions.AcceptPartial,
 			},
 		},
 		{
@@ -132,6 +134,7 @@ func TestWriteOptions(t *testing.T) {
 				Precision:     Millisecond,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: DefaultWriteOptions.AcceptPartial,
 			},
 		},
 		{
@@ -159,6 +162,7 @@ func TestWriteOptions(t *testing.T) {
 				TagOrder:      []string{"region", "host"},
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: DefaultWriteOptions.AcceptPartial,
 			},
 		},
 		{
@@ -171,6 +175,62 @@ func TestWriteOptions(t *testing.T) {
 				AcceptPartial: true,
 			},
 		},
+		{
+			name: "override accept partial false",
+			opts: va(WithAcceptPartial(false)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: false,
+			},
+		},
+		{
+			name: "invalid use v2 api with no sync",
+			opts: va(WithUseV2Api(true), WithNoSync(true)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        true,
+				AcceptPartial: true,
+				UseV2Api:      true,
+			},
+			err: "invalid write options: NoSync cannot be used in V2 API",
+		},
+		{
+			name: "valid use v2 api with accept partial true",
+			opts: va(WithUseV2Api(true)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: true,
+				UseV2Api:      true,
+			},
+		},
+		{
+			name: "valid use v2 api with accept partial false",
+			opts: va(WithUseV2Api(true), WithAcceptPartial(false)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        DefaultWriteOptions.NoSync,
+				AcceptPartial: false,
+				UseV2Api:      true,
+			},
+		},
+		{
+			name: "invalid use v2 api with no sync true and accept partial false",
+			opts: va(WithUseV2Api(true), WithNoSync(true), WithAcceptPartial(false)),
+			want: &WriteOptions{
+				Precision:     DefaultWriteOptions.Precision,
+				GzipThreshold: DefaultWriteOptions.GzipThreshold,
+				NoSync:        true,
+				AcceptPartial: false,
+				UseV2Api:      true,
+			},
+			err: "invalid write options: NoSync cannot be used in V2 API",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -178,6 +238,19 @@ func TestWriteOptions(t *testing.T) {
 			t.Parallel()
 			options := fn(tc.opts...)
 			if diff := cmp.Diff(tc.want, options); diff != "" {
+				t.Fatal(diff)
+			}
+			err := options.validate()
+			if tc.err == "" {
+				if err != nil {
+					t.Fatalf("expected no validate error, got: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("expected validate error")
+			}
+			if diff := cmp.Diff(tc.err, err.Error()); diff != "" {
 				t.Fatal(diff)
 			}
 		})

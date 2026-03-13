@@ -271,9 +271,9 @@ data := []any{s1}
 err = client.WriteData(context.Background(), data)
 ```
 
-#### Control tag order for the first write (InfluxDB 3 Enterprise)
+#### Control column order on the first write
 
-In InfluxDB 3 Enterprise, the first write to a table determines physical tag column order.
+The first write to a table determines physical column order.
 Use `WithTagOrder()` to put high-priority query tags first:
 
 ```go
@@ -285,7 +285,8 @@ All remaining tags are appended in deterministic lexicographic order.
 
 #### Accept partial writes and inspect failed lines
 
-Use `WithAcceptPartial(true)` to accept partial writes.
+Partial writes are enabled by default.
+Set `AcceptPartial` to `false` to disable partial writes.
 When only some lines fail, the client returns a `*PartialWriteError` with line-level details.
 
 ```go
@@ -294,7 +295,7 @@ lp := []byte(
         "temperatureregion=us-east,host=server-1 value=60.25",
 )
 
-err = client.Write(context.Background(), lp, influxdb3.WithAcceptPartial(true))
+err = client.Write(context.Background(), lp)
 if err != nil {
     var partialErr *influxdb3.PartialWriteError
     if errors.As(err, &partialErr) {
@@ -307,6 +308,33 @@ if err != nil {
     }
 }
 ```
+
+With InfluxDB Core/Enterprise, when a write request fails due to one or more invalid lines, the error message starts with:
+
+- `partial write of line protocol occurred` when partial writes are enabled.
+- `parsing failed for write_lp endpoint` when partial writes are disabled.
+
+When partial writes are disabled, any rejected line causes all lines to be rejected.
+
+InfluxDB Clustered does not return this structured partial-write error format.
+
+#### Compatibility with InfluxDB Clustered
+
+For InfluxDB Clustered, enable `UseV2Api` for writes.
+
+Like other write options, this can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
+For example:
+
+```go
+client, err := influxdb3.New(influxdb3.ClientConfig{
+    Host: "https://your-host",
+    Token: "your-token",
+    WriteOptions: &influxdb3.WriteOptions{UseV2Api: true},
+})
+```
+
+Note: If `UseV2Api` is set, `AcceptPartial` is ignored because this compatibility mode does not support partial-write controls.
+Any rejected line causes all lines to be rejected.
 
 ### Query
 
