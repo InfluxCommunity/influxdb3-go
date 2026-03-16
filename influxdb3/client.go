@@ -364,11 +364,6 @@ func (c *Client) makeAPICall(ctx context.Context, params httpParams) (*http.Resp
 	return resp, nil
 }
 
-const (
-	msgPartialWriteOccurred = "partial write of line protocol occurred" // v3 endpoint with accept_partial=true error
-	msgParsingFailedLp      = "parsing failed for write_lp endpoint"    // v3 endpoint with accept_partial=false
-)
-
 // resolveHTTPError parses host error response and returns error with human-readable message
 func (c *Client) resolveHTTPError(r *http.Response) error {
 	// successful status code range
@@ -407,7 +402,7 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		}
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			if strings.Contains(httpError.Error, msgPartialWriteOccurred) || strings.Contains(httpError.Error, msgParsingFailedLp) {
+			if isPartialWriteMessage(httpError.Error) {
 				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
 				if len(details) > 0 {
 					httpError.Message += ":\n\t" + strings.Join(details, "\n\t")
