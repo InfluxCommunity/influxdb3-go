@@ -271,10 +271,10 @@ data := []any{s1}
 err = client.WriteData(context.Background(), data)
 ```
 
-#### Control column order on the first write
+#### Optimize first-write tag order for query performance
 
-The first write to a table determines physical column order.
-Use `WithTagOrder()` to put high-priority query tags first:
+The first write defines physical tag column order, which affects query performance; use `WithTagOrder()` to put frequently filtered tags first.
+For details, see [Sort tags by query priority](https://docs.influxdata.com/influxdb3/core/write-data/best-practices/optimize-writes/#sort-tags-by-query-priority).
 
 ```go
 err = client.WritePoints(context.Background(), points, influxdb3.WithTagOrder("region", "host"))
