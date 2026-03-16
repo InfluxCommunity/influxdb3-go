@@ -286,8 +286,16 @@ All remaining tags are appended in deterministic lexicographic order.
 #### Accept partial writes and inspect failed lines
 
 Partial writes are enabled by default.
+`AcceptPartial` can be configured in three ways:
+
+- client defaults via `WriteOptions{AcceptPartial: ...}`
+- environment variable / connection string (`INFLUX_WRITE_ACCEPT_PARTIAL` / `writeAcceptPartial`)
+- per-write override via `WithAcceptPartial(...)`
+
+The per-write override applies only to that write call.
+
 Set `AcceptPartial` to `false` to disable partial writes.
-When only some lines fail, the client returns a `*PartialWriteError` with line-level details.
+If the server rejects part of a batch, the client returns a `*PartialWriteError` with per-line details.
 
 ```go
 lp := []byte(
