@@ -2,6 +2,11 @@
 
 ## 2.14.0 [unreleased]
 
+### BREAKING CHANGES
+
+1. [#245](https://github.com/InfluxCommunity/influxdb3-go/pull/245): Adds `UseV2Api` write option and fixes partial writes support introduced in [#234](https://github.com/InfluxCommunity/influxdb3-go/pull/234).
+   Users of InfluxDB Clustered version must set this option to `true` for writing.
+
 ### Features
 
 1. [#227](https://github.com/InfluxCommunity/influxdb3-go/pull/227): Support custom tag order via `WithTagOrder` write option.
@@ -11,11 +16,6 @@
 2. [#234](https://github.com/InfluxCommunity/influxdb3-go/pull/234): Support partial writes via `AcceptPartial` write option.
    See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
 3. [#238](https://github.com/InfluxCommunity/influxdb3-go/pull/238): Support `arrow.NULL` data type in query response iterator.
-
-### BREAKING CHANGES
-
-1. [#245](https://github.com/InfluxCommunity/influxdb3-go/pull/245): Adds `UseV2Api` write option and fixes partial writes support introduced in [#234](https://github.com/InfluxCommunity/influxdb3-go/pull/234).
-   Users of InfluxDB Clustered version must set this option to `true` for writing.
 
 ## 2.13.0 [2026-02-19]
 
