@@ -20,6 +20,7 @@
 ### Dependencies
 
 1. [#249](https://github.com/InfluxCommunity/influxdb3-go/pull/249): Requires Go 1.25 or newer.
+
 ## 2.13.0 [2026-02-19]
 
 ### Features
