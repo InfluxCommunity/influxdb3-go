@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   default-go-image:
     type: string
-    default: "cimg/go:1.24"
+    default: "cimg/go:1.25"
 
 executors:
   docker-amd64-image:
@@ -64,7 +64,7 @@ jobs:
     parameters:
       go-image:
         type: string
-        default: "cimg/go:1.24"
+        default: "cimg/go:1.25"
       exe:
         type: string
         default: docker-amd64-image
@@ -103,9 +103,6 @@ jobs:
       - run:
           name: Run tests
           command: |
-            if [[ "$(go env GOVERSION)" == go1.24* ]]; then
-              export GOEXPERIMENT=nocoverageredesign
-            fi
             PKGS=$(go list ./... | grep -Ev '/examples/|/influxdb3/testutil')
             go test -v -race -cover -coverprofile=coverage.out --tags e2e ${PKGS}
       - run:
@@ -145,5 +142,5 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.25", "cimg/go:1.26" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.26" ]
       - lint
