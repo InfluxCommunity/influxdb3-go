@@ -64,7 +64,7 @@ jobs:
     parameters:
       go-image:
         type: string
-        default: "cimg/go:1.25"
+        default: << pipeline.parameters.default-go-image >>
       exe:
         type: string
         default: docker-amd64-image
