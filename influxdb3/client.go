@@ -245,8 +245,10 @@ func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, con
 //   - gzipThreshold - payload size threshold for gzipping data
 //   - writeNoSync - bool value whether to skip waiting for WAL persistence on write.
 //     (See WriteOptions.NoSync for more details)
-//   - writeAcceptPartial - bool value whether to accept partial writes on v3 write endpoint.
+//   - writeAcceptPartial - bool value whether to accept partial writes.
 //     (See WriteOptions.AcceptPartial for more details)
+//   - writeUseV2Api - bool value whether to use V2 compatibility write API.
+//     (See WriteOptions.UseV2Api for more details)
 func NewFromConnectionString(connectionString string) (*Client, error) {
 	cfg := ClientConfig{}
 	err := cfg.parse(connectionString)
@@ -267,8 +269,10 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 //   - INFLUX_GZIP_THRESHOLD - payload size threshold for gzipping data
 //   - INFLUX_WRITE_NO_SYNC - bool value whether to skip waiting for WAL persistence on write
 //     (See WriteOptions.NoSync for more details)
-//   - INFLUX_WRITE_ACCEPT_PARTIAL - bool value whether to accept partial writes on v3 write endpoint
+//   - INFLUX_WRITE_ACCEPT_PARTIAL - bool value whether to accept partial writes
 //     (See WriteOptions.AcceptPartial for more details)
+//   - INFLUX_WRITE_USE_V2_API - bool value whether to use V2 compatibility write API
+//     (See WriteOptions.UseV2Api for more details)
 //   - INFLUX_WRITE_TIMEOUT - duration value (e.g. 10s) to determine how long to wait for a write response
 //   - INFLUX_QUERY_TIMEOUT - duration value (e.g. 10s) applied to queries for calculating a context response Deadline
 func NewFromEnv() (*Client, error) {
@@ -366,9 +370,7 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return nil
 	}
-	defer func() {
-		_ = r.Body.Close()
-	}()
+	defer r.Body.Close()
 
 	var httpError struct {
 		ServerError
@@ -391,35 +393,31 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		httpError.Headers = r.Header
 		return &httpError.ServerError
 	}
+
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ctype == "application/json" || ctype == "" {
+	if ctype == "application/json" || ctype == "" { //nolint:nestif
 		err := json.Unmarshal(body, &httpError)
 		if err != nil && ctype != "" {
 			httpError.Message = fmt.Sprintf("cannot decode error response: %v", err)
 		}
 		if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			lineErrors := parsePartialWriteLineErrors(httpError.Data)
-			for i, lineError := range lineErrors {
-				if i == 0 {
-					httpError.Message += ":"
+			if isPartialWriteMessage(httpError.Error) {
+				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
+				if len(details) > 0 {
+					httpError.Message += ":\n\t" + strings.Join(details, "\n\t")
 				}
-				httpError.Message += fmt.Sprintf(
-					"\n\tline %d: %s (%s)",
-					lineError.LineNumber,
-					lineError.ErrorMessage,
-					lineError.OriginalLine,
-				)
-			}
-			if len(lineErrors) > 0 {
-				httpError.Headers = r.Header
-				return &PartialWriteError{
-					ServerError: httpError.ServerError,
-					LineErrors:  lineErrors,
+				if len(lineErrors) > 0 {
+					httpError.Headers = r.Header
+					return &PartialWriteError{
+						ServerError: httpError.ServerError,
+						LineErrors:  lineErrors,
+					}
 				}
 			}
 		}
 	}
+
 	if httpError.Message == "" {
 		if len(body) > 0 {
 			httpError.Message = string(body)
@@ -430,42 +428,4 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 
 	httpError.Headers = r.Header
 	return &httpError.ServerError
-}
-
-func parsePartialWriteLineErrors(raw json.RawMessage) []PartialWriteLineError {
-	if len(raw) == 0 || strings.EqualFold(strings.TrimSpace(string(raw)), "null") {
-		return nil
-	}
-
-	var rawItems []json.RawMessage
-	if err := json.Unmarshal(raw, &rawItems); err == nil {
-		lineErrors := make([]PartialWriteLineError, 0, len(rawItems))
-		for _, rawItem := range rawItems {
-			lineError, ok := parsePartialWriteLineError(rawItem)
-			if ok {
-				lineErrors = append(lineErrors, lineError)
-			}
-		}
-		return lineErrors
-	}
-
-	lineError, ok := parsePartialWriteLineError(raw)
-	if ok {
-		return []PartialWriteLineError{lineError}
-	}
-
-	return nil
-}
-
-func parsePartialWriteLineError(raw json.RawMessage) (PartialWriteLineError, bool) {
-	var lineError PartialWriteLineError
-	if err := json.Unmarshal(raw, &lineError); err != nil {
-		return PartialWriteLineError{}, false
-	}
-
-	if lineError.LineNumber == 0 && lineError.ErrorMessage == "" && lineError.OriginalLine == "" {
-		return PartialWriteLineError{}, false
-	}
-
-	return lineError, true
 }

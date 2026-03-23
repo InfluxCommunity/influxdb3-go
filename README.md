@@ -271,10 +271,10 @@ data := []any{s1}
 err = client.WriteData(context.Background(), data)
 ```
 
-#### Control tag order for the first write (InfluxDB 3 Enterprise)
+#### Optimize first-write tag order for query performance
 
-In InfluxDB 3 Enterprise, the first write to a table determines physical tag column order.
-Use `WithTagOrder()` to put high-priority query tags first:
+The first write defines physical tag column order, which affects query performance; use `WithTagOrder()` to put frequently filtered tags first.
+For details, see [Sort tags by query priority](https://docs.influxdata.com/influxdb3/core/write-data/best-practices/optimize-writes/#sort-tags-by-query-priority).
 
 ```go
 err = client.WritePoints(context.Background(), points, influxdb3.WithTagOrder("region", "host"))
@@ -285,8 +285,17 @@ All remaining tags are appended in deterministic lexicographic order.
 
 #### Accept partial writes and inspect failed lines
 
-Use `WithAcceptPartial(true)` to accept partial writes.
-When only some lines fail, the client returns a `*PartialWriteError` with line-level details.
+Partial writes are enabled by default.
+`AcceptPartial` can be configured in three ways:
+
+- client defaults via `WriteOptions{AcceptPartial: ...}`
+- environment variable / connection string (`INFLUX_WRITE_ACCEPT_PARTIAL` / `writeAcceptPartial`)
+- per-write override via `WithAcceptPartial(...)`
+
+The per-write override applies only to that write call.
+
+Set `AcceptPartial` to `false` to disable partial writes.
+If the server rejects part of a batch, the client returns a `*PartialWriteError` with per-line details.
 
 ```go
 lp := []byte(
@@ -294,7 +303,7 @@ lp := []byte(
         "temperatureregion=us-east,host=server-1 value=60.25",
 )
 
-err = client.Write(context.Background(), lp, influxdb3.WithAcceptPartial(true))
+err = client.Write(context.Background(), lp)
 if err != nil {
     var partialErr *influxdb3.PartialWriteError
     if errors.As(err, &partialErr) {
@@ -307,6 +316,33 @@ if err != nil {
     }
 }
 ```
+
+With InfluxDB Core/Enterprise, when a write request fails due to one or more invalid lines, the error message starts with:
+
+- `partial write of line protocol occurred` when partial writes are enabled.
+- `parsing failed for write_lp endpoint` when partial writes are disabled.
+
+When partial writes are disabled, any rejected line causes all lines to be rejected.
+
+InfluxDB Clustered does not return this structured partial-write error format.
+
+#### Compatibility with InfluxDB Clustered
+
+For InfluxDB Clustered, enable `UseV2Api` for writes.
+
+Like other write options, this can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
+For example:
+
+```go
+client, err := influxdb3.New(influxdb3.ClientConfig{
+    Host: "https://your-host",
+    Token: "your-token",
+    WriteOptions: &influxdb3.WriteOptions{UseV2Api: true},
+})
+```
+
+Note: If `UseV2Api` is set, `AcceptPartial` is ignored because this compatibility mode does not support partial-write controls.
+Any rejected line causes all lines to be rejected.
 
 ### Query
 

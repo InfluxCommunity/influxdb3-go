@@ -144,6 +144,10 @@ func (c *Client) WriteWithOptions(ctx context.Context, options *WriteOptions, bu
 }
 
 func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams, error) {
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
+
 	var database string
 	if options.Database != "" {
 		database = options.Database
@@ -161,8 +165,13 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 	var body io.Reader
 	var u *url.URL
 	var params url.Values
-	if options.NoSync || options.AcceptPartial {
-		// no_sync and accept_partial are supported only in the v3 API.
+	if options.UseV2Api {
+		u, _ = c.apiURL.Parse("v2/write")
+		params = u.Query()
+		params.Set("org", c.config.Organization)
+		params.Set("bucket", database)
+		params.Set("precision", precision.String())
+	} else {
 		u, _ = c.apiURL.Parse("v3/write_lp")
 		params = u.Query()
 		params.Set("org", c.config.Organization)
@@ -171,16 +180,9 @@ func (c *Client) makeHTTPParams(buff []byte, options *WriteOptions) (*httpParams
 		if options.NoSync {
 			params.Set("no_sync", "true")
 		}
-		if options.AcceptPartial {
-			params.Set("accept_partial", "true")
+		if !options.AcceptPartial {
+			params.Set("accept_partial", "false")
 		}
-	} else {
-		// By default, use the v2 API.
-		u, _ = c.apiURL.Parse("v2/write")
-		params = u.Query()
-		params.Set("org", c.config.Organization)
-		params.Set("bucket", database)
-		params.Set("precision", precision.String())
 	}
 	u.RawQuery = params.Encode()
 	body = bytes.NewReader(buff)
@@ -223,11 +225,11 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		var svErr *ServerError
-		if (options.NoSync || options.AcceptPartial) && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
+		if !options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
-			// Server does not support the v3 write API, can't use NoSync/AcceptPartial options.
 			return fmt.Errorf(
-				"server doesn't support v3 write options (NoSync=%t, AcceptPartial=%t; supported by InfluxDB 3 Core/Enterprise servers only)",
+				"server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
+				options.UseV2Api,
 				options.NoSync,
 				options.AcceptPartial,
 			)

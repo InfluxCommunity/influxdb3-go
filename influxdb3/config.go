@@ -44,6 +44,7 @@ const (
 	envInfluxGzipThreshold      = "INFLUX_GZIP_THRESHOLD"
 	envInfluxWriteNoSync        = "INFLUX_WRITE_NO_SYNC"
 	envInfluxWriteAcceptPartial = "INFLUX_WRITE_ACCEPT_PARTIAL"
+	envInfluxWriteUseV2Api      = "INFLUX_WRITE_USE_V2_API"
 	envInfluxWriteTimeout       = "INFLUX_WRITE_TIMEOUT"
 	envInfluxQueryTimeout       = "INFLUX_QUERY_TIMEOUT"
 )
@@ -57,6 +58,7 @@ const (
 	connStrInfluxGzipThreshold      = "gzipThreshold"
 	connStrInfluxWriteNoSync        = "writeNoSync"
 	connStrInfluxWriteAcceptPartial = "writeAcceptPartial"
+	connStrInfluxWriteUseV2Api      = "writeUseV2Api"
 )
 
 const (
@@ -216,6 +218,11 @@ func (c *ClientConfig) parse(connectionString string) error {
 			return err
 		}
 	}
+	if writeUseV2Api, ok := values[connStrInfluxWriteUseV2Api]; ok {
+		if err := c.parseWriteUseV2Api(writeUseV2Api[0]); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -254,6 +261,11 @@ func (c *ClientConfig) env() error {
 	}
 	if writeAcceptPartial, ok := os.LookupEnv(envInfluxWriteAcceptPartial); ok {
 		if err := c.parseWriteAcceptPartial(writeAcceptPartial); err != nil {
+			return err
+		}
+	}
+	if writeUseV2Api, ok := os.LookupEnv(envInfluxWriteUseV2Api); ok {
+		if err := c.parseWriteUseV2Api(writeUseV2Api); err != nil {
 			return err
 		}
 	}
@@ -345,6 +357,23 @@ func (c *ClientConfig) parseWriteAcceptPartial(strVal string) error {
 	}
 
 	c.WriteOptions.AcceptPartial = value
+
+	return nil
+}
+
+// parseWriteUseV2Api parses and sets write option UseV2Api.
+func (c *ClientConfig) parseWriteUseV2Api(strVal string) error {
+	if c.WriteOptions == nil {
+		options := DefaultWriteOptions
+		c.WriteOptions = &options
+	}
+
+	value, err := strconv.ParseBool(strVal)
+	if err != nil {
+		return err
+	}
+
+	c.WriteOptions.UseV2Api = value
 
 	return nil
 }
