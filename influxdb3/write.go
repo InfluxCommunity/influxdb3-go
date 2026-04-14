@@ -44,6 +44,11 @@ var timeType = reflect.TypeFor[time.Time]()
 // Points that serialize to an empty line (for example, all fields are nil/NaN/Inf)
 // are skipped. If all points are skipped, no request is sent and no error is returned.
 //
+// Warning: If the provided slice contains only one Point, and that Point
+// contains fields with nil/NaN/Inf values, those fields are not written to InfluxDB.
+// If such fields are later queried explicitly, for example,
+// "SELECT field_with_value, field_with_null_value FROM my_table" an error will be thrown.
+//
 // Parameters:
 //   - ctx: The context.Context to use for the request.
 //   - points: The points to write.
