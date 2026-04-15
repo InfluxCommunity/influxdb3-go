@@ -17,6 +17,10 @@
    See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
 3. [#238](https://github.com/InfluxCommunity/influxdb3-go/pull/238): Support `arrow.NULL` data type in query response iterator.
 
+### Dependencies
+
+1. [#249](https://github.com/InfluxCommunity/influxdb3-go/pull/249): Requires Go 1.25 or newer.
+
 ## 2.13.0 [2026-02-19]
 
 ### Features
