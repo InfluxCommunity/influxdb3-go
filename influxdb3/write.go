@@ -306,9 +306,7 @@ func (c *Client) writeData(ctx context.Context, points []any, options *WriteOpti
 func encode(x any, options *WriteOptions) ([]byte, error) {
 	t := reflect.TypeOf(x)
 	v := reflect.ValueOf(x)
-
-	p := reflect.Ptr
-	if t.Kind() == p {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 		v = v.Elem()
 	}
