@@ -71,6 +71,11 @@ linters:
           disabled: true
         - name: use-any
           disabled: true
+    goconst:
+      min-len: 5
+      min-occurrences: 3
+      ignore-tests: true
+      ignore-calls: true
   exclusions:
     generated: lax
     rules:
