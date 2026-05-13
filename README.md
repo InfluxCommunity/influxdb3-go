@@ -324,11 +324,12 @@ With InfluxDB Core/Enterprise, when a write request fails due to one or more inv
 
 When partial writes are disabled, any rejected line causes all lines to be rejected.
 
-InfluxDB Clustered does not return this structured partial-write error format.
+InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless use the V2 write
+compatibility endpoint and do not return this structured partial-write error format.
 
-#### Compatibility with InfluxDB Clustered
+#### Compatibility with InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless
 
-For InfluxDB Clustered, enable `UseV2Api` for writes.
+For InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless, enable `UseV2Api` for writes.
 
 Like other write options, this can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
 For example:

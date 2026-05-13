@@ -88,6 +88,7 @@ type WriteOptions struct {
 	AcceptPartial bool
 
 	// UseV2Api forces writes to the /api/v2/write compatibility endpoint.
+	// Required for InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless writes.
 	// Default value: false (writes use /api/v3/write_lp).
 	UseV2Api bool
 }
@@ -210,6 +211,7 @@ func WithAcceptPartial(acceptPartial bool) Option {
 
 // WithUseV2Api forces writes to the /api/v2/write compatibility endpoint.
 // In this mode, AcceptPartial is ignored because /api/v2/write does not support accept_partial.
+// This option is required for InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless writes.
 // NoSync is not supported in V2 API and results in a validation error.
 func WithUseV2Api(useV2Api bool) Option {
 	return func(o *options) {
