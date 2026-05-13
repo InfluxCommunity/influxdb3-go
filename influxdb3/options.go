@@ -70,7 +70,7 @@ type WriteOptions struct {
 	// NoSync=true means faster write but without the confirmation that the data was persisted.
 	//
 	// Note: This option is supported by InfluxDB 3 Core and Enterprise servers only.
-	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Cloud Serverless/Dedicated)
+	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Cloud Dedicated/Serverless)
 	// the write operation will fail with an error.
 	//
 	// Default value: false.
