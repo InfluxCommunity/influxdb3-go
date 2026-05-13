@@ -1,6 +1,10 @@
 # Change Log
 
-## 2.15.0 [unreleased]
+## 2.14.1 [unreleased]
+
+### Docs
+
+1. [#257](https://github.com/InfluxCommunity/influxdb3-go/pull/257): Clarify `UseV2Api` write guidance for InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless.
 
 ## 2.14.0 [2026-04-23]
 
