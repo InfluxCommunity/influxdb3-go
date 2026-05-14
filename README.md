@@ -328,13 +328,13 @@ InfluxDB Clustered does not return this structured partial-write error format.
 
 #### Compatibility with InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless
 
-Writes use the V2 compatibility endpoint (`/api/v2/write`) by default, so no additional configuration is required for these products.
+Writes use the V2 API write endpoint by default, so no additional configuration is required for these products.
 
 Like other write options, `UseV2Api` can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
 
-`NoSync` and `AcceptPartial=false` require the V3-specific write endpoint (`/api/v3/write_lp`), which is available with InfluxDB 3 Core/Enterprise. To use these options, set `UseV2Api=false` (or `WithUseV2Api(false)` per write).
+`NoSync` requires the V3 API write endpoint, which is available with InfluxDB 3 Core/Enterprise. `AcceptPartial` applies only to V3 writes and is ignored when using the V2 API write endpoint. To use `NoSync`, set `UseV2Api=false` (or `WithUseV2Api(false)` per write).
 
-Note: In V2 compatibility mode, `NoSync=true` and `AcceptPartial=false` return validation errors.
+Note: When writes use the V2 API write endpoint, `NoSync=true` returns a validation error. `AcceptPartial` is not used by this endpoint.
 
 ### Query
 

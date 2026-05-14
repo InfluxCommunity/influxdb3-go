@@ -233,7 +233,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		if options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v2/write") {
 			return fmt.Errorf(
-				"server doesn't support v2 write API (set UseV2Api=false; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
+				"server doesn't support the V2 write API endpoint (/api/v2/write) (set UseV2Api=false; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
 				options.UseV2Api,
 				options.NoSync,
 				options.AcceptPartial,
@@ -242,7 +242,7 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		if !options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
 			return fmt.Errorf(
-				"server doesn't support v3 write API (set UseV2Api=true; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
+				"server doesn't support the V3 write API endpoint (/api/v3/write_lp) (set UseV2Api=true; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
 				options.UseV2Api,
 				options.NoSync,
 				options.AcceptPartial,

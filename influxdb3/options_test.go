@@ -182,7 +182,7 @@ func TestWriteOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid default use v2 api with accept partial false",
+			name: "valid default use v2 api with accept partial false",
 			opts: va(WithAcceptPartial(false)),
 			want: &WriteOptions{
 				Precision:     DefaultWriteOptions.Precision,
@@ -191,7 +191,6 @@ func TestWriteOptions(t *testing.T) {
 				AcceptPartial: false,
 				UseV2Api:      true,
 			},
-			err: "invalid write options: AcceptPartial=false requires UseV2Api=false",
 		},
 		{
 			name: "invalid use v2 api with no sync",
@@ -217,7 +216,7 @@ func TestWriteOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid use v2 api with accept partial false",
+			name: "valid use v2 api with accept partial false",
 			opts: va(WithUseV2Api(true), WithAcceptPartial(false)),
 			want: &WriteOptions{
 				Precision:     DefaultWriteOptions.Precision,
@@ -226,7 +225,6 @@ func TestWriteOptions(t *testing.T) {
 				AcceptPartial: false,
 				UseV2Api:      true,
 			},
-			err: "invalid write options: AcceptPartial=false requires UseV2Api=false",
 		},
 		{
 			name: "invalid use v2 api with no sync true and accept partial false",

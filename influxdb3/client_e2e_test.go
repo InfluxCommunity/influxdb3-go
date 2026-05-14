@@ -877,8 +877,8 @@ home,room=Sunroom temp=88i 1735545620`
 				influxdb3.WithUseV2Api(true),
 				influxdb3.WithAcceptPartial(false),
 			},
-			expectedMessage:    "invalid write options: AcceptPartial=false requires UseV2Api=false",
-			expectContains:     false,
+			expectedMessage:    "invalid: write buffer error: line protocol parse failed: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
+			expectContains:     true,
 			expectPartialError: false,
 		},
 	}

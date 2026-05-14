@@ -76,17 +76,18 @@ type WriteOptions struct {
 	// Default value: false.
 	NoSync bool
 
-	// AcceptPartial controls partial-write behavior.
+	// AcceptPartial controls partial-write behavior for writes sent to /api/v3/write_lp
+	// (UseV2Api=false).
 	// Partial writes are enabled with accept_partial=true.
 	// Default value is true to match server default behavior.
 	// The client sends accept_partial=false only when set to false.
 	//
-	// If UseV2Api is true, AcceptPartial=false is invalid because writes are sent to /api/v2/write.
+	// For writes sent to the V2 API write endpoint (UseV2Api=true), this option is not used.
 	//
 	// Default value: true.
 	AcceptPartial bool
 
-	// UseV2Api forces writes to the /api/v2/write compatibility endpoint.
+	// UseV2Api forces writes to the V2 API write endpoint.
 	// Default value: true.
 	UseV2Api bool
 }
@@ -108,9 +109,6 @@ var DefaultWriteOptions = WriteOptions{
 func (o *WriteOptions) validate() error {
 	if o.UseV2Api && o.NoSync {
 		return errors.New("invalid write options: NoSync requires UseV2Api=false")
-	}
-	if o.UseV2Api && !o.AcceptPartial {
-		return errors.New("invalid write options: AcceptPartial=false requires UseV2Api=false")
 	}
 	return nil
 }
@@ -201,17 +199,18 @@ func WithNoSync(noSync bool) Option {
 }
 
 // WithAcceptPartial overrides AcceptPartial in Client.Write methods.
+// This option applies only to writes sent to the V3 API write endpoint (UseV2Api=false).
 // Partial writes are enabled with accept_partial=true.
 // The client sends accept_partial=false only when set to false.
-// AcceptPartial=false requires UseV2Api=false.
 func WithAcceptPartial(acceptPartial bool) Option {
 	return func(o *options) {
 		o.AcceptPartial = acceptPartial
 	}
 }
 
-// WithUseV2Api forces writes to the /api/v2/write compatibility endpoint.
-// In this mode, NoSync and AcceptPartial=false are not supported and result in validation errors.
+// WithUseV2Api forces writes to the V2 API write endpoint.
+// When writes use the V2 API write endpoint, NoSync is not supported and returns a validation error.
+// AcceptPartial is not used for writes sent to the V2 API write endpoint.
 func WithUseV2Api(useV2Api bool) Option {
 	return func(o *options) {
 		o.UseV2Api = useV2Api
