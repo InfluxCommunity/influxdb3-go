@@ -498,7 +498,8 @@ func TestWriteToV3Server(t *testing.T) {
 				o.UseV2Api = true
 			},
 			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
-			expectedErr: "server doesn't support the V2 write API endpoint (/api/v2/write) (set UseV2Api=false; write options: {UseV2Api:true,NoSync:false,AcceptPartial:true})",
+			expectedErr: "server doesn't support the V2 write API endpoint (/api/v2/write) " +
+				"(set UseV2Api=false; write options: {UseV2Api:true,NoSync:false,AcceptPartial:true})",
 		},
 	}
 
@@ -568,7 +569,8 @@ func TestWriteToV2Server(t *testing.T) {
 				o.NoSync = false
 			},
 			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) (set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:true})",
+			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) " +
+				"(set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:true})",
 		},
 		{
 			name: "options UseV2Api true with default AcceptPartial true uses v2 endpoint",
@@ -584,7 +586,8 @@ func TestWriteToV2Server(t *testing.T) {
 				o.NoSync = true
 			},
 			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) (set UseV2Api=true; write options: {UseV2Api:false,NoSync:true,AcceptPartial:true})",
+			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) " +
+				"(set UseV2Api=true; write options: {UseV2Api:false,NoSync:true,AcceptPartial:true})",
 		},
 		{
 			name: "options AcceptPartial false with default v2 write API uses v2 endpoint",
@@ -600,7 +603,8 @@ func TestWriteToV2Server(t *testing.T) {
 				o.AcceptPartial = false
 			},
 			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) (set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:false})",
+			expectedErr: "server doesn't support the V3 write API endpoint (/api/v3/write_lp) " +
+				"(set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:false})",
 		},
 		{
 			name: "options UseV2Api true with AcceptPartial false uses v2 endpoint",
