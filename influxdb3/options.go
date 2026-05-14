@@ -76,18 +76,18 @@ type WriteOptions struct {
 	// Default value: false.
 	NoSync bool
 
-	// AcceptPartial controls partial-write behavior for writes sent to /api/v3/write_lp
+	// AcceptPartial controls partial-write behavior for writes sent to the V3 API endpoint
 	// (UseV2Api=false).
 	// Partial writes are enabled with accept_partial=true.
 	// Default value is true to match server default behavior.
 	// The client sends accept_partial=false only when set to false.
 	//
-	// For writes sent to the V2 API write endpoint (UseV2Api=true), this option is not used.
+	// For writes sent to the V2 API endpoint (UseV2Api=true), this option is not used.
 	//
 	// Default value: true.
 	AcceptPartial bool
 
-	// UseV2Api forces writes to the V2 API write endpoint.
+	// UseV2Api forces writes to the V2 API endpoint.
 	// Default value: true.
 	UseV2Api bool
 }
@@ -199,7 +199,7 @@ func WithNoSync(noSync bool) Option {
 }
 
 // WithAcceptPartial overrides AcceptPartial in Client.Write methods.
-// This option applies only to writes sent to the V3 API write endpoint (UseV2Api=false).
+// This option applies only to writes sent to the V3 API endpoint (UseV2Api=false).
 // Partial writes are enabled with accept_partial=true.
 // The client sends accept_partial=false only when set to false.
 func WithAcceptPartial(acceptPartial bool) Option {
@@ -208,9 +208,9 @@ func WithAcceptPartial(acceptPartial bool) Option {
 	}
 }
 
-// WithUseV2Api forces writes to the V2 API write endpoint.
-// When writes use the V2 API write endpoint, NoSync is not supported and returns a validation error.
-// AcceptPartial is not used for writes sent to the V2 API write endpoint.
+// WithUseV2Api forces writes to the V2 API endpoint.
+// When writes use the V2 API endpoint, NoSync is not supported and returns a validation error.
+// AcceptPartial is not used for writes sent to the V2 API endpoint.
 func WithUseV2Api(useV2Api bool) Option {
 	return func(o *options) {
 		o.UseV2Api = useV2Api
