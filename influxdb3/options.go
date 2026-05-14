@@ -70,7 +70,7 @@ type WriteOptions struct {
 	// NoSync=true means faster write but without the confirmation that the data was persisted.
 	//
 	// Note: This option is supported by InfluxDB 3 Core and Enterprise servers only.
-	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Cloud Serverless/Dedicated)
+	// For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Cloud Dedicated/Serverless)
 	// the write operation will fail with an error.
 	//
 	// Default value: false.
@@ -81,14 +81,13 @@ type WriteOptions struct {
 	// Default value is true to match server default behavior.
 	// The client sends accept_partial=false only when set to false.
 	//
-	// If UseV2Api is true, this option is ignored and writes are sent to /api/v2/write
-	// (which does not support accept_partial).
+	// If UseV2Api is true, AcceptPartial=false is invalid because writes are sent to /api/v2/write.
 	//
 	// Default value: true.
 	AcceptPartial bool
 
 	// UseV2Api forces writes to the /api/v2/write compatibility endpoint.
-	// Default value: false (writes use /api/v3/write_lp).
+	// Default value: true.
 	UseV2Api bool
 }
 
@@ -103,12 +102,15 @@ var DefaultWriteOptions = WriteOptions{
 	GzipThreshold: 1_000,
 	NoSync:        false,
 	AcceptPartial: true,
-	UseV2Api:      false,
+	UseV2Api:      true,
 }
 
 func (o *WriteOptions) validate() error {
 	if o.UseV2Api && o.NoSync {
-		return errors.New("invalid write options: NoSync cannot be used in V2 API")
+		return errors.New("invalid write options: NoSync requires UseV2Api=false")
+	}
+	if o.UseV2Api && !o.AcceptPartial {
+		return errors.New("invalid write options: AcceptPartial=false requires UseV2Api=false")
 	}
 	return nil
 }
@@ -201,7 +203,7 @@ func WithNoSync(noSync bool) Option {
 // WithAcceptPartial overrides AcceptPartial in Client.Write methods.
 // Partial writes are enabled with accept_partial=true.
 // The client sends accept_partial=false only when set to false.
-// If WithUseV2Api(true) is set, this option is ignored.
+// AcceptPartial=false requires UseV2Api=false.
 func WithAcceptPartial(acceptPartial bool) Option {
 	return func(o *options) {
 		o.AcceptPartial = acceptPartial
@@ -209,8 +211,7 @@ func WithAcceptPartial(acceptPartial bool) Option {
 }
 
 // WithUseV2Api forces writes to the /api/v2/write compatibility endpoint.
-// In this mode, AcceptPartial is ignored because /api/v2/write does not support accept_partial.
-// NoSync is not supported in V2 API and results in a validation error.
+// In this mode, NoSync and AcceptPartial=false are not supported and result in validation errors.
 func WithUseV2Api(useV2Api bool) Option {
 	return func(o *options) {
 		o.UseV2Api = useV2Api

@@ -825,6 +825,7 @@ home,room=Sunroom temp=88i 1735545620`
 		{
 			name: "AcceptPartial=true",
 			options: []influxdb3.WriteOption{
+				influxdb3.WithUseV2Api(false),
 				influxdb3.WithAcceptPartial(true),
 			},
 			expectedMessage: `partial write of line protocol occurred:
@@ -847,6 +848,7 @@ home,room=Sunroom temp=88i 1735545620`
 		{
 			name: "AcceptPartial=false",
 			options: []influxdb3.WriteOption{
+				influxdb3.WithUseV2Api(false),
 				influxdb3.WithAcceptPartial(false),
 			},
 			expectedMessage:    "parsing failed for write_lp endpoint",
@@ -875,8 +877,8 @@ home,room=Sunroom temp=88i 1735545620`
 				influxdb3.WithUseV2Api(true),
 				influxdb3.WithAcceptPartial(false),
 			},
-			expectedMessage:    "invalid: write buffer error: line protocol parse failed: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
-			expectContains:     true,
+			expectedMessage:    "invalid write options: AcceptPartial=false requires UseV2Api=false",
+			expectContains:     false,
 			expectPartialError: false,
 		},
 	}

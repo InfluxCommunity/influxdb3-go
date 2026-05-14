@@ -383,7 +383,7 @@ func compArrays(b1 []byte, b2 []byte) int {
 }
 
 func TestWriteCorrectUrl(t *testing.T) {
-	correctPath := "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond"
+	correctPath := "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -492,6 +492,14 @@ func TestWriteToV3Server(t *testing.T) {
 			opts:        []WriteOption{WithAcceptPartial(false)},
 			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&no_sync=true&org=my-org&precision=millisecond",
 		},
+		{
+			name: "options UseV2Api true routed to v2 and fails on v3-only backend",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+			},
+			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
+			expectedErr: "server doesn't support v2 write API (set UseV2Api=false; write options: {UseV2Api:true,NoSync:false,AcceptPartial:true})",
+		},
 	}
 
 	var correctPath string
@@ -504,6 +512,10 @@ func TestWriteToV3Server(t *testing.T) {
 			t.Fatalf("unexpected request: %s", r.URL.String())
 		}
 		assert.EqualValues(t, correctPath, r.URL.String())
+		if strings.Contains(r.URL.Path, "/api/v2/") {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
@@ -519,6 +531,7 @@ func TestWriteToV3Server(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			options := DefaultWriteOptions
 			options.Precision = Millisecond
+			options.UseV2Api = false
 			if tc.init != nil {
 				tc.init(&options)
 			}
@@ -551,10 +564,11 @@ func TestWriteToV2Server(t *testing.T) {
 		{
 			name: "options NoSync false routed to v3 and fails on v2-only backend",
 			init: func(o *WriteOptions) {
+				o.UseV2Api = false
 				o.NoSync = false
 			},
 			correctPath: "/path/api/v3/write_lp?db=my-database&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:false,AcceptPartial:true})",
+			expectedErr: "server doesn't support v3 write API (set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:true})",
 		},
 		{
 			name: "options UseV2Api true with default AcceptPartial true uses v2 endpoint",
@@ -566,26 +580,35 @@ func TestWriteToV2Server(t *testing.T) {
 		{
 			name: "options NoSync true routed to v3 and fails on v2-only backend",
 			init: func(o *WriteOptions) {
+				o.UseV2Api = false
 				o.NoSync = true
 			},
 			correctPath: "/path/api/v3/write_lp?db=my-database&no_sync=true&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:true,AcceptPartial:true})",
+			expectedErr: "server doesn't support v3 write API (set UseV2Api=true; write options: {UseV2Api:false,NoSync:true,AcceptPartial:true})",
 		},
 		{
-			name: "options AcceptPartial false routed to v3 and fails on v2-only backend",
+			name: "options AcceptPartial false with default v2 mode returns validation error",
 			init: func(o *WriteOptions) {
 				o.AcceptPartial = false
 			},
-			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&org=my-org&precision=millisecond",
-			expectedErr: "server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:false,NoSync:false,AcceptPartial:false})",
+			expectedErr: "invalid write options: AcceptPartial=false requires UseV2Api=false",
 		},
 		{
-			name: "options UseV2Api true with AcceptPartial false uses v2 endpoint",
+			name: "options UseV2Api false with AcceptPartial false routed to v3 and fails on v2-only backend",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = false
+				o.AcceptPartial = false
+			},
+			correctPath: "/path/api/v3/write_lp?accept_partial=false&db=my-database&org=my-org&precision=millisecond",
+			expectedErr: "server doesn't support v3 write API (set UseV2Api=true; write options: {UseV2Api:false,NoSync:false,AcceptPartial:false})",
+		},
+		{
+			name: "options UseV2Api true with AcceptPartial false returns validation error",
 			init: func(o *WriteOptions) {
 				o.UseV2Api = true
 				o.AcceptPartial = false
 			},
-			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
+			expectedErr: "invalid write options: AcceptPartial=false requires UseV2Api=false",
 		},
 		{
 			name: "options UseV2Api true with WithAcceptPartial true uses v2 endpoint",
@@ -596,12 +619,20 @@ func TestWriteToV2Server(t *testing.T) {
 			correctPath: "/path/api/v2/write?bucket=my-database&org=my-org&precision=ms",
 		},
 		{
+			name: "options UseV2Api true with WithAcceptPartial false returns validation error",
+			init: func(o *WriteOptions) {
+				o.UseV2Api = true
+			},
+			opts:        []WriteOption{WithAcceptPartial(false)},
+			expectedErr: "invalid write options: AcceptPartial=false requires UseV2Api=false",
+		},
+		{
 			name: "options UseV2Api true with WithNoSync true",
 			init: func(o *WriteOptions) {
 				o.UseV2Api = true
 			},
 			opts:        []WriteOption{WithNoSync(true)},
-			expectedErr: "invalid write options: NoSync cannot be used in V2 API",
+			expectedErr: "invalid write options: NoSync requires UseV2Api=false",
 		},
 		{
 			name: "options UseV2Api true AcceptPartial false and WithNoSync true",
@@ -610,7 +641,7 @@ func TestWriteToV2Server(t *testing.T) {
 				o.AcceptPartial = false
 			},
 			opts:        []WriteOption{WithNoSync(true)},
-			expectedErr: "invalid write options: NoSync cannot be used in V2 API",
+			expectedErr: "invalid write options: NoSync requires UseV2Api=false",
 		},
 	}
 
@@ -757,7 +788,7 @@ func TestWritePointsWithOptions(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := points2bytes(t, points, defaultTags)
-	correctPath := "/api/v3/write_lp?db=db-x&org=&precision=millisecond"
+	correctPath := "/api/v2/write?bucket=db-x&org=&precision=ms"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {
@@ -1023,7 +1054,7 @@ func TestWriteDataWithOptions(t *testing.T) {
 		"rack":       "main",
 	}
 	lp := fmt.Sprintf("air,defaultTag=default,device_id=10,rack=main,sensor=SHT31 humidity=55i,temperature=23.5 %d\n", now.Unix())
-	correctPath := "/api/v3/write_lp?db=db-x&org=my-org&precision=second"
+	correctPath := "/api/v2/write?bucket=db-x&org=my-org&precision=s"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// initialization of query client
 		if r.Method == "PRI" {

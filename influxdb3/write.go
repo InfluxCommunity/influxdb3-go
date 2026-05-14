@@ -230,10 +230,19 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
 		var svErr *ServerError
+		if options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
+			strings.HasSuffix(params.endpointURL.Path, "/api/v2/write") {
+			return fmt.Errorf(
+				"server doesn't support v2 write API (set UseV2Api=false; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
+				options.UseV2Api,
+				options.NoSync,
+				options.AcceptPartial,
+			)
+		}
 		if !options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v3/write_lp") {
 			return fmt.Errorf(
-				"server doesn't support v3 write API (set WithUseV2Api(true); write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
+				"server doesn't support v3 write API (set UseV2Api=true; write options: {UseV2Api:%t,NoSync:%t,AcceptPartial:%t})",
 				options.UseV2Api,
 				options.NoSync,
 				options.AcceptPartial,
