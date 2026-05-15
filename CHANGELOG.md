@@ -2,6 +2,12 @@
 
 ## 2.15.0 [unreleased]
 
+### Bug Fixes
+
+1. [#258](https://github.com/InfluxCommunity/influxdb3-go/pull/258): Restores write behavior changed in 2.14 by defaulting writes to the V2 API endpoint.
+   - All InfluxDB 3 products now work with default write settings.
+   - Write option `NoSync` requires `UseV2Api=false` and the V3 API endpoint. `AcceptPartial` applies only when writes are sent to the V3 API endpoint and is ignored otherwise.
+
 ## 2.14.0 [2026-04-23]
 
 ### BREAKING CHANGES

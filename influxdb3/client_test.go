@@ -409,6 +409,7 @@ func TestNewFromConnectionString(t *testing.T) {
 					GzipThreshold: 64,
 					NoSync:        true,
 					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -425,6 +426,7 @@ func TestNewFromConnectionString(t *testing.T) {
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 					AcceptPartial: true,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -457,6 +459,7 @@ func TestNewFromConnectionString(t *testing.T) {
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					Precision:     Second,
 					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -472,6 +475,7 @@ func TestNewFromConnectionString(t *testing.T) {
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					Precision:     Microsecond,
 					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -602,6 +606,7 @@ func TestNewFromEnv(t *testing.T) {
 					GzipThreshold: 64,
 					NoSync:        true,
 					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -624,6 +629,7 @@ func TestNewFromEnv(t *testing.T) {
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 					AcceptPartial: true,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -669,6 +675,7 @@ func TestNewFromEnv(t *testing.T) {
 					GzipThreshold: DefaultWriteOptions.GzipThreshold,
 					NoSync:        DefaultWriteOptions.NoSync,
 					AcceptPartial: DefaultWriteOptions.AcceptPartial,
+					UseV2Api:      DefaultWriteOptions.UseV2Api,
 				},
 			},
 		},
@@ -990,69 +997,69 @@ func TestResolveError(t *testing.T) {
 				"\t\"bad line 1\"\n" +
 				"\t\"bad line 2\"",
 		},
-			{
-				name:        "V3 write error with data field parses as partial",
-				statusCode:  http.StatusBadRequest,
-				contentType: "application/json",
-				responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
+		{
+			name:        "V3 write error with data field parses as partial",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
 "line_number":2,"original_line":"temperatureroom=room"}]}`,
-				expectedErrMessage: `partial write of line protocol occurred:
+			expectedErrMessage: `partial write of line protocol occurred:
 	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)`,
-				expectedPartialWriteError: &PartialWriteError{
-					ServerError: ServerError{
-						StatusCode: http.StatusBadRequest,
-					},
-					LineErrors: []PartialWriteLineError{
-						{
-							ErrorMessage: "A generic parsing error occurred: TakeWhile1",
-							LineNumber:   2,
-							OriginalLine: "temperatureroom=room",
-						},
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
+						LineNumber:   2,
+						OriginalLine: "temperatureroom=room",
 					},
 				},
 			},
-			{
-				name:        "V3 write error parsing failed write_lp endpoint",
-				statusCode:  http.StatusBadRequest,
-				contentType: "application/json",
-				responseBody: `{"error":"parsing failed for write_lp endpoint","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
+		},
+		{
+			name:        "V3 write error parsing failed write_lp endpoint",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"parsing failed for write_lp endpoint","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
 "line_number":2,"original_line":"temperatureroom=room"}]}`,
-				expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
-					"A generic parsing error occurred: TakeWhile1 (temperatureroom=room)",
-				expectedPartialWriteError: &PartialWriteError{
-					ServerError: ServerError{
-						StatusCode: http.StatusBadRequest,
-					},
-					LineErrors: []PartialWriteLineError{
-						{
-							ErrorMessage: "A generic parsing error occurred: TakeWhile1",
-							LineNumber:   2,
-							OriginalLine: "temperatureroom=room",
-						},
+			expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
+				"A generic parsing error occurred: TakeWhile1 (temperatureroom=room)",
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{
+						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
+						LineNumber:   2,
+						OriginalLine: "temperatureroom=room",
 					},
 				},
 			},
-			{
-				name:         "V3 write error with typed item missing line details keeps message-only detail",
-				statusCode:   http.StatusBadRequest,
-				contentType:  "application/json",
-				responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line"}]}`,
-				expectedErrMessage: "partial write of line protocol occurred:\n" +
-					"\tbad line",
-				expectedPartialWriteError: &PartialWriteError{
-					ServerError: ServerError{
-						StatusCode: http.StatusBadRequest,
-					},
-					LineErrors: []PartialWriteLineError{
-						{ErrorMessage: "bad line"},
-					},
+		},
+		{
+			name:         "V3 write error with typed item missing line details keeps message-only detail",
+			statusCode:   http.StatusBadRequest,
+			contentType:  "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line"}]}`,
+			expectedErrMessage: "partial write of line protocol occurred:\n" +
+				"\tbad line",
+			expectedPartialWriteError: &PartialWriteError{
+				ServerError: ServerError{
+					StatusCode: http.StatusBadRequest,
+				},
+				LineErrors: []PartialWriteLineError{
+					{ErrorMessage: "bad line"},
 				},
 			},
-			{
-				name:               "V3 write error with invalid data string",
-				statusCode:         http.StatusBadRequest,
-				contentType:        "application/json",
-				responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
+		},
+		{
+			name:               "V3 write error with invalid data string",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
 			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
@@ -1063,25 +1070,25 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: "partial write of line protocol occurred:\n" +
 				"\t{\"line_number\":2,\"original_line\":\"bad lp\"}",
 		},
-			{
-				name:               "V3 write error with empty data object",
-				statusCode:         http.StatusBadRequest,
-				contentType:        "application/json",
-				responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
-				expectedErrMessage: "partial write of line protocol occurred",
-			},
-			{
-				name:               "V3 write error with null data",
-				statusCode:         http.StatusBadRequest,
-				contentType:        "application/json",
-				responseBody:       `{"error":"partial write of line protocol occurred","data":null}`,
-				expectedErrMessage: "partial write of line protocol occurred",
-			},
-			{
-				name:               "No error message",
-				statusCode:         http.StatusInternalServerError,
-				expectedErrMessage: `500 Internal Server Error`,
-			},
+		{
+			name:               "V3 write error with empty data object",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+		},
+		{
+			name:               "V3 write error with null data",
+			statusCode:         http.StatusBadRequest,
+			contentType:        "application/json",
+			responseBody:       `{"error":"partial write of line protocol occurred","data":null}`,
+			expectedErrMessage: "partial write of line protocol occurred",
+		},
+		{
+			name:               "No error message",
+			statusCode:         http.StatusInternalServerError,
+			expectedErrMessage: `500 Internal Server Error`,
+		},
 		{
 			name:               "Plain text response",
 			responseBody:       `error in InfluxQL statement: parsing error: invalid InfluxQL statement at pos 0. Parsing Error: Nom("databases", Fail)`,

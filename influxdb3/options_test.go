@@ -124,6 +124,7 @@ func TestWriteOptions(t *testing.T) {
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 				AcceptPartial: DefaultWriteOptions.AcceptPartial,
+				UseV2Api:      DefaultWriteOptions.UseV2Api,
 			},
 		},
 		{
@@ -135,6 +136,7 @@ func TestWriteOptions(t *testing.T) {
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 				AcceptPartial: DefaultWriteOptions.AcceptPartial,
+				UseV2Api:      DefaultWriteOptions.UseV2Api,
 			},
 		},
 		{
@@ -143,6 +145,7 @@ func TestWriteOptions(t *testing.T) {
 				WithDatabase("db-x"),
 				WithPrecision(Millisecond),
 				WithGzipThreshold(4096),
+				WithUseV2Api(false),
 				WithNoSync(true),
 				WithAcceptPartial(true),
 			),
@@ -152,6 +155,7 @@ func TestWriteOptions(t *testing.T) {
 				GzipThreshold: 4096,
 				NoSync:        true,
 				AcceptPartial: true,
+				UseV2Api:      false,
 			},
 		},
 		{
@@ -163,6 +167,7 @@ func TestWriteOptions(t *testing.T) {
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 				AcceptPartial: DefaultWriteOptions.AcceptPartial,
+				UseV2Api:      DefaultWriteOptions.UseV2Api,
 			},
 		},
 		{
@@ -173,16 +178,18 @@ func TestWriteOptions(t *testing.T) {
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 				AcceptPartial: true,
+				UseV2Api:      DefaultWriteOptions.UseV2Api,
 			},
 		},
 		{
-			name: "override accept partial false",
+			name: "valid default use v2 api with accept partial false",
 			opts: va(WithAcceptPartial(false)),
 			want: &WriteOptions{
 				Precision:     DefaultWriteOptions.Precision,
 				GzipThreshold: DefaultWriteOptions.GzipThreshold,
 				NoSync:        DefaultWriteOptions.NoSync,
 				AcceptPartial: false,
+				UseV2Api:      true,
 			},
 		},
 		{
@@ -195,7 +202,7 @@ func TestWriteOptions(t *testing.T) {
 				AcceptPartial: true,
 				UseV2Api:      true,
 			},
-			err: "invalid write options: NoSync cannot be used in V2 API",
+			err: "invalid write options: NoSync requires UseV2Api=false",
 		},
 		{
 			name: "valid use v2 api with accept partial true",
@@ -229,7 +236,7 @@ func TestWriteOptions(t *testing.T) {
 				AcceptPartial: false,
 				UseV2Api:      true,
 			},
-			err: "invalid write options: NoSync cannot be used in V2 API",
+			err: "invalid write options: NoSync requires UseV2Api=false",
 		},
 	}
 

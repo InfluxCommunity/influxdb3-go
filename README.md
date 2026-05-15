@@ -326,23 +326,15 @@ When partial writes are disabled, any rejected line causes all lines to be rejec
 
 InfluxDB Clustered does not return this structured partial-write error format.
 
-#### Compatibility with InfluxDB Clustered
+#### Compatibility with InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless
 
-For InfluxDB Clustered, enable `UseV2Api` for writes.
+Writes use the V2 API endpoint by default, so no additional configuration is required for these products.
 
-Like other write options, this can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
-For example:
+Like other write options, `UseV2Api` can be configured in client code, environment variables/connection string (`INFLUX_WRITE_USE_V2_API` / `writeUseV2Api`), or per-write overrides.
 
-```go
-client, err := influxdb3.New(influxdb3.ClientConfig{
-    Host: "https://your-host",
-    Token: "your-token",
-    WriteOptions: &influxdb3.WriteOptions{UseV2Api: true},
-})
-```
+`NoSync` requires the V3 API endpoint, which is available with InfluxDB 3 Core/Enterprise. `AcceptPartial` applies only when writes are sent to the V3 API endpoint and is ignored when using the V2 API endpoint. To use `NoSync`, set `UseV2Api=false` (or `WithUseV2Api(false)` per write).
 
-Note: If `UseV2Api` is set, `AcceptPartial` is ignored because this compatibility mode does not support partial-write controls.
-Any rejected line causes all lines to be rejected.
+Note: When writes use the V2 API endpoint, `NoSync=true` returns a validation error. `AcceptPartial` is not used by this endpoint.
 
 ### Query
 
