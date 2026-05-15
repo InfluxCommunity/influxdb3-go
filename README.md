@@ -297,13 +297,24 @@ The per-write override applies only to that write call.
 Set `AcceptPartial` to `false` to disable partial writes.
 If the server rejects part of a batch, the client returns a `*PartialWriteError` with per-line details.
 
+`AcceptPartial` and partial write error details require the V3 API endpoint. Instantiate a client with `UseV2Api: false` to use these features:
+
 ```go
+v3Client, err := influxdb3.New(influxdb3.ClientConfig{
+    Host:     "https://cluster.influxdata.io/",
+    Token:    "DATABASE_TOKEN",
+    Database: "DATABASE_NAME",
+    WriteOptions: &influxdb3.WriteOptions{
+        UseV2Api: false,
+    },
+})
+
 lp := []byte(
-    "temperature,region=us-east,host=server-1 value=60.25\n" +
-        "temperatureregion=us-east,host=server-1 value=60.25",
+    "home,room=Sunroom temp=96 1735545600\n" +
+        "home,room=Sunroom temp=\"hi\" 1735549200",
 )
 
-err = client.Write(context.Background(), lp)
+err = v3Client.Write(context.Background(), lp)
 if err != nil {
     var partialErr *influxdb3.PartialWriteError
     if errors.As(err, &partialErr) {

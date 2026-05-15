@@ -113,13 +113,21 @@ func parsePartialWriteDataArray(raw json.RawMessage) ([]PartialWriteLineError, b
 func formatPartialWriteLineErrorDetails(lineErrors []PartialWriteLineError) []string {
 	details := make([]string, 0, len(lineErrors))
 	for _, lineError := range lineErrors {
-		if lineError.LineNumber != 0 && lineError.OriginalLine != "" {
-			details = append(details, fmt.Sprintf(
-				"line %d: %s (%s)",
-				lineError.LineNumber,
-				lineError.ErrorMessage,
-				lineError.OriginalLine,
-			))
+		if lineError.LineNumber != 0 {
+			if lineError.OriginalLine != "" {
+				details = append(details, fmt.Sprintf(
+					"line %d: %s (%s)",
+					lineError.LineNumber,
+					lineError.ErrorMessage,
+					lineError.OriginalLine,
+				))
+			} else {
+				details = append(details, fmt.Sprintf(
+					"line %d: %s",
+					lineError.LineNumber,
+					lineError.ErrorMessage,
+				))
+			}
 		} else if lineError.ErrorMessage != "" {
 			details = append(details, lineError.ErrorMessage)
 		}
