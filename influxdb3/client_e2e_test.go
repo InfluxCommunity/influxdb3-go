@@ -820,7 +820,7 @@ home,room=Sunroom temp=88i 1735545620`
 		expectedMessage    string
 		expectContains     bool
 		expectPartialError bool
-		expectedLineErrors []influxdb3.PartialWriteLineError // if nil, only checks non-empty
+		expectedLineErrors []influxdb3.PartialWriteLineError
 	}{
 		{
 			name: "AcceptPartial=true",
@@ -881,48 +881,24 @@ home,room=Sunroom temp=88i 1735545620`
 			expectContains:     true,
 			expectPartialError: false,
 		},
-		{
-			name:   "WritePartialBatch_WithV3Api_ReturnsStructuredPartialWriteError",
-			options: []influxdb3.WriteOption{
-				influxdb3.WithUseV2Api(false),
-				influxdb3.WithAcceptPartial(true),
-			},
-			expectedMessage:    "partial write of line protocol occurred",
-			expectContains:     true,
-			expectPartialError: true,
-		},
-		{
-			name:   "WritePartialBatch_WithV2Api_ReturnsGenericApiError",
-			options: []influxdb3.WriteOption{
-				influxdb3.WithUseV2Api(true),
-				influxdb3.WithAcceptPartial(true),
-			},
-			expectContains:     true,
-			expectPartialError: false,
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err = client.Write(context.Background(), []byte(points), tc.options...)
 			require.Error(t, err)
-			if tc.expectedMessage != "" {
-				if tc.expectContains {
-					assert.Contains(t, err.Error(), tc.expectedMessage)
-				} else {
-					assert.Equal(t, tc.expectedMessage, err.Error())
-				}
+			if tc.expectContains {
+				assert.Contains(t, err.Error(), tc.expectedMessage)
+			} else {
+				assert.Equal(t, tc.expectedMessage, err.Error())
 			}
 
 			var partialErr *influxdb3.PartialWriteError
 			if tc.expectPartialError {
 				require.True(t, errors.As(err, &partialErr))
 				require.NotNil(t, partialErr)
-				if tc.expectedLineErrors != nil {
-					assert.Equal(t, tc.expectedLineErrors, partialErr.LineErrors)
-				} else {
-					assert.NotEmpty(t, partialErr.LineErrors)
-				}
+				require.NotEmpty(t, tc.expectedLineErrors)
+				assert.Equal(t, tc.expectedLineErrors, partialErr.LineErrors)
 			} else {
 				assert.False(t, errors.As(err, &partialErr))
 			}
