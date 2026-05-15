@@ -1,6 +1,6 @@
 # Change Log
 
-## 2.15.0 [unreleased]
+## 2.15.0 [2026-05-15]
 
 ### Bug Fixes
 
