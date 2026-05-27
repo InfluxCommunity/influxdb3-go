@@ -2,6 +2,10 @@
 
 ## 2.16.0 [unreleased]
 
+### Dependencies
+
+1. [#261](https://github.com/InfluxCommunity/influxdb3-go/pull/261): Upgrade dependencies.
+
 ## 2.15.0 [2026-05-15]
 
 ### Bug Fixes
