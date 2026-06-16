@@ -159,7 +159,8 @@ jobs:
           command: |
             if ! command -v pip > /dev/null 2>&1
             then
-              python -m ensurepip --upgrade
+              curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+              python get-pip.py
             fi
             pip install PyGithub
       - run:
