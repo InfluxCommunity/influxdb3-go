@@ -58,6 +58,7 @@ commands:
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             sudo chmod +x codecov
+            ./codecov
 
 jobs:
   tests-go:
