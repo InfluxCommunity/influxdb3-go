@@ -165,11 +165,10 @@ jobs:
               curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
               python get-pip.py
             fi
-            pip install PyGithub
+            pip install GitPython
       - run:
           name: Release Script
           command: |
-            source ./venv/bin/activate
             pip list
             ./scripts/on-release.py
 
