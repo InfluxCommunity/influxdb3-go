@@ -157,6 +157,10 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            if ! command -v pip > /dev/null 2>&1
+            then
+              python -m ensurepip --upgrade
+            fi
             pip install PyGithub
       - run:
           name: Release Script
