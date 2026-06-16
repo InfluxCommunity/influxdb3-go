@@ -168,7 +168,9 @@ jobs:
             pip install PyGithub
       - run:
           name: Release Script
-          command: ./scripts/on-release.py
+          command: |
+            source ./venv/bin/activate
+            ./scripts/on-release.py
 
 release_filter: &release_filter
   filters:
