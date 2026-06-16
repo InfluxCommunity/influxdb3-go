@@ -155,6 +155,10 @@ jobs:
             go version
             python --version
       - run:
+          name: Install dependencies
+          command: |
+            pip install PyGithub
+      - run:
           name: Release Script
           command: ./scripts/on-release.py
 
