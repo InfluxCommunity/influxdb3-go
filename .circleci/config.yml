@@ -171,6 +171,8 @@ jobs:
           command: |
             source ./venv/bin/activate
             ./scripts/on-release.py
+      - store_artifacts:
+          path: ./CHANGELOG.md;./influxdb3/version.go
 
 release_filter: &release_filter
   filters:
