@@ -100,7 +100,10 @@ def upload_next_release_files():
         config.set_value("user","email","karl.koerner@bonitoo.io")
 
     print(f"DEBUG repo.head.commit           {repo.head.commit}")
-    print(f"DEBUG repo.head.reference.commit {repo.head.reference.commit}")
+
+    for b in repo.branches:
+        print(f"DEBUG branch {b.name}: {b.commit}")
+
     # TODO following add and commit files...
     # print(f"DEBUG repo.active_branch {repo.active_branch}")
     # repo.index.add(CHANGELOG)
