@@ -93,11 +93,28 @@ def update_version():
         fclw.writelines(cl_lines)
 
 
+def upload_next_release_files():
+    repo = git.Repo(f"{dir_path}/..")
+    repo.config_writer().set_value("user","name","karel rehor")
+    repo.config_writer().set_value("user","email","karl.koerner@bonitoo.io")
+    print(f"DEBUG repo.active_branch {repo.active_branch}")
+    repo.index.add(CHANGELOG)
+    repo.index.add(VERSION_FILE)
+    repo.index.commit("chore: prepare for next development iteration [skip ci]")
+    # repo.commit(git.Commit())
+
+def inspect():
+    os.system("git log -2")
+
+
 def main():
     print("on-release start")
     print("TODO - under construction")
     verify_changelog()
     update_version()
+    upload_next_release_files() # in progress
+    inspect()
+
 
 
 if __name__ == "__main__":
