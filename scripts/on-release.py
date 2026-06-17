@@ -98,10 +98,14 @@ def upload_next_release_files():
     with repo.config_writer() as config:
         config.set_value("user","name","karel rehor")
         config.set_value("user","email","karl.koerner@bonitoo.io")
-    print(f"DEBUG repo.active_branch {repo.active_branch}")
-    repo.index.add(CHANGELOG)
-    repo.index.add(VERSION_FILE)
-    repo.index.commit("chore: prepare for next development iteration [skip ci]")
+
+    print(f"DEBUG repo.head.commit           {repo.head.commit}")
+    print(f"DEBUG repo.head.reference.commit {repo.head.reference.commit}")
+    # TODO following add and commit files...
+    # print(f"DEBUG repo.active_branch {repo.active_branch}")
+    # repo.index.add(CHANGELOG)
+    # repo.index.add(VERSION_FILE)
+    # repo.index.commit("chore: prepare for next development iteration [skip ci]")
     # repo.commit(git.Commit())
 
 def inspect():
