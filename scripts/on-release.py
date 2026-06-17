@@ -95,8 +95,9 @@ def update_version():
 
 def upload_next_release_files():
     repo = git.Repo(f"{dir_path}/..")
-    repo.config_writer().set_value("user","name","karel rehor")
-    repo.config_writer().set_value("user","email","karl.koerner@bonitoo.io")
+    with repo.config_writer() as config:
+        config.set_value("user","name","karel rehor")
+        config.set_value("user","email","karl.koerner@bonitoo.io")
     print(f"DEBUG repo.active_branch {repo.active_branch}")
     repo.index.add(CHANGELOG)
     repo.index.add(VERSION_FILE)
