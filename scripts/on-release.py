@@ -103,6 +103,7 @@ def upload_next_release_files():
 
     for b in repo.branches:
         print(f"DEBUG branch {b.name}: {b.commit}")
+        print(f"DEBUG b.commit.hexsha:  {b.commit.hexsha}")
 
     # TODO following add and commit files...
     # print(f"DEBUG repo.active_branch {repo.active_branch}")
