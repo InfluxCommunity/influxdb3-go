@@ -101,15 +101,22 @@ def upload_next_release_files():
 
     print(f"DEBUG repo.head.commit           {repo.head.commit}")
 
+    target_branch = None
     for b in repo.branches:
         print(f"DEBUG branch {b.name}: {b.commit}")
         print(f"DEBUG b.commit.hexsha:  {b.commit.hexsha}")
+        if b.commit.hexsha == repo.head.commit:
+            target_branch = b
+            break
+
+    print(f"DEBUG switching to branch {target_branch}")
+    repo.head.reference = target_branch
 
     # TODO following add and commit files...
     # print(f"DEBUG repo.active_branch {repo.active_branch}")
-    # repo.index.add(CHANGELOG)
-    # repo.index.add(VERSION_FILE)
-    # repo.index.commit("chore: prepare for next development iteration [skip ci]")
+    repo.index.add(CHANGELOG)
+    repo.index.add(VERSION_FILE)
+    repo.index.commit("chore: prepare for next development iteration [skip ci]")
     # repo.commit(git.Commit())
 
 def inspect():
