@@ -172,7 +172,7 @@ jobs:
             source ./venv/bin/activate
             ./scripts/on-release.py
       - store_artifacts:
-          path: ./CHANGELOG.md;
+          path: ./CHANGELOG.md
       - store_artifacts:
           path: ./influxdb3/version.go
 

@@ -17,6 +17,12 @@ def get_latest_tag() -> str:
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
     return tags[-1].__str__().strip('v')
 
+
+def failure_boiler_plate() -> str:
+    return (f"\nPlease manually delete the release and tag {get_latest_tag()}, "
+            f"fix any issues and try again\n")
+
+
 def verify_changelog():
     md_headings = re.compile("^#{2} .*")
     date_vals = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
@@ -33,10 +39,12 @@ def verify_changelog():
 
     tag = get_latest_tag()
     if cl_release != tag:
-        raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag})")
+        raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag}). "
+                        f"{failure_boiler_plate()}")
 
     if not date_vals.match(cl_date):
-        raise Exception(f"Date ({cl_date}) for this release, does not conform to YYYY-MM-DD pattern.")
+        raise Exception(f"Date ({cl_date}) for this release, does not conform to YYYY-MM-DD pattern. "
+                        f"{failure_boiler_plate()}")
 
     print(f"Release {cl_release} on {cl_date} in CHANGELOG.md OK ✓.")
 
@@ -84,11 +92,13 @@ def update_version():
     with open(CHANGELOG, "w+") as fclw:
         fclw.writelines(cl_lines)
 
+
 def main():
     print("on-release start")
     print("TODO - under construction")
     verify_changelog()
     update_version()
+
 
 if __name__ == "__main__":
     main()
