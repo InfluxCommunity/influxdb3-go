@@ -170,7 +170,6 @@ jobs:
           name: Release Script
           command: |
             source ./venv/bin/activate
-            pip list
             ./scripts/on-release.py
 
 release_filter: &release_filter

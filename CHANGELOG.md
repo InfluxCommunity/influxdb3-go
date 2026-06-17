@@ -1,6 +1,10 @@
 # Change Log
 
-## 0.0-test [unreleased]
+## 0.0-test [2026-06-17]
+
+### Other
+
+1. [#duodekafonie](https://berg.cz/index.html): test
 
 ## 2.16.0 [2026-06-11]
 
