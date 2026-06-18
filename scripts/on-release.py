@@ -99,18 +99,14 @@ def upload_next_release_files():
         config.set_value("user","name","karel rehor")
         config.set_value("user","email","karl.koerner@bonitoo.io")
 
-    print(f"DEBUG repo.head.commit: {repo.head.commit}")
-
     target_branch = repo.branches['main']
     for b in repo.branches:
-        print(f"DEBUG branch {b.name}: {b.commit}")
-        print(f"DEBUG b.commit.hexsha:  {b.commit.hexsha}")
         if b.commit.hexsha == repo.head.commit.hexsha:
-            print(f"DEBUG sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
+            print(f"Sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
             target_branch = b
             break
 
-    print(f"DEBUG switching to branch {target_branch}")
+    print(f"Switching to branch {target_branch}")
     repo.head.reference = target_branch
 
     # TODO following add and commit files...
@@ -118,6 +114,8 @@ def upload_next_release_files():
     repo.index.add(CHANGELOG)
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
+
+    print(f"DEBUG repo.remotes.origin {repo.remotes.origin}")
     # repo.commit(git.Commit())
 
 def inspect():
