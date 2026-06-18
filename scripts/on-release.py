@@ -101,7 +101,7 @@ def upload_next_release_files():
 
     print(f"DEBUG repo.head.commit           {repo.head.commit}")
 
-    target_branch = None
+    target_branch = repo.branches['main']
     for b in repo.branches:
         print(f"DEBUG branch {b.name}: {b.commit}")
         print(f"DEBUG b.commit.hexsha:  {b.commit.hexsha}")
