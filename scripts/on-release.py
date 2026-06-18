@@ -115,7 +115,9 @@ def upload_next_release_files():
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
 
-    print(f"DEBUG repo.remotes.origin {repo.remotes.origin}")
+    print(f"DEBUG repo.remotes.origin {repo.remotes.origin} at {repo.remotes.origi.url}")
+
+    repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
 
 def inspect():
