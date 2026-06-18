@@ -140,6 +140,9 @@ jobs:
       - image: << pipeline.parameters.default-go-image >>
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:S69Ldku63399P5BDKnlyjCY75dBTen9YVsTE+dowMhY"
       - run:
           name: Verify Envars
           command: |
