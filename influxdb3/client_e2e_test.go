@@ -851,7 +851,7 @@ home,room=Sunroom temp=88i 1735545620`
 				influxdb3.WithUseV2Api(false),
 				influxdb3.WithAcceptPartial(false),
 			},
-			expectedMessage:    "parsing failed for write_lp endpoint",
+			expectedMessage:    "line protocol parsing error",
 			expectContains:     true,
 			expectPartialError: true,
 			expectedLineErrors: []influxdb3.PartialWriteLineError{

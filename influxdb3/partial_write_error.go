@@ -30,7 +30,8 @@ import (
 
 const (
 	msgPartialWriteOccurred = "partial write of line protocol occurred" // v3 endpoint with accept_partial=true error
-	msgParsingFailedLp      = "parsing failed for write_lp endpoint"    // v3 endpoint with accept_partial=false
+	msgParsingFailedLp39    = "parsing failed for write_lp endpoint"    // v3.9 and earlier endpoint with accept_partial=false
+	msgParsingFailedLp310   = "line protocol parsing error"             // v3.10 and later endpoint with accept_partial=false
 )
 
 // PartialWriteLineError describes a single line-level write failure returned by /api/v3/write_lp.
@@ -59,7 +60,9 @@ func (e *PartialWriteError) Unwrap() error {
 }
 
 func isPartialWriteMessage(message string) bool {
-	return strings.Contains(message, msgPartialWriteOccurred) || strings.Contains(message, msgParsingFailedLp)
+	return strings.Contains(message, msgPartialWriteOccurred) ||
+		strings.Contains(message, msgParsingFailedLp39) ||
+		strings.Contains(message, msgParsingFailedLp310)
 }
 
 func parsePartialWriteLineErrorInfo(raw json.RawMessage) ([]PartialWriteLineError, []string) {
