@@ -96,8 +96,8 @@ def update_version():
 def upload_next_release_files():
     repo = git.Repo(f"{dir_path}/..")
     with repo.config_writer() as config:
-        config.set_value("user","name","karel rehor")
-        config.set_value("user","email","karl.koerner@bonitoo.io")
+        config.set_value("user","name","builder")
+        config.set_value("user","email","builder@bonitoo.io")
 
     target_branch = repo.branches['main']
     for b in repo.branches:

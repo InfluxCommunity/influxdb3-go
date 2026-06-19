@@ -1,7 +1,5 @@
 # Change Log
 
-## 0.1-test [unreleased]
-
 ## 0.0-test [2026-06-17]
 
 ### Other
