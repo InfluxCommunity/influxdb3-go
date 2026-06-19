@@ -27,7 +27,7 @@ import (
 )
 
 // version defines current version
-const version = "2.17.0"
+const version = "0.1-test"
 
 // userAgent header value
 const userAgent = "influxdb3-go/" + version + " (" + runtime.GOOS + "; " + runtime.GOARCH + ")"
