@@ -100,7 +100,7 @@ def upload_next_release_files():
         config.set_value("user","name","builder")
         config.set_value("user","email","builder@bonitoo.io")
 
-    targetBranchName = f"{BRANCH_SUB_TOKEN}{get_latest_tag()}"
+    targetBranchName = f"{BRANCH_SUB_TOKEN}{calculate_next_version()}"
 
     print(f"DEBUG targetBranchName {targetBranchName}")
 
@@ -132,7 +132,7 @@ def upload_next_release_files():
     print(f"TODO push new branch and create PR")
 
     repo.git.push("--set-upstream", "origin", targetBranchName)
-    repo.git.pull_request(targetBranchName, repo.remotes.origin.url, "main")
+    repo.git.request_pull(targetBranchName, repo.remotes.origin.url, "main")
     # repo.remote("origin").push(set_upstream=True).raise_if_error()
     # repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
