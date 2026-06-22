@@ -16,7 +16,7 @@ TAG_INC = 2
 def get_latest_tag() -> str:
     repo = git.Repo(f"{dir_path}/..")
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-    return tags[-1].tag
+    return tags[-1].__str__()
 
 
 def failure_boiler_plate() -> str:
