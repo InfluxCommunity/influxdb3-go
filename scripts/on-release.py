@@ -131,7 +131,7 @@ def upload_next_release_files():
 
     print(f"TODO push new branch and create PR")
 
-    repo.remote("origin").push().raise_if_error()
+    repo.remote("origin").push(force=True).raise_if_error()
     # repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
 
