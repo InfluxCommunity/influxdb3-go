@@ -104,54 +104,27 @@ def upload_next_release_files():
 
     targetBranchName = f"{BRANCH_NEXT_SUB_TOKEN}{next_version}"
 
-#    print(f"DEBUG targetBranchName {targetBranchName}")
-
-
-    # target_branch = repo.branches['main']
     target_branch = repo.create_head(targetBranchName)
-    # print(f"DEBUG branches:")
-    # for b in repo.branches:
-    #    print(f"DEBUG branch {b}")
-
-    #    if b.commit.hexsha == repo.head.commit.hexsha:
-    #        print(f"Sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
-    #        target_branch = b
-    #        break
 
     print(f"Switching to branch {target_branch}")
     repo.head.reference = target_branch
 
-    # TODO following add and commit files...
-    # print(f"DEBUG repo.active_branch {repo.active_branch}")
     repo.index.add(CHANGELOG)
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
-
-    # print(f"DEBUG repo.remotes.origin {repo.remotes.origin} at {repo.remotes.origin.url}")
-
-    # print(f"TODO push new branch and create PR")
 
     repo.git.push("--set-upstream", "origin", targetBranchName)
     repo.git.request_pull(targetBranchName, repo.remotes.origin.url, "main")
 
     print(f"Changes for next release {next_version} are in the new branch {target_branch}.  "
           f"Please review them and merge them into main.")
-    # repo.remote("origin").push(set_upstream=True).raise_if_error()
-    # repo.remotes.origin.push().raise_if_error()
-    # repo.commit(git.Commit())
-
-def inspect():
-    os.system("git log -2")
 
 
 def main():
     print("on-release start")
-    print("TODO - under construction")
     verify_changelog()
     update_version()
     upload_next_release_files() # in progress
-    inspect()
-
 
 
 if __name__ == "__main__":
