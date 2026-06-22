@@ -7,6 +7,7 @@ import git
 dir_path=os.path.dirname(os.path.realpath(__file__))
 CHANGELOG=f"{dir_path}/../CHANGELOG.md"
 VERSION_FILE=f"{dir_path}/../influxdb3/version.go"
+BRANCH_SUB_TOKEN="chore/prepare-release-"
 
 TAG_MAJ = 0
 TAG_MIN = 1
@@ -15,7 +16,7 @@ TAG_INC = 2
 def get_latest_tag() -> str:
     repo = git.Repo(f"{dir_path}/..")
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-    return tags[-1].__str__().strip('v')
+    return tags[-1].tag
 
 
 def failure_boiler_plate() -> str:
@@ -37,7 +38,7 @@ def verify_changelog():
     cl_release = cl_release_heading[1]
     cl_date = cl_release_heading[2].strip('[').strip(']')
 
-    tag = get_latest_tag()
+    tag = get_latest_tag().strip('v')
     if cl_release != tag:
         raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag}). "
                         f"{failure_boiler_plate()}")
@@ -99,12 +100,21 @@ def upload_next_release_files():
         config.set_value("user","name","builder")
         config.set_value("user","email","builder@bonitoo.io")
 
-    target_branch = repo.branches['main']
+    targetBranchName = f"{BRANCH_SUB_TOKEN}{get_latest_tag()}"
+
+    print(f"DEBUG targetBranchName {targetBranchName}")
+
+
+    # target_branch = repo.branches['main']
+    target_branch = repo.create_head(targetBranchName)
+    print(f"DEBUG branches:")
     for b in repo.branches:
-        if b.commit.hexsha == repo.head.commit.hexsha:
-            print(f"Sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
-            target_branch = b
-            break
+        print(f"DEBUG branch {b}")
+
+    #    if b.commit.hexsha == repo.head.commit.hexsha:
+    #        print(f"Sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
+    #        target_branch = b
+    #        break
 
     print(f"Switching to branch {target_branch}")
     repo.head.reference = target_branch
@@ -115,9 +125,13 @@ def upload_next_release_files():
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
 
+
+
     print(f"DEBUG repo.remotes.origin {repo.remotes.origin} at {repo.remotes.origin.url}")
 
-    repo.remotes.origin.push().raise_if_error()
+    print(f"TODO push new branch and create PR")
+
+    # repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
 
 def inspect():
