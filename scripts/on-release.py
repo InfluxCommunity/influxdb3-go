@@ -7,7 +7,7 @@ import git
 dir_path=os.path.dirname(os.path.realpath(__file__))
 CHANGELOG=f"{dir_path}/../CHANGELOG.md"
 VERSION_FILE=f"{dir_path}/../influxdb3/version.go"
-BRANCH_SUB_TOKEN="chore/prepare-release-"
+BRANCH_NEXT_SUB_TOKEN= "chore/prepare-next-release-"
 
 TAG_MAJ = 0
 TAG_MIN = 1
@@ -100,16 +100,18 @@ def upload_next_release_files():
         config.set_value("user","name","builder")
         config.set_value("user","email","builder@bonitoo.io")
 
-    targetBranchName = f"{BRANCH_SUB_TOKEN}{calculate_next_version()}"
+    next_version = calculate_next_version()
 
-    print(f"DEBUG targetBranchName {targetBranchName}")
+    targetBranchName = f"{BRANCH_NEXT_SUB_TOKEN}{next_version}"
+
+#    print(f"DEBUG targetBranchName {targetBranchName}")
 
 
     # target_branch = repo.branches['main']
     target_branch = repo.create_head(targetBranchName)
-    print(f"DEBUG branches:")
-    for b in repo.branches:
-        print(f"DEBUG branch {b}")
+    # print(f"DEBUG branches:")
+    # for b in repo.branches:
+    #    print(f"DEBUG branch {b}")
 
     #    if b.commit.hexsha == repo.head.commit.hexsha:
     #        print(f"Sought commit {repo.head.commit.hexsha} MATCHED {b.commit.hexsha}!")
@@ -125,14 +127,15 @@ def upload_next_release_files():
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
 
+    # print(f"DEBUG repo.remotes.origin {repo.remotes.origin} at {repo.remotes.origin.url}")
 
-
-    print(f"DEBUG repo.remotes.origin {repo.remotes.origin} at {repo.remotes.origin.url}")
-
-    print(f"TODO push new branch and create PR")
+    # print(f"TODO push new branch and create PR")
 
     repo.git.push("--set-upstream", "origin", targetBranchName)
     repo.git.request_pull(targetBranchName, repo.remotes.origin.url, "main")
+
+    print(f"Changes for next release {next_version} are in the new branch {target_branch}.  "
+          f"Please review them and merge them into main.")
     # repo.remote("origin").push(set_upstream=True).raise_if_error()
     # repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
