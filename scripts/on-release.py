@@ -124,7 +124,7 @@ def main():
     print("on-release start")
     verify_changelog()
     update_version()
-    upload_next_release_files() # in progress
+    upload_next_release_files()
 
 
 if __name__ == "__main__":
