@@ -132,6 +132,7 @@ def upload_next_release_files():
     print(f"TODO push new branch and create PR")
 
     repo.git.push("--set-upstream", "origin", targetBranchName)
+    repo.git.pull_request(targetBranchName, repo.remotes.origin.url, "main")
     # repo.remote("origin").push(set_upstream=True).raise_if_error()
     # repo.remotes.origin.push().raise_if_error()
     # repo.commit(git.Commit())
