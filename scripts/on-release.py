@@ -51,18 +51,13 @@ def verify_changelog():
 
 
 def verify_version_file():
-    print("DEBUG verify_version_file")
     tag = get_latest_tag().strip("v")
-    print(f"DEBUG tag: #{tag}#")
     version_pattern = re.compile("^const version =.* ")
     with open(VERSION_FILE, "r") as f:
         lines = f.readlines()
         for line in lines:
-            print(line)
             if version_pattern.match(line):
-                print(f"DEBUG ### matched version line: {line}")
                 version = line.split("\"")[1]
-                print(f"DEBUG version #{version}#")
                 if tag != version:
                     raise Exception(f"Version in {VERSION_FILE} file ({version}) does not match latest tag ({tag})"
                                     f"{failure_boiler_plate()}")
