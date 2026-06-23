@@ -520,6 +520,18 @@ Submit bugs or issues to the repository on GitHub: <https://github.com/InfluxCom
 
 To contribute to this project, fork the repository on GitHub and send a pull request to the `main` branch.
 
+## Releasing
+
+New releases can be made using the following process:
+
+1. Merge changes to be released to the `main` branch.  Note that `CHANGELOG.md` must have a latest release H2 header matching the tag value and date format.
+2. Create a new release in the releases section of the GitHub project, and as part of the release create a new tag.
+3. Tag creation triggers the release workflow. which will...
+   1. verify release related material, such as the latest headings in `CHANGELOG.md`
+   2. create a new branch including updated `influxdb3/version.go` and `CHANGELOG.md` files.
+4. If checks in the workflow pass, manually create and then merge a pull request from the new branch `chore:/prepare-next-release-<COMPUTED_TAG>`.
+5. If checks in the workflow fail, check the final error message, delete the release, delete the newly created tag, make any necessary changes, and try again.
+
 ## License
 
 The InfluxDB v3 Go Client is released under the [MIT License](https://opensource.org/licenses/MIT)
