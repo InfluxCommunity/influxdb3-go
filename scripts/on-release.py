@@ -14,14 +14,12 @@ TAG_MIN = 1
 TAG_INC = 2
 
 
-def get_latest_tag() -> str:
-    repo = git.Repo(f"{dir_path}/..")
-    tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-    return tags[-1].__str__()
+def get_trigger_tag() -> str:
+    return os.environ['CIRCLE_TAG']
 
 
 def failure_boiler_plate() -> str:
-    return (f"\nPlease manually delete the release and tag {get_latest_tag()}, "
+    return (f"\nPlease manually delete the release and tag {get_trigger_tag()}, "
             f"fix any issues and try again\n")
 
 
@@ -39,7 +37,7 @@ def verify_changelog():
     cl_release = cl_release_heading[1]
     cl_date = cl_release_heading[2].strip('[').strip(']')
 
-    tag = get_latest_tag().strip('v')
+    tag = get_trigger_tag().strip('v')
     if cl_release != tag:
         raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag}). "
                         f"{failure_boiler_plate()}")
@@ -52,7 +50,7 @@ def verify_changelog():
 
 
 def verify_version_file():
-    tag = get_latest_tag().strip("v")
+    tag = get_trigger_tag().strip("v")
     version_pattern = re.compile("^const version =.* ")
     with open(VERSION_FILE, "r") as f:
         lines = f.readlines()
@@ -71,7 +69,7 @@ def verify_version_file():
 
 def calculate_next_version(part=1) -> str:
     tag_control = re.compile(r"^\d+\.\d+\.\d+.*")
-    latest_tag = get_latest_tag().strip("v")
+    latest_tag = get_trigger_tag().strip("v")
 
     if not tag_control.match(latest_tag):
         raise Exception(f"Latest tag {latest_tag} does match control pattern {tag_control.pattern}. Cannot update.")
