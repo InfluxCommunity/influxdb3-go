@@ -529,7 +529,7 @@ New releases can be made using the following process:
 3. Tag creation triggers the release workflow. which will...
    1. verify release related material, such as the latest headings in `CHANGELOG.md`
    2. create a new branch including updated `influxdb3/version.go` and `CHANGELOG.md` files.
-4. If checks in the workflow pass, manually create and then merge a pull request from the new branch `chore:/prepare-next-release-<COMPUTED_TAG>`.
+4. If checks in the workflow pass, manually create and then merge a pull request from the new branch `chore/prepare-next-release-<COMPUTED_TAG>`.
 5. If checks in the workflow fail, check the final error message, delete the release, delete the newly created tag, make any necessary changes, and try again.
 
 ## License
