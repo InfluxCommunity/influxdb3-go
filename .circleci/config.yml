@@ -160,14 +160,10 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            if ! command -v pip > /dev/null 2>&1
-            then
-              # N.B. python is likely managed externally
-              python -m venv --without-pip ./venv
-              source ./venv/bin/activate
-              curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-              python get-pip.py
-            fi
+            python -m venv --without-pip ./venv
+            source ./venv/bin/activate
+            curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+            python get-pip.py
             pip install GitPython
       - run:
           name: Release Script
