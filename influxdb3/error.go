@@ -23,6 +23,7 @@
 package influxdb3
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -39,6 +40,10 @@ type ServerError struct {
 	RetryAfter int `json:"-"`
 	// Headers hold the response headers
 	Headers http.Header `json:"headers"`
+	// data holds the raw JSON data field for operation-specific error handling.
+	data json.RawMessage
+	// rawBody holds the unmodified HTTP response body.
+	rawBody string
 }
 
 // NewServerError returns new with just a message
