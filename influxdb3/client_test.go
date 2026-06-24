@@ -875,13 +875,12 @@ func TestMakeAPICall(t *testing.T) {
 
 func TestResolveError(t *testing.T) {
 	testCases := []struct {
-		name                      string
-		statusCode                int
-		contentType               string
-		headers                   map[string]string
-		responseBody              string
-		expectedErrMessage        string
-		expectedPartialWriteError *PartialWriteError
+		name               string
+		statusCode         int
+		contentType        string
+		headers            map[string]string
+		responseBody       string
+		expectedErrMessage string
 	}{
 		{
 			name:               "V2 JSON message response",
@@ -910,7 +909,7 @@ func TestResolveError(t *testing.T) {
 			statusCode:         http.StatusBadRequest,
 			contentType:        "application/json",
 			responseBody:       `{"error": "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"`,
-			expectedErrMessage: "cannot decode error response: unexpected end of JSON input",
+			expectedErrMessage: `{"error": "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |"`,
 		},
 		{
 			name:               "V3 write error field",
@@ -920,184 +919,22 @@ func TestResolveError(t *testing.T) {
 			expectedErrMessage: "compilation failed: error at @1:170-1:171: invalid expression @1:167-1:168: |",
 		},
 		{
-			name:       "V3 write error with data field,no content type",
+			name:       "JSON response retains array data without content type",
 			statusCode: http.StatusBadRequest,
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
 "line_number":2,"original_line":"temperatureroom=room"},
 {"error_message":"invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
 "line_number":4,"original_line":"temperature,room=roo"}]}`,
-			expectedErrMessage: `partial write of line protocol occurred:
-	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)
-	line 4: invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer (temperature,room=roo)`,
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{
-						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
-						LineNumber:   2,
-						OriginalLine: "temperatureroom=room",
-					},
-					{
-						ErrorMessage: "invalid column type for column 'value', expected iox::column_type::field::float, got iox::column_type::field::integer",
-						LineNumber:   4,
-						OriginalLine: "temperature,room=roo",
-					},
-				},
-			},
+			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
-			name:        "V3 write error with data object parses as partial",
+			name:        "JSON response retains object data",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":{"error_message":"` +
 				`invalid column type for column 'temp', expected iox::column_type::field::float, got ` +
 				`iox::column_type::field::string",` +
 				`"line_number":2,"original_line":"home,room=Sunroom temp=hi 1735549200"}}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n\tline 2: " +
-				"invalid column type for column 'temp', expected iox::column_type::field::float, " +
-				"got iox::column_type::field::string (home,room=Sunroom temp=hi 1735549200)",
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{
-						ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
-						LineNumber:   2,
-						OriginalLine: "home,room=Sunroom temp=hi 1735549200",
-					},
-				},
-			},
-		},
-		{
-			name:         "V3 write error with textual line_number falls back to raw detail",
-			statusCode:   http.StatusBadRequest,
-			contentType:  "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\t{\"error_message\":\"bad line\",\"line_number\":\"x\",\"original_line\":\"bad lp\"}",
-		},
-		{
-			name:         "V3 write error with primitive item falls back to raw details",
-			statusCode:   http.StatusBadRequest,
-			contentType:  "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[1,{"error_message":"bad line","line_number":2,"original_line":"bad lp"}]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\t1\n" +
-				"\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}",
-		},
-		{
-			name:         "V3 write error with array of strings falls back to raw details",
-			statusCode:   http.StatusBadRequest,
-			contentType:  "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":["bad line 1","bad line 2"]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\t\"bad line 1\"\n" +
-				"\t\"bad line 2\"",
-		},
-		{
-			name:        "V3 write error with data field parses as partial",
-			statusCode:  http.StatusBadRequest,
-			contentType: "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
-"line_number":2,"original_line":"temperatureroom=room"}]}`,
-			expectedErrMessage: `partial write of line protocol occurred:
-	line 2: A generic parsing error occurred: TakeWhile1 (temperatureroom=room)`,
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{
-						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
-						LineNumber:   2,
-						OriginalLine: "temperatureroom=room",
-					},
-				},
-			},
-		},
-		{
-			name:        "V3 write error parsing failed write_lp endpoint",
-			statusCode:  http.StatusBadRequest,
-			contentType: "application/json",
-			responseBody: `{"error":"parsing failed for write_lp endpoint","data":[{"error_message":"A generic parsing error occurred: TakeWhile1",
-"line_number":2,"original_line":"temperatureroom=room"}]}`,
-			expectedErrMessage: "parsing failed for write_lp endpoint:\n\tline 2: " +
-				"A generic parsing error occurred: TakeWhile1 (temperatureroom=room)",
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{
-						ErrorMessage: "A generic parsing error occurred: TakeWhile1",
-						LineNumber:   2,
-						OriginalLine: "temperatureroom=room",
-					},
-				},
-			},
-		},
-		{
-			name:         "V3 write error with typed item missing line details keeps message-only detail",
-			statusCode:   http.StatusBadRequest,
-			contentType:  "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line"}]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\tbad line",
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{ErrorMessage: "bad line"},
-				},
-			},
-		},
-		{
-			name:        "V3 write error with line_number but no original_line",
-			statusCode:  http.StatusBadRequest,
-			contentType: "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":3}]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\tline 3: bad line",
-			expectedPartialWriteError: &PartialWriteError{
-				ServerError: ServerError{
-					StatusCode: http.StatusBadRequest,
-				},
-				LineErrors: []PartialWriteLineError{
-					{ErrorMessage: "bad line", LineNumber: 3},
-				},
-			},
-		},
-		{
-			name:               "V3 write error with invalid data string",
-			statusCode:         http.StatusBadRequest,
-			contentType:        "application/json",
-			responseBody:       `{"error":"partial write of line protocol occurred","data":"invalid"}`,
-			expectedErrMessage: "partial write of line protocol occurred",
-		},
-		{
-			name:         "V3 write error with array item without error_message falls back to raw details",
-			statusCode:   http.StatusBadRequest,
-			contentType:  "application/json",
-			responseBody: `{"error":"partial write of line protocol occurred","data":[{"line_number":2,"original_line":"bad lp"}]}`,
-			expectedErrMessage: "partial write of line protocol occurred:\n" +
-				"\t{\"line_number\":2,\"original_line\":\"bad lp\"}",
-		},
-		{
-			name:               "V3 write error with empty data object",
-			statusCode:         http.StatusBadRequest,
-			contentType:        "application/json",
-			responseBody:       `{"error":"partial write of line protocol occurred","data":{}}`,
-			expectedErrMessage: "partial write of line protocol occurred",
-		},
-		{
-			name:               "V3 write error with null data",
-			statusCode:         http.StatusBadRequest,
-			contentType:        "application/json",
-			responseBody:       `{"error":"partial write of line protocol occurred","data":null}`,
 			expectedErrMessage: "partial write of line protocol occurred",
 		},
 		{
@@ -1150,19 +987,259 @@ func TestResolveError(t *testing.T) {
 			assert.Nil(t, res)
 			require.Error(t, err)
 			assert.Equal(t, tc.expectedErrMessage, err.Error())
-			if tc.expectedPartialWriteError != nil {
-				var partialWriteErr *PartialWriteError
-				require.ErrorAs(t, err, &partialWriteErr)
-				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, partialWriteErr.StatusCode)
-				assert.Equal(t, tc.expectedPartialWriteError.LineErrors, partialWriteErr.LineErrors)
 
-				var serverErr *ServerError
-				require.ErrorAs(t, err, &serverErr)
-				assert.Equal(t, tc.expectedPartialWriteError.StatusCode, serverErr.StatusCode)
-			}
+			var partialWriteErr *PartialWriteError
+			assert.False(t, errors.As(err, &partialWriteErr))
+
+			var serverErr *ServerError
+			require.ErrorAs(t, err, &serverErr)
+			assert.Equal(t, tc.statusCode, serverErr.StatusCode)
+			assert.Equal(t, tc.responseBody, serverErr.rawBody)
 		})
 	}
 
+}
+
+func TestWriteErrorClassification(t *testing.T) {
+	const points = `home,room=Sunroom temp=96 1735545600
+home,room=Sunroom temp="hi" 1735545610
+home,room=Sunroom temp=88i 1735545620`
+	const rejectedLine = `home,room=Sunroom temp="hi" 1735545610`
+	const rejectedLineJSON = `home,room=Sunroom temp=\"hi\" 1735545610`
+	const lineError = "invalid column type for column 'temp', expected " +
+		"iox::column_type::field::float, got iox::column_type::field::string"
+
+	testCases := []struct {
+		name          string
+		statusCode    int
+		contentType   string
+		responseBody  string
+		useV2API      bool
+		acceptPartial bool
+		expectedMsg   string
+		expectPartial bool
+		expectedLines []PartialWriteLineError
+	}{
+		{
+			name:        "V3 accept partial with renamed error and non-empty array",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"write completed with rejected rows","data":[{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg:   "write completed with rejected rows:\n\tline 2: " + lineError + " (" + rejectedLine + ")",
+			expectPartial: true,
+			expectedLines: []PartialWriteLineError{{
+				ErrorMessage: lineError,
+				LineNumber:   2,
+				OriginalLine: rejectedLine,
+			}},
+		},
+		{
+			name:       "V3 accept partial without content type",
+			statusCode: http.StatusBadRequest,
+			responseBody: `{"error":"write completed with rejected rows","data":[{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg:   "write completed with rejected rows:\n\tline 2: " + lineError + " (" + rejectedLine + ")",
+			expectPartial: true,
+			expectedLines: []PartialWriteLineError{{
+				ErrorMessage: lineError,
+				LineNumber:   2,
+				OriginalLine: rejectedLine,
+			}},
+		},
+		{
+			name:        "V3 accept partial with malformed non-empty array",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"write completed with rejected rows","data":[{"line_number":"invalid",` +
+				`"original_line":"` + rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg: "write completed with rejected rows:\n\t" +
+				`{"line_number":"invalid","original_line":"` + rejectedLineJSON + `"}`,
+			expectPartial: true,
+		},
+		{
+			name:        "V3 accept partial with mixed primitive and typed entries",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"write completed with rejected rows","data":[1,{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg: "write completed with rejected rows:\n\t1\n\t" +
+				`{"error_message":"` + lineError + `","line_number":2,"original_line":"` +
+				rejectedLineJSON + `"}`,
+			expectPartial: true,
+			expectedLines: []PartialWriteLineError{{
+				ErrorMessage: lineError,
+				LineNumber:   2,
+				OriginalLine: rejectedLine,
+			}},
+		},
+		{
+			name:          "V3 accept partial with string entries",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write completed with rejected rows","data":["` + rejectedLineJSON + `"]}`,
+			acceptPartial: true,
+			expectedMsg:   "write completed with rejected rows:\n\t\"" + rejectedLineJSON + "\"",
+			expectPartial: true,
+		},
+		{
+			name:          "V3 accept partial with error message only",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write completed with rejected rows","data":[{"error_message":"` + lineError + `"}]}`,
+			acceptPartial: true,
+			expectedMsg:   "write completed with rejected rows:\n\t" + lineError,
+			expectPartial: true,
+			expectedLines: []PartialWriteLineError{{
+				ErrorMessage: lineError,
+			}},
+		},
+		{
+			name:          "V3 accept partial with line number but no original line",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write completed with rejected rows","data":[{"error_message":"` + lineError + `","line_number":2}]}`,
+			acceptPartial: true,
+			expectedMsg:   "write completed with rejected rows:\n\tline 2: " + lineError,
+			expectPartial: true,
+			expectedLines: []PartialWriteLineError{{
+				ErrorMessage: lineError,
+				LineNumber:   2,
+			}},
+		},
+		{
+			name:        "V3 accept partial with entry missing error message",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"write completed with rejected rows","data":[{"line_number":2,"original_line":"` +
+				rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg: "write completed with rejected rows:\n\t" +
+				`{"line_number":2,"original_line":"` + rejectedLineJSON + `"}`,
+			expectPartial: true,
+		},
+		{
+			name:          "V3 accept partial with empty array",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write failed","data":[]}`,
+			acceptPartial: true,
+			expectedMsg:   "write failed",
+		},
+		{
+			name:        "V3 accept partial with object details remains generic",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"line protocol parsing error","data":{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}}`,
+			acceptPartial: true,
+			expectedMsg:   "line protocol parsing error:\n\tline 2: " + lineError + " (" + rejectedLine + ")",
+		},
+		{
+			name:        "V3 reject partial with object details",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"line protocol parsing error","data":{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}}`,
+			acceptPartial: false,
+			expectedMsg:   "line protocol parsing error:\n\tline 2: " + lineError + " (" + rejectedLine + ")",
+		},
+		{
+			name:        "V2 never returns partial write error",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}]}`,
+			useV2API:      true,
+			acceptPartial: true,
+			expectedMsg:   "partial write of line protocol occurred",
+		},
+		{
+			name:        "V3 non-400 never returns partial write error",
+			statusCode:  http.StatusInternalServerError,
+			contentType: "application/json",
+			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"` +
+				lineError + `","line_number":2,"original_line":"` + rejectedLineJSON + `"}]}`,
+			acceptPartial: true,
+			expectedMsg:   "partial write of line protocol occurred",
+		},
+		{
+			name:          "V3 scalar data remains generic",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write failed","data":"invalid"}`,
+			acceptPartial: true,
+			expectedMsg:   "write failed",
+		},
+		{
+			name:          "V3 empty object data remains generic",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write failed","data":{}}`,
+			acceptPartial: true,
+			expectedMsg:   "write failed",
+		},
+		{
+			name:          "V3 null data remains generic",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write failed","data":null}`,
+			acceptPartial: true,
+			expectedMsg:   "write failed",
+		},
+		{
+			name:          "V3 malformed JSON preserves raw response",
+			statusCode:    http.StatusBadRequest,
+			contentType:   "application/json",
+			responseBody:  `{"error":"write failed"`,
+			acceptPartial: true,
+			expectedMsg:   `{"error":"write failed"`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", tc.contentType)
+				w.WriteHeader(tc.statusCode)
+				_, _ = w.Write([]byte(tc.responseBody))
+			}))
+			defer server.Close()
+
+			client, err := New(ClientConfig{
+				Host:     server.URL,
+				Token:    "token",
+				Database: "database",
+			})
+			require.NoError(t, err)
+
+			err = client.Write(
+				context.Background(),
+				[]byte(points),
+				WithUseV2Api(tc.useV2API),
+				WithAcceptPartial(tc.acceptPartial),
+			)
+			require.Error(t, err)
+			assert.Equal(t, tc.expectedMsg, err.Error())
+
+			var partialErr *PartialWriteError
+			if tc.expectPartial {
+				require.ErrorAs(t, err, &partialErr)
+				assert.Equal(t, tc.expectedLines, partialErr.LineErrors)
+			} else {
+				assert.False(t, errors.As(err, &partialErr))
+			}
+
+			var serverErr *ServerError
+			require.ErrorAs(t, err, &serverErr)
+			assert.Equal(t, tc.statusCode, serverErr.StatusCode)
+			assert.Equal(t, tc.responseBody, serverErr.rawBody)
+		})
+	}
 }
 
 func TestResolveErrorBodyReadError(t *testing.T) {
