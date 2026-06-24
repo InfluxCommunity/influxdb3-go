@@ -4,14 +4,15 @@ import re
 
 import git
 
-dir_path=os.path.dirname(os.path.realpath(__file__))
-CHANGELOG=f"{dir_path}/../CHANGELOG.md"
-VERSION_FILE=f"{dir_path}/../influxdb3/version.go"
-BRANCH_NEXT_SUB_TOKEN= "chore/prepare-next-release-"
+dir_path = os.path.dirname(os.path.realpath(__file__))
+CHANGELOG = f"{dir_path}/../CHANGELOG.md"
+VERSION_FILE = f"{dir_path}/../influxdb3/version.go"
+BRANCH_NEXT_SUB_TOKEN = "chore/prepare-next-release-"
 
 TAG_MAJ = 0
 TAG_MIN = 1
 TAG_INC = 2
+
 
 def get_latest_tag() -> str:
     repo = git.Repo(f"{dir_path}/..")
@@ -65,12 +66,27 @@ def verify_version_file():
                     print(f"Version ({version}) in version file matches current tag ({tag})")
                     return
         raise Exception(f"Failed to locate version line {version_pattern.pattern} in {VERSION_FILE}"
-                        f"{failure_boiler_plate()}" )
+                        f"{failure_boiler_plate()}")
 
 
 def calculate_next_version(part=1) -> str:
-    tag_parts = re.split(r'[.-]', get_latest_tag().strip("v"))
-    tag_seps = re.split(r'[^.|^-]', get_latest_tag().strip("v"))[1:]
+    tag_control = re.compile(r"^\d+\.\d+\.\d+.*")
+    latest_tag = get_latest_tag().strip("v")
+
+    if not tag_control.match(latest_tag):
+        raise Exception(f"Latest tag {latest_tag} does match control pattern {tag_control.pattern}. Cannot update.")
+
+    tag_parts = []
+    tag_seps = []
+    part_index = 0
+
+    for i, c in enumerate(latest_tag):
+        if c == ".":
+            tag_parts.append(latest_tag[part_index:i])
+            tag_seps.append(latest_tag[i])
+            part_index = i + 1
+
+    tag_parts.append(latest_tag[part_index:])
 
     if part == TAG_MAJ:
         print("incrementing major part")
@@ -98,7 +114,7 @@ def update_version():
                 lines[i] = next_version_line
 
     with open(VERSION_FILE, "w+") as fw:
-      fw.writelines(lines)
+        fw.writelines(lines)
 
     cl_next_release_line = f"## {next_version} [unreleased]\n"
 
@@ -115,8 +131,8 @@ def update_version():
 def upload_next_release_files():
     repo = git.Repo(f"{dir_path}/..")
     with repo.config_writer() as config:
-        config.set_value("user","name","builder")
-        config.set_value("user","email","builder@bonitoo.io")
+        config.set_value("user", "name", "builder")
+        config.set_value("user", "email", "builder@bonitoo.io")
 
     next_version = calculate_next_version()
 
