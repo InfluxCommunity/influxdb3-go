@@ -2,6 +2,11 @@
 
 ## 2.17.0 [unreleased]
 
+### Bug Fixes
+
+1. [#266](https://github.com/InfluxCommunity/influxdb3-go/pull/266): Return `PartialWriteError` only for V3 writes with `AcceptPartial=true`.
+   - V3 writes with `AcceptPartial=false` now return the standard API error with line-level details when provided by the server.
+
 ## 2.16.0 [2026-06-11]
 
 ### Dependencies
