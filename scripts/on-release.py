@@ -53,11 +53,14 @@ def verify_changelog():
         raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag}). "
                         f"{failure_boiler_plate()}")
 
-    if not date_vals.match(cl_date):
-        raise Exception(f"Date ({cl_date}) for this release, does not conform to YYYY-MM-DD pattern. "
-                        f"{failure_boiler_plate()}")
+    if RC_OR_BETA:
+        print(f"Tag {get_trigger_tag()} is for RC or BETA release.  CHANGELOG.md release date not checked.")
+    else:
+        if not date_vals.match(cl_date):
+            raise Exception(f"Date ({cl_date}) for this release, does not conform to YYYY-MM-DD pattern. "
+                            f"{failure_boiler_plate()}")
 
-    print(f"Release {cl_release} on {cl_date} in CHANGELOG.md OK ✓.")
+    print(f"Release with tag {get_trigger_tag()} on {cl_date} in CHANGELOG.md OK ✓.")
 
 
 def verify_version_file():
