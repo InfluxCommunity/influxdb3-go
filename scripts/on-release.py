@@ -8,6 +8,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 CHANGELOG = f"{dir_path}/../CHANGELOG.md"
 VERSION_FILE = f"{dir_path}/../influxdb3/version.go"
 BRANCH_NEXT_SUB_TOKEN = "chore/prepare-next-release-"
+RC_OR_BETA=False
 
 TAG_MAJ = 0
 TAG_MIN = 1
@@ -17,6 +18,10 @@ TAG_INC = 2
 def get_trigger_tag() -> str:
     return os.environ['CIRCLE_TAG']
 
+def remove_rc_or_beta_stub(tag) -> str:
+    stub_index = re.compile("-(rc|beta)[0-9]+").search(tag).start()
+    return tag[:stub_index]
+
 
 def failure_boiler_plate() -> str:
     return (f"\nPlease manually delete the release and tag {get_trigger_tag()}, "
@@ -24,6 +29,7 @@ def failure_boiler_plate() -> str:
 
 
 def verify_changelog():
+    global RC_OR_BETA
     md_headings = re.compile("^#{2} .*")
     date_vals = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
     release_headings = []
@@ -38,6 +44,11 @@ def verify_changelog():
     cl_date = cl_release_heading[2].strip('[').strip(']')
 
     tag = get_trigger_tag().strip('v')
+
+    # don't fail basic comparison for release candidates or beta
+    if RC_OR_BETA:
+        tag = remove_rc_or_beta_stub(tag)
+
     if cl_release != tag:
         raise Exception(f"Tag in CHANGELOG.md ({cl_release}) does not match latest git tag ({tag}). "
                         f"{failure_boiler_plate()}")
@@ -50,7 +61,12 @@ def verify_changelog():
 
 
 def verify_version_file():
+    global RC_OR_BETA
     tag = get_trigger_tag().strip("v")
+
+    if RC_OR_BETA:
+        tag = remove_rc_or_beta_stub(tag)
+
     version_pattern = re.compile("^const version =.* ")
     with open(VERSION_FILE, "r") as f:
         lines = f.readlines()
@@ -163,9 +179,21 @@ def upload_next_release_files():
 
 
 def main():
+    global RC_OR_BETA
     print("on-release start")
+    rc_matcher = re.compile("-(rc|beta)[0-9]+")
+
+    if rc_matcher.search(get_trigger_tag()):
+        RC_OR_BETA=True
+
     verify_changelog()
     verify_version_file()
+
+    if RC_OR_BETA:
+        print(f"Tag ({get_trigger_tag()}) is RC or BETA.  Next version and release files NOT updated.")
+        return
+
+    print(f"Updating tag for next version and release files.")
     update_version()
     upload_next_release_files()
 
