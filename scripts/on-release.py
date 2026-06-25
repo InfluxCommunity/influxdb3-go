@@ -96,7 +96,17 @@ def calculate_next_version(part=1) -> str:
         print(f"incrementing minor part")
         tag_parts[TAG_MIN] = str(int(tag_parts[TAG_MIN]) + 1)
 
-    return f"{tag_parts[TAG_MAJ]}{tag_seps[TAG_MAJ]}{tag_parts[TAG_MIN]}{tag_seps[TAG_MIN]}{tag_parts[TAG_INC]}"
+    # If patch or incremental part includes text - reset the value
+    if not isinstance(tag_parts[TAG_INC], int):
+        tag_parts[TAG_INC] = 0
+
+    new_tag = f"{tag_parts[TAG_MAJ]}{tag_seps[TAG_MAJ]}{tag_parts[TAG_MIN]}{tag_seps[TAG_MIN]}{tag_parts[TAG_INC]}"
+
+    # paranoia - ensure standard tag form has been generated
+    if not re.compile(r"^\d+\.\d+\.\d+$").match(new_tag):
+        raise Exception(f"Failed to calculate well formed new tag ({new_tag}) from original tag ({latest_tag}) ")
+
+    return new_tag
 
 
 def update_version():
@@ -134,9 +144,9 @@ def upload_next_release_files():
 
     next_version = calculate_next_version()
 
-    targetBranchName = f"{BRANCH_NEXT_SUB_TOKEN}{next_version}"
+    target_branch_name = f"{BRANCH_NEXT_SUB_TOKEN}{next_version}"
 
-    target_branch = repo.create_head(targetBranchName)
+    target_branch = repo.create_head(target_branch_name)
 
     print(f"Switching to branch {target_branch}")
     repo.head.reference = target_branch
@@ -145,8 +155,8 @@ def upload_next_release_files():
     repo.index.add(VERSION_FILE)
     repo.index.commit("chore: prepare for next development iteration [skip ci]")
 
-    repo.git.push("--set-upstream", "origin", targetBranchName)
-    repo.git.request_pull(targetBranchName, repo.remotes.origin.url, "main")
+    repo.git.push("--set-upstream", "origin", target_branch_name)
+    repo.git.request_pull(target_branch_name, repo.remotes.origin.url, "main")
 
     print(f"Changes for next release {next_version} are in the new branch {target_branch}.  "
           f"Please review them and merge them into main.")
