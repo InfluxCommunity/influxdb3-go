@@ -142,7 +142,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "SHA256:S69Ldku63399P5BDKnlyjCY75dBTen9YVsTE+dowMhY"
+            - "SHA256:bFMl8mqjuXpUfcM2dFVyJCuJzkcD7aCV5mNZukMmxe4"
       - run:
           name: Verify Envars
           command: |
