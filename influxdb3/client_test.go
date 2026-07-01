@@ -994,7 +994,6 @@ func TestResolveError(t *testing.T) {
 			var serverErr *ServerError
 			require.ErrorAs(t, err, &serverErr)
 			assert.Equal(t, tc.statusCode, serverErr.StatusCode)
-			assert.Equal(t, tc.responseBody, serverErr.rawBody)
 		})
 	}
 
@@ -1237,7 +1236,6 @@ home,room=Sunroom temp=88i 1735545620`
 			var serverErr *ServerError
 			require.ErrorAs(t, err, &serverErr)
 			assert.Equal(t, tc.statusCode, serverErr.StatusCode)
-			assert.Equal(t, tc.responseBody, serverErr.rawBody)
 		})
 	}
 }

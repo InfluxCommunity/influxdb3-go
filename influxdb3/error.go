@@ -42,8 +42,6 @@ type ServerError struct {
 	Headers http.Header `json:"headers"`
 	// data holds the raw JSON data field for operation-specific error handling.
 	data json.RawMessage
-	// rawBody holds the unmodified HTTP response body.
-	rawBody string
 }
 
 // NewServerError returns new with just a message

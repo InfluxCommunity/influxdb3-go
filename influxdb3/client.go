@@ -393,8 +393,6 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		httpError.Headers = r.Header
 		return &httpError.ServerError
 	}
-	httpError.rawBody = string(body)
-
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if ctype == "application/json" || ctype == "" {
 		if err := json.Unmarshal(body, &httpError); err != nil {
