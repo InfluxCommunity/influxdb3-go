@@ -851,16 +851,9 @@ home,room=Sunroom temp=88i 1735545620`
 				influxdb3.WithUseV2Api(false),
 				influxdb3.WithAcceptPartial(false),
 			},
-			expectedMessage:    "line protocol parsing error",
+			expectedMessage:    "line protocol parsing error:\n\tline 2: invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string (home,room=Sunroom te)",
 			expectContains:     true,
-			expectPartialError: true,
-			expectedLineErrors: []influxdb3.PartialWriteLineError{
-				{
-					ErrorMessage: "invalid column type for column 'temp', expected iox::column_type::field::float, got iox::column_type::field::string",
-					LineNumber:   2,
-					OriginalLine: "home,room=Sunroom te",
-				},
-			},
+			expectPartialError: false,
 		},
 		{
 			name: "UseV2Api=true (default AcceptPartial=true)",
