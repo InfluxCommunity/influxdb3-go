@@ -393,29 +393,14 @@ func (c *Client) resolveHTTPError(r *http.Response) error {
 		httpError.Headers = r.Header
 		return &httpError.ServerError
 	}
-
 	ctype, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if ctype == "application/json" || ctype == "" { //nolint:nestif
-		err := json.Unmarshal(body, &httpError)
-		if err != nil && ctype != "" {
-			httpError.Message = fmt.Sprintf("cannot decode error response: %v", err)
-		}
-		if httpError.Error != "" {
+	if ctype == "application/json" || ctype == "" {
+		if err := json.Unmarshal(body, &httpError); err != nil {
+			httpError.Message = string(body)
+		} else if httpError.Error != "" {
 			httpError.Message = httpError.Error
-			if isPartialWriteMessage(httpError.Error) {
-				lineErrors, details := parsePartialWriteLineErrorInfo(httpError.Data)
-				if len(details) > 0 {
-					httpError.Message += ":\n\t" + strings.Join(details, "\n\t")
-				}
-				if len(lineErrors) > 0 {
-					httpError.Headers = r.Header
-					return &PartialWriteError{
-						ServerError: httpError.ServerError,
-						LineErrors:  lineErrors,
-					}
-				}
-			}
 		}
+		httpError.data = httpError.Data
 	}
 
 	if httpError.Message == "" {
