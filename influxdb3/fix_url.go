@@ -23,8 +23,9 @@
 package influxdb3
 
 import (
-	"fmt"
+	"net"
 	"net/url"
+	"strings"
 )
 
 // ReplaceURLProtocolWithPort removes the "http://" or "https://" protocol from the given URL and replaces it with the port number.
@@ -43,11 +44,17 @@ import (
 //   - A boolean value indicating the safety of communication (true for safe, false for unsafe) or nil if not detected.
 func ReplaceURLProtocolWithPort(serverURL string) (string, bool) {
 	u, _ := url.Parse(serverURL)
+
+	// When working with IPv6 zone, url.Parse() will change "%25" to "%", so we must get it back.
+	endpoint := net.JoinHostPort(u.Hostname(), port(u))
+	encodedEndpoint := strings.TrimPrefix((&url.URL{Host: endpoint}).String(), "//")
+
 	var safe bool
 	if u.Scheme == schemeHTTPS {
 		safe = true
 	}
-	serverURL = fmt.Sprintf("%s:%s%s", u.Hostname(), port(u), u.Path)
+
+	serverURL = encodedEndpoint + u.Path
 	return serverURL, safe
 }
 

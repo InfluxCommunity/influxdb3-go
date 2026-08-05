@@ -235,6 +235,7 @@ func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, con
 // NewFromConnectionString creates new Client from the specified connection string.
 // Parameters:
 //   - connectionString: connection string in URL format.
+//     NOTE: IPv6 must be wrapped inside square brackets, e.g. http://[2001:db8::1].
 //
 // Supported query parameters:
 //   - token - authentication token (required)
@@ -260,7 +261,7 @@ func NewFromConnectionString(connectionString string) (*Client, error) {
 
 // NewFromEnv creates new Client instance from environment variables.
 // Supported variables:
-//   - INFLUX_HOST - cloud/server URL (required)
+//   - INFLUX_HOST - cloud/server URL. NOTE: IPv6 must be wrapped inside square brackets, e.g. http://[2001:db8::1]. (required)
 //   - INFLUX_TOKEN - authentication token (required)
 //   - INFLUX_AUTH_SCHEME - authentication scheme
 //   - INFLUX_ORG - organization name

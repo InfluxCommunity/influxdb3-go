@@ -331,6 +331,12 @@ func TestURLs(t *testing.T) {
 		{"http://host:8086/path/", "http://host:8086/path/api/"},
 		{"http://host:8086/path1/path2/path3", "http://host:8086/path1/path2/path3/api/"},
 		{"http://host:8086/path1/path2/path3/", "http://host:8086/path1/path2/path3/api/"},
+		{"http://[2001:db8::1]/", "http://[2001:db8::1]/api/"},
+		{"https://[2001:db8:a0b:12f0::1%25eth0]:15000/", "https://[2001:db8:a0b:12f0::1%25eth0]:15000/api/"},
+		{"https://[fe80::1%25eth%250]:15000", "https://[fe80::1%25eth%250]:15000/api/"},
+		{"https://[fe80::1%25eth%200]:15000", "https://[fe80::1%25eth%200]:15000/api/"},
+		// Square brackets will be added automatically, but we're still suggesting users to add square brackets by themselves.
+		{"http://2001:db8::1:8080/", "http://2001:db8::1:8080/api/"},
 	}
 	for _, turl := range urls {
 		t.Run(turl.HostURL, func(t *testing.T) {
@@ -1056,9 +1062,9 @@ func TestResolveError(t *testing.T) {
 			},
 		},
 		{
-			name:        "V3 write error with line_number but no original_line",
-			statusCode:  http.StatusBadRequest,
-			contentType: "application/json",
+			name:         "V3 write error with line_number but no original_line",
+			statusCode:   http.StatusBadRequest,
+			contentType:  "application/json",
 			responseBody: `{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":3}]}`,
 			expectedErrMessage: "partial write of line protocol occurred:\n" +
 				"\tline 3: bad line",
@@ -1239,6 +1245,31 @@ func TestFixUrl(t *testing.T) {
 			input:        "http://192.168.0.5:8080/db",
 			expected:     "192.168.0.5:8080/db",
 			expectedSafe: false,
+		},
+		{
+			input:        "http://[2001:db8::1]",
+			expected:     "[2001:db8::1]:80",
+			expectedSafe: false,
+		},
+		{
+			input:        "https://[2001:db8:a0b:12f0::1%25eth0]:15000",
+			expected:     "[2001:db8:a0b:12f0::1%25eth0]:15000",
+			expectedSafe: true,
+		},
+		{
+			input:        "http://2001:db8::1:8080/",
+			expected:     "[2001:db8::1]:8080/",
+			expectedSafe: false,
+		},
+		{
+			input:        "https://[fe80::1%25eth%250]:15000",
+			expected:     "[fe80::1%25eth%250]:15000",
+			expectedSafe: true,
+		},
+		{
+			input:        "https://[fe80::1%25eth%200]:15000",
+			expected:     "[fe80::1%25eth%200]:15000",
+			expectedSafe: true,
 		},
 	}
 

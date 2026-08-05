@@ -79,6 +79,7 @@ const (
 type ClientConfig struct {
 	// Host holds the URL of the InfluxDB server to connect to.
 	// This must be non-empty. E.g. http://localhost:8086
+	// IPv6 must be wrapped inside square brackets, e.g. http://[2001:db8::1].
 	Host string
 
 	// Token holds the authorization token for the API.
@@ -171,6 +172,7 @@ func (c *ClientConfig) validate() error {
 }
 
 // parse initializes the client config from provided connection string.
+// IPv6 must be wrapped inside square brackets, e.g. http://[2001:db8::1].
 func (c *ClientConfig) parse(connectionString string) error {
 	u, err := url.Parse(connectionString)
 	if err != nil {
