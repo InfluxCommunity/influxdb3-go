@@ -366,7 +366,7 @@ func points2bytes(t *testing.T, points []*Point, defaultTags ...map[string]strin
 func returnHTTPError(w http.ResponseWriter, code int, message string) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(fmt.Sprintf(`{"code":"invalid", "message":"%s"}`, message))) //nolint:modernize
+	_, _ = w.Write([]byte(fmt.Sprintf(`{"code":"invalid", "message":"%s"}`, message)))
 }
 
 // compArrays compares arrays
