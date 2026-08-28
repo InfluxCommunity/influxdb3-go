@@ -230,9 +230,11 @@ func TestPointWithEscapedTags(t *testing.T) {
 		"fVal": 17.2,
 	}, time.Unix(60, 70))
 
-	_, err = pInvalid.MarshalBinary(Nanosecond)
-	require.Error(t, err)
-	assert.EqualValues(t, "encoding error: invalid tag key \"tag\\nbroken\"", err.Error())
+	line, err = pInvalid.MarshalBinary(Nanosecond)
+	require.NoError(t, err)
+	assert.EqualValues(t,
+		"test,tag\\nbroken=tag\\nvalue\\ with\\ space fVal=17.2 60000000070\n",
+		string(line))
 }
 
 func TestPointEscapeCompatibilityCases(t *testing.T) {
@@ -273,22 +275,29 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 			expected:    "h=2o,l\\=ocation=e\\=urope l\\=evel=2i\n",
 		},
 		{
-			name:        "tag key control characters are rejected",
+			name:        "tag key and value control characters are escaped",
 			measurement: "h2o",
 			tags: map[string]string{
-				"new\nline": "new\nline",
+				"new\n\r\tline": "new\n\r\tvalue",
 			},
-			fields:  map[string]any{"level": 2},
-			wantErr: "encoding error: invalid tag key",
+			fields:   map[string]any{"level": 2},
+			expected: "h2o,new\\n\\r\\tline=new\\n\\r\\tvalue level=2i\n",
 		},
 		{
-			name:        "field key control characters are rejected",
+			name:        "field key control characters are escaped",
 			measurement: "h2o",
 			tags:        map[string]string{"location": "europe"},
 			fields: map[string]any{
-				"new\nline": 2,
+				"new\n\r\tline": 2,
 			},
-			wantErr: "encoding error: invalid field key",
+			expected: "h2o,location=europe new\\n\\r\\tline=2i\n",
+		},
+		{
+			name:        "measurement control characters are escaped",
+			measurement: "h2\no\r\t",
+			tags:        map[string]string{"location": "europe"},
+			fields:      map[string]any{"level": 2},
+			expected:    "h2\\no\\r\\t,location=europe level=2i\n",
 		},
 		{
 			name:        "string field escapes backslash",
@@ -326,6 +335,16 @@ func TestPointEscapeCompatibilityCases(t *testing.T) {
 			assert.EqualValues(t, tc.expected, string(line))
 		})
 	}
+}
+
+func TestPointEscapeDefaultTags(t *testing.T) {
+	p := NewPoint("test", nil, map[string]any{"level": 2}, time.Time{})
+
+	line, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
+		"env\n\r\tname": "prod\r\tvalue",
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, "test,env\\n\\r\\tname=prod\\r\\tvalue level=2i\n", string(line))
 }
 
 func TestPointFields(t *testing.T) {
@@ -654,11 +673,11 @@ func TestDefaultTagKeyControlChars(t *testing.T) {
 		"field": 1,
 	}, time.Unix(60, 70))
 
-	_, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
+	line, err := p.MarshalBinaryWithDefaultTags(Nanosecond, map[string]string{
 		"bad\nkey": "x",
 	})
-	require.Error(t, err)
-	assert.ErrorContains(t, err, "encoding error: invalid tag key")
+	require.NoError(t, err)
+	assert.EqualValues(t, "test,bad\\nkey=x,tag=a field=1i 60000000070\n", string(line))
 }
 
 func TestAppendFieldValue(t *testing.T) {

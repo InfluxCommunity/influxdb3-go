@@ -32,7 +32,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -323,26 +322,19 @@ func (p *Point) appendTags(sb *bytes.Buffer, defaultTags map[string]string, tagO
 func (p *Point) collectOrderedTagKeys(defaultTags map[string]string, tagOrder []string) ([]string, error) {
 	tags := p.Values.Tags
 
-	// Keep strict validation for point tags (explicit user point data),
-	// while preserving backward-compatible behavior for default tags where
-	// empty keys are ignored (not treated as hard errors).
+	// Empty keys from point tags remain invalid, while empty keys from default
+	// tags are ignored for backward compatibility.
 	if _, exists := tags[""]; exists {
 		return nil, fmt.Errorf("encoding error: invalid tag key %q", "")
 	}
 
 	tagKeySet := make(map[string]struct{}, len(tags)+len(defaultTags))
 	for k := range tags {
-		if strings.ContainsAny(k, "\n\r\t") {
-			return nil, fmt.Errorf("encoding error: invalid tag key %q", k)
-		}
 		if k != "" {
 			tagKeySet[k] = struct{}{}
 		}
 	}
 	for k := range defaultTags {
-		if strings.ContainsAny(k, "\n\r\t") {
-			return nil, fmt.Errorf("encoding error: invalid tag key %q", k)
-		}
 		if k != "" {
 			tagKeySet[k] = struct{}{}
 		}
@@ -389,7 +381,7 @@ func (p *Point) appendFields(sb *bytes.Buffer) (bool, error) {
 
 	appended := false
 	for _, fieldKey := range fieldKeys {
-		if fieldKey == "" || strings.ContainsAny(fieldKey, "\n\r\t") {
+		if fieldKey == "" {
 			return false, fmt.Errorf("encoding error: invalid field key %q", fieldKey)
 		}
 
