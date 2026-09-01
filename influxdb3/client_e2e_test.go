@@ -487,6 +487,44 @@ func TestEscapedStringValues(t *testing.T) {
 	}
 }
 
+func TestEscapedMeasurementsTagsAndFields(t *testing.T) {
+	SkipCheck(t)
+	url := os.Getenv("TESTING_INFLUXDB_URL")
+	token := os.Getenv("TESTING_INFLUXDB_TOKEN")
+	database := os.Getenv("TESTING_INFLUXDB_DATABASE")
+
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	require.NoError(t, err)
+
+	p := influxdb3.NewPoint("strange\n\r\tdata",
+		map[string]string{
+			"tag\n\r\ttest": "new\nline and space",
+		},
+		map[string]any{
+		    "field\n\r\ttest": 2.71,
+			"fVal": 41.3,
+			"sVal": "greetings\nearthlings",
+		}, time.Now())
+
+	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
+	require.NoError(t, err)
+
+	qit, err := client.Query(context.Background(), "SELECT * FROM \"strange\\n\\r\\tdata\" WHERE time >= now() - interval '1 minute'")
+	require.NoError(t, err)
+
+	for qit.Next() {
+		assert.EqualValues(t, "greetings\\nearthlings", qit.Value()["sVal"])
+		assert.EqualValues(t, 41.3, qit.Value()["fVal"])
+		assert.EqualValues(t, "new\\nline and space", qit.Value()["tag\\n\\r\\ttest"])
+		assert.EqualValues(t, 2.71, qit.Value()["field\\n\\r\\ttest"])
+	}
+
+}
+
 func PointFromLineProtocol(lp string) (*influxdb3.Point, error) {
 	groups := strings.Split(strings.TrimSpace(lp), " ")
 	head := strings.Split(groups[0], ",")

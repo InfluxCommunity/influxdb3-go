@@ -2,6 +2,10 @@
 
 ## 2.18.0 [unreleased]
 
+### Bug Fixes
+
+1. Escape newline, carriage return, and tab characters in line protocol measurements, tag keys and values, and field keys.
+
 ## 2.17.0 [2026-07-01]
 
 ### CI
