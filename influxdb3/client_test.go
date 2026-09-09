@@ -1154,6 +1154,15 @@ home,room=Sunroom temp=88i 1735545620`
 			expectedMsg:   "line protocol parsing error:\n\tline 2: " + lineError + " (" + rejectedLine + ")",
 		},
 		{
+			name:        "V3 reject write with object details invalid line_number",
+			statusCode:  http.StatusBadRequest,
+			contentType: "application/json",
+			responseBody: `{"error":"line protocol parsing error","data":{"error_message":"` +
+				"bad line" + `","line_number":"aa","original_line":"` + rejectedLineJSON + `"}}`,
+			acceptPartial: false,
+			expectedMsg:   "line protocol parsing error:\n\tbad line",
+		},
+		{
 			name:        "V2 never returns partial write error",
 			statusCode:  http.StatusBadRequest,
 			contentType: "application/json",
@@ -1207,6 +1216,9 @@ home,room=Sunroom temp=88i 1735545620`
 	}
 
 	for _, tc := range testCases {
+		//if tc.name != "V3 reject write with object details invalid line_number" {
+		//	continue
+		//}
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", tc.contentType)
@@ -1247,6 +1259,29 @@ home,room=Sunroom temp=88i 1735545620`
 }
 
 func TestResolveErrorBodyReadError(t *testing.T) {
+	testCases := []struct {
+		name        string
+		contentType string
+	}{
+		{name: "text/plain", contentType: "text/plain"},
+		{name: "application/json", contentType: "application/json"},
+	}
+
+	for _, tc := range testCases {
+		errResponse := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Status:     "400 Bad Request",
+			Header:     http.Header{"Content-Type": []string{tc.contentType}},
+			Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
+		}
+
+		err := (&Client{}).resolveHTTPError(errResponse)
+		require.Error(t, err, tc.name)
+		assert.Equal(t, "cannot read error response: simulated read error", err.Error(), tc.name)
+	}
+}
+
+func TestWriteErrorObjectBody(t *testing.T) {
 	testCases := []struct {
 		name        string
 		contentType string

@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -277,15 +278,14 @@ func classifyWriteError(err error, options *WriteOptions) error {
 		}
 	}
 
-	lineError, ok := parsePartialWriteLineError(serverErr.data)
-	if !ok {
-		return err
+	var dataNode map[string]any
+	err = json.Unmarshal(serverErr.data, &dataNode)
+	if err != nil {
+		return serverErr
 	}
-	details := formatPartialWriteLineErrorDetails([]PartialWriteLineError{lineError})
-	if len(details) > 0 {
-		serverErr.Message += ":\n\t" + strings.Join(details, "\n\t")
-	}
-	return err
+	serverErr.Message = FormatObjectDataError(serverErr.Message, dataNode)
+
+	return serverErr
 }
 
 // WriteData encodes fields of custom points into line protocol
