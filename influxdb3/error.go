@@ -62,19 +62,25 @@ func FormatObjectDataError(errorMsg string, dataNode map[string]any) string {
 	if dataNode == nil {
 		return errorMsg
 	}
-	lineNumber := errNonEmptyField(dataNode, "line_number")
-	errorMessage := errNonEmptyField(dataNode, "error_message")
-	originalLine := errNonEmptyField(dataNode, "original_line")
 
-	if errorMessage != "" && (lineNumber == "" || !isInteger(lineNumber)) {
+	errorMessage := errNonEmptyField(dataNode, "error_message")
+	if errorMessage == "" {
+		return errorMsg
+	}
+
+	lineNumber := errNonEmptyField(dataNode, "line_number")
+	originalLine := errNonEmptyField(dataNode, "original_line")
+	hasLineNumber := isInteger(lineNumber)
+
+	if !hasLineNumber {
 		return fmt.Sprintf("%s:\n\t%s", errorMsg, errorMessage)
-	} else if errorMessage != "" && isInteger(lineNumber) && originalLine == "" {
-		return fmt.Sprintf("%s:\n\tline %s: %s", errorMsg, lineNumber, errorMessage)
-	} else if errorMessage != "" && originalLine != "" {
+	}
+
+	if originalLine != "" {
 		return fmt.Sprintf("%s:\n\tline %s: %s (%s)", errorMsg, lineNumber, errorMessage, originalLine)
 	}
 
-	return errorMsg
+	return fmt.Sprintf("%s:\n\tline %s: %s", errorMsg, lineNumber, errorMessage)
 }
 
 func errNonEmptyField(node map[string]any, field string) string {
