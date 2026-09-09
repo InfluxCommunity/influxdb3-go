@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -229,6 +230,8 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 
 	resp, err := c.makeAPICall(ctx, *params)
 	if err != nil {
+		err = classifyWriteError(err, options)
+
 		var svErr *ServerError
 		if options.UseV2Api && errors.As(err, &svErr) && svErr.StatusCode == http.StatusMethodNotAllowed &&
 			strings.HasSuffix(params.endpointURL.Path, "/api/v2/write") {
@@ -251,6 +254,38 @@ func (c *Client) write(ctx context.Context, buff []byte, options *WriteOptions) 
 		return err
 	}
 	return resp.Body.Close()
+}
+
+func classifyWriteError(err error, options *WriteOptions) error {
+	var serverErr *ServerError
+	if !errors.As(err, &serverErr) ||
+		options.UseV2Api ||
+		serverErr.StatusCode != http.StatusBadRequest {
+		return err
+	}
+
+	if options.AcceptPartial {
+		lineErrors, details, nonEmpty := parsePartialWriteDataArray(serverErr.data)
+		if nonEmpty {
+			partialErr := &PartialWriteError{
+				ServerError: *serverErr,
+				LineErrors:  lineErrors,
+			}
+			if len(details) > 0 {
+				partialErr.Message += ":\n\t" + strings.Join(details, "\n\t")
+			}
+			return partialErr
+		}
+	}
+
+	var dataNode map[string]any
+	err = json.Unmarshal(serverErr.data, &dataNode)
+	if err != nil {
+		return serverErr
+	}
+	serverErr.Message = FormatObjectDataError(serverErr.Message, dataNode)
+
+	return serverErr
 }
 
 // WriteData encodes fields of custom points into line protocol

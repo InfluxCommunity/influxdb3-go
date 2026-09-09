@@ -5,6 +5,8 @@
 ### Bug Fixes
 
 1. Escape newline, carriage return, and tab characters in line protocol measurements, tag keys and values, and field keys.
+1. [#266](https://github.com/InfluxCommunity/influxdb3-go/pull/266): Return `PartialWriteError` only for V3 writes with `AcceptPartial=true`.
+   - V3 writes with `AcceptPartial=false` now return the standard API error with line-level details when provided by the server.
 
 ## 2.17.0 [2026-07-01]
 

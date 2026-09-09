@@ -23,8 +23,10 @@
 package influxdb3
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 // ServerError represents an error returned from an InfluxDB API server.
@@ -39,6 +41,8 @@ type ServerError struct {
 	RetryAfter int `json:"-"`
 	// Headers hold the response headers
 	Headers http.Header `json:"headers"`
+	// data holds the raw JSON data field for operation-specific error handling.
+	data json.RawMessage
 }
 
 // NewServerError returns new with just a message
@@ -52,4 +56,42 @@ func (e ServerError) Error() string {
 		return fmt.Sprintf("%s: %s", e.Code, e.Message)
 	}
 	return e.Message
+}
+
+func FormatObjectDataError(errorMsg string, dataNode map[string]any) string {
+	if dataNode == nil {
+		return errorMsg
+	}
+
+	errorMessage := errNonEmptyField(dataNode, "error_message")
+	if errorMessage == "" {
+		return errorMsg
+	}
+
+	lineNumber := errNonEmptyField(dataNode, "line_number")
+	originalLine := errNonEmptyField(dataNode, "original_line")
+	_, err := strconv.Atoi(lineNumber)
+	hasLineNumber := err == nil
+
+	if !hasLineNumber {
+		return fmt.Sprintf("%s:\n\t%s", errorMsg, errorMessage)
+	}
+
+	if originalLine != "" {
+		return fmt.Sprintf("%s:\n\tline %s: %s (%s)", errorMsg, lineNumber, errorMessage, originalLine)
+	}
+
+	return fmt.Sprintf("%s:\n\tline %s: %s", errorMsg, lineNumber, errorMessage)
+}
+
+func errNonEmptyField(node map[string]any, field string) string {
+	if node == nil {
+		return ""
+	}
+	val, ok := node[field]
+	if !ok || val == nil {
+		return ""
+	}
+	strVal := fmt.Sprintf("%v", val)
+	return strVal
 }
