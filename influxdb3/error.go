@@ -70,7 +70,8 @@ func FormatObjectDataError(errorMsg string, dataNode map[string]any) string {
 
 	lineNumber := errNonEmptyField(dataNode, "line_number")
 	originalLine := errNonEmptyField(dataNode, "original_line")
-	hasLineNumber := isInteger(lineNumber)
+	_, err := strconv.Atoi(lineNumber)
+	hasLineNumber := err == nil
 
 	if !hasLineNumber {
 		return fmt.Sprintf("%s:\n\t%s", errorMsg, errorMessage)
@@ -93,9 +94,4 @@ func errNonEmptyField(node map[string]any, field string) string {
 	}
 	strVal := fmt.Sprintf("%v", val)
 	return strVal
-}
-
-func isInteger(s string) bool {
-	_, err := strconv.Atoi(s)
-	return err == nil
 }
