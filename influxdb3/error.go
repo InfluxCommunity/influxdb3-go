@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 // ServerError represents an error returned from an InfluxDB API server.
@@ -55,4 +56,40 @@ func (e ServerError) Error() string {
 		return fmt.Sprintf("%s: %s", e.Code, e.Message)
 	}
 	return e.Message
+}
+
+func FormatObjectDataError(errorMsg string, dataNode map[string]any) string {
+	if dataNode == nil {
+		return errorMsg
+	}
+	lineNumber := errNonEmptyField(dataNode, "line_number")
+	errorMessage := errNonEmptyField(dataNode, "error_message")
+	originalLine := errNonEmptyField(dataNode, "original_line")
+
+	if errorMessage != "" && (lineNumber == "" || !isInteger(lineNumber)) {
+		return fmt.Sprintf("%s:\n\t%s", errorMsg, errorMessage)
+	} else if errorMessage != "" && isInteger(lineNumber) && originalLine == "" {
+		return fmt.Sprintf("%s:\n\tline %s: %s", errorMsg, lineNumber, errorMessage)
+	} else if errorMessage != "" && originalLine != "" {
+		return fmt.Sprintf("%s:\n\tline %s: %s (%s)", errorMsg, lineNumber, errorMessage, originalLine)
+	}
+
+	return errorMsg
+}
+
+func errNonEmptyField(node map[string]any, field string) string {
+	if node == nil {
+		return ""
+	}
+	val, ok := node[field]
+	if !ok || val == nil {
+		return ""
+	}
+	strVal := fmt.Sprintf("%v", val)
+	return strVal
+}
+
+func isInteger(s string) bool {
+	_, err := strconv.Atoi(s)
+	return err == nil
 }
