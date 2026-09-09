@@ -295,7 +295,7 @@ Partial writes are enabled by default.
 The per-write override applies only to that write call.
 
 Set `AcceptPartial` to `false` to disable partial writes.
-If the server rejects part of a batch, the client returns a `*PartialWriteError` with per-line details.
+If the server rejects the lines in batch, the client returns a standard API error with line-level details.
 
 `AcceptPartial` and partial write error details require the V3 API endpoint. Instantiate a client with `UseV2Api: false` to use these features:
 
