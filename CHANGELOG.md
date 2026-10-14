@@ -2,8 +2,22 @@
 
 ## 2.18.0 [unreleased]
 
+### BREAKING CHANGES
+
+1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): Minimum supported Go version increases from 1.25 to 1.26 because the patched `golang.org/x/net` v0.60.0 requires Go 1.26. Users building with Go 1.25 must upgrade before updating this client.
+1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): HTTP(S) host URLs with IPv6 addresses must include square brackets, for example `http://[2001:db8::1]:8080/`. Go 1.26 enables stricter URL parsing and rejects the previously accepted unbracketed form.
+
+### Security
+
+1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): Upgrade `golang.org/x/net` from v0.58.0 to v0.60.0 to fix HTTP/2 vulnerabilities, including GO-2026-6603, GO-2026-6611, GO-2026-6612, and GO-2026-6617. Update its required `golang.org/x/sys` and `golang.org/x/text` dependencies to v0.48.0 and v0.42.0.
+
+### CI
+
+1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): Fix the failing vulnerability check by scanning with Go 1.26.9, which includes standard library security fixes unavailable in Go 1.25. Vulnerabilities continue to fail CI. Update the CircleCI test matrix from Go 1.25/1.26 to Go 1.26/1.27 and the release toolchain from Go 1.25 to Go 1.26.
+
 ### Bug Fixes
 
+1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): Prevent `ReplaceURLProtocolWithPort` from panicking on invalid URLs; return an empty endpoint and `false` instead.
 1. Escape newline, carriage return, and tab characters in line protocol measurements, tag keys and values, and field keys.
 1. [#266](https://github.com/InfluxCommunity/influxdb3-go/pull/266): Return `PartialWriteError` only for V3 writes with `AcceptPartial=true`.
    - V3 write calls with the argument `AcceptPartial=false` now return a standard API error with line-level details when provided by the server.

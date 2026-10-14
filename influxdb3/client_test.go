@@ -335,8 +335,8 @@ func TestURLs(t *testing.T) {
 		{"https://[2001:db8:a0b:12f0::1%25eth0]:15000/", "https://[2001:db8:a0b:12f0::1%25eth0]:15000/api/"},
 		{"https://[fe80::1%25eth%250]:15000", "https://[fe80::1%25eth%250]:15000/api/"},
 		{"https://[fe80::1%25eth%200]:15000", "https://[fe80::1%25eth%200]:15000/api/"},
-		// Square brackets will be added automatically, but we're still suggesting users to add square brackets by themselves.
-		{"http://2001:db8::1:8080/", "http://2001:db8::1:8080/api/"},
+		// IPv6 addresses with a port must be enclosed in square brackets.
+		{"http://[2001:db8::1]:8080/", "http://[2001:db8::1]:8080/api/"},
 	}
 	for _, turl := range urls {
 		t.Run(turl.HostURL, func(t *testing.T) {
@@ -346,6 +346,12 @@ func TestURLs(t *testing.T) {
 			assert.Equal(t, turl.serverAPIURL, c.apiURL.String())
 		})
 	}
+}
+
+func TestNewRejectsUnbracketedIPv6Host(t *testing.T) {
+	client, err := New(ClientConfig{Host: "http://2001:db8::1:8080/", Token: "my-token"})
+	require.ErrorContains(t, err, "parsing host URL")
+	assert.Nil(t, client)
 }
 
 func TestNewFromConnectionString(t *testing.T) {
@@ -1341,7 +1347,7 @@ func TestFixUrl(t *testing.T) {
 			expectedSafe: true,
 		},
 		{
-			input:        "http://2001:db8::1:8080/",
+			input:        "http://[2001:db8::1]:8080/",
 			expected:     "[2001:db8::1]:8080/",
 			expectedSafe: false,
 		},
@@ -1364,6 +1370,16 @@ func TestFixUrl(t *testing.T) {
 				assert.Equal(t, tc.expected, u)
 				assert.Equal(t, tc.expectedSafe, safe)
 			})
+	}
+}
+
+func TestFixUrlInvalidURL(t *testing.T) {
+	for _, input := range []string{"http://2001:db8::1:8080/", "http://host:invalid"} {
+		t.Run(input, func(t *testing.T) {
+			endpoint, safe := ReplaceURLProtocolWithPort(input)
+			assert.Empty(t, endpoint)
+			assert.False(t, safe)
+		})
 	}
 }
 

@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   default-go-image:
     type: string
-    default: "cimg/go:1.25"
+    default: "cimg/go:1.26"
 
 executors:
   docker-amd64-image:
@@ -190,7 +190,7 @@ workflows:
           matrix:
             parameters:
               exe: [ docker-amd64-image, docker-arm64-image ]
-              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.26" ]
+              go-image: [ << pipeline.parameters.default-go-image >>, "cimg/go:1.27" ]
       - lint
 
   release:

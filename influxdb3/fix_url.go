@@ -31,6 +31,7 @@ import (
 // ReplaceURLProtocolWithPort removes the "http://" or "https://" protocol from the given URL and replaces it with the port number.
 // Currently, Apache Arrow does not support the "http://" or "https://" protocol in the URL, so this function is used to remove it.
 // If a port number is already present in the URL, only the protocol is removed.
+// If the URL cannot be parsed, an empty endpoint and false are returned.
 // The function also returns a boolean value indicating whether the communication is safe or unsafe.
 // - If the URL starts with "https://", the communication is considered safe, and the returned boolean value will be true.
 // - If the URL starts with "http://", the communication is considered unsafe, and the returned boolean value will be false.
@@ -43,7 +44,10 @@ import (
 //   - The modified URL with the protocol replaced by the port.
 //   - A boolean value indicating the safety of communication (true for safe, false for unsafe) or nil if not detected.
 func ReplaceURLProtocolWithPort(serverURL string) (string, bool) {
-	u, _ := url.Parse(serverURL)
+	u, err := url.Parse(serverURL)
+	if err != nil {
+		return "", false
+	}
 
 	// When working with IPv6 zone, url.Parse() will change "%25" to "%", so we must get it back.
 	endpoint := net.JoinHostPort(u.Hostname(), port(u))
