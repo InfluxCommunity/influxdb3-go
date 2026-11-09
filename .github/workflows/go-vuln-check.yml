@@ -40,6 +40,6 @@ jobs:
           fi
       - name: Upload vulnerability report
         if: ${{ !cancelled() && steps.scan.outcome == 'success' }}
-        uses: github/codeql-action/upload-sarif@v4.39.2
+        uses: github/codeql-action/upload-sarif@v4.39.3
         with:
           sarif_file: ${{ runner.temp }}/govulncheck.sarif
