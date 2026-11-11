@@ -154,7 +154,7 @@ func TestQueryWithDefaultHeaders(t *testing.T) {
 }
 
 func TestQueryWithLargeResponseFail(t *testing.T) {
-	s := *testutil.StartMockFlightServer(t, 4194314)
+	s := *testutil.StartMockFlightServer(t, 4194314, nil)
 	defer func() {
 		s.Shutdown()
 	}()
@@ -181,7 +181,7 @@ func TestQueryWithLargeResponseFail(t *testing.T) {
 
 func TestQueryWithLargeResponsePass(t *testing.T) {
 	blobSize := int64(4194314)
-	s := *testutil.StartMockFlightServer(t, blobSize)
+	s := *testutil.StartMockFlightServer(t, blobSize, nil)
 	defer func() {
 		s.Shutdown()
 	}()
