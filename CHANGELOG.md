@@ -2,6 +2,10 @@
 
 ## 2.18.0 [unreleased]
 
+### Features
+
+1. [#303](https://github.com/InfluxCommunity/influxdb3-go/pull/303): Add support for custom mTLS configurations.
+
 ### BREAKING CHANGES
 
 1. [#297](https://github.com/InfluxCommunity/influxdb3-go/pull/297): Minimum supported Go version increases from 1.25 to 1.26 because the patched `golang.org/x/net` v0.60.0 requires Go 1.26. Users building with Go 1.25 must upgrade before updating this client.

@@ -505,9 +505,9 @@ func TestEscapedMeasurementsTagsAndFields(t *testing.T) {
 			"tag\n\r\ttest": "new\nline and space",
 		},
 		map[string]any{
-		    "field\n\r\ttest": 2.71,
-			"fVal": 41.3,
-			"sVal": "greetings\nearthlings",
+			"field\n\r\ttest": 2.71,
+			"fVal":            41.3,
+			"sVal":            "greetings\nearthlings",
 		}, time.Now())
 
 	err = client.WritePoints(context.Background(), []*influxdb3.Point{p})
