@@ -24,6 +24,8 @@ package influxdb3
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"io"
 	"net/http"
@@ -36,6 +38,7 @@ import (
 	"testing/iotest"
 	"time"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1456,4 +1459,380 @@ func TestGetVersionMalformJson(t *testing.T) {
 	version, err := client.GetServerVersion()
 	assert.Contains(t, err.Error(), "invalid character")
 	assert.Empty(t, version)
+}
+
+const (
+	influxdbServerCertFile = "testdata/certificates/influxdb.crt"
+	influxdbKeyFile        = "testdata/certificates/influxdb.key"
+
+	otherServerCertFile = "testdata/certificates/other-server.crt"
+	otherKeyFile        = "testdata/certificates/other-server.key"
+	otherCertP12        = "testdata/certificates/other-server.p12"
+
+	clientCertFile = "testdata/certificates/client.crt"
+	clientKeyFile  = "testdata/certificates/client.key"
+	clientCertP12  = "testdata/certificates/client.p12"
+
+	password = "changeit"
+)
+
+func createSecureWriteServer(t *testing.T, clientCertFile string) *httptest.Server {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "{}")
+	}))
+
+	tlsConfig, err := createServerTlsConfig(influxdbServerCertFile, influxdbKeyFile, clientCertFile)
+	if err != nil {
+		t.Fatalf("failed to create server TLS config: %v", err)
+	}
+	ts.TLS = tlsConfig
+	ts.StartTLS()
+	return ts
+}
+
+type TlsTestCase struct {
+	name              string
+	serverCertPath    string
+	clientCertPath    string
+	clientCertKeyPath string
+	password          string
+	assertErr         func(t *testing.T, clientErr, writeErr error)
+}
+
+func TestWriteSecureServer(t *testing.T) {
+	testCases := []TlsTestCase{
+		{
+			name:           "tls success with valid server certificate",
+			serverCertPath: influxdbServerCertFile,
+		},
+		{
+			name:           "tls fail with wrong server certificate",
+			serverCertPath: otherServerCertFile,
+			assertErr: func(t *testing.T, clientErr, writeErr error) {
+				require.NoError(t, clientErr)
+				var certErr *tls.CertificateVerificationError
+				require.ErrorAs(t, writeErr, &certErr)
+			},
+		},
+		{
+			name:              "mtls success with valid client and server certificates",
+			serverCertPath:    influxdbServerCertFile,
+			clientCertPath:    clientCertFile,
+			clientCertKeyPath: clientKeyFile,
+		},
+		{
+			name:           "mtls success with valid client p12 file",
+			serverCertPath: influxdbServerCertFile,
+			clientCertPath: clientCertP12,
+			password:       password,
+		},
+		{
+			name:           "mtls fail with wrong password client p12 file",
+			serverCertPath: influxdbServerCertFile,
+			clientCertPath: clientCertP12,
+			password:       "wrongpass",
+			assertErr: func(t *testing.T, clientErr, writeErr error) {
+				require.Error(t, clientErr)
+				assert.Contains(t, clientErr.Error(), "loading client certificate: pkcs12: decryption password incorrect")
+			},
+		},
+		{
+			name:              "mtls fail with wrong client certificates",
+			serverCertPath:    influxdbServerCertFile,
+			clientCertPath:    otherServerCertFile,
+			clientCertKeyPath: otherKeyFile,
+			assertErr: func(t *testing.T, clientErr, writeErr error) {
+				require.NoError(t, clientErr)
+				require.Error(t, writeErr)
+				assert.Contains(t, writeErr.Error(), "certificate required")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clientCert := ""
+			// tc.clientCertPath != "" means this is a mTLS test
+			if tc.clientCertPath != "" {
+				clientCert = clientCertFile
+			}
+			ts := createSecureWriteServer(t, clientCert)
+			defer ts.Close()
+
+			client, clientErr := createClient(t, ts.URL, tc.serverCertPath, tc.clientCertPath, tc.clientCertKeyPath, tc.password)
+			var writeErr error
+			if client != nil {
+				writeErr = client.Write(context.Background(), []byte("test,type=negative val=1"))
+			}
+
+			if tc.assertErr != nil {
+				tc.assertErr(t, clientErr, writeErr)
+			} else {
+				require.NoError(t, clientErr)
+				require.NoError(t, writeErr)
+			}
+		})
+	}
+}
+
+func TestQuerySecureServer(t *testing.T) {
+	testCases := []TlsTestCase{
+		{
+			name:           "tls success with valid server certificate",
+			serverCertPath: influxdbServerCertFile,
+		},
+		{
+			name:           "tls fail with wrong server certificate",
+			serverCertPath: otherServerCertFile,
+			assertErr: func(t *testing.T, clientErr, queryError error) {
+				require.NoError(t, clientErr)
+				assert.Contains(t, queryError.Error(), "tls: failed to verify certificate")
+			},
+		},
+		{
+			name:              "mtls success with valid client and server certificates",
+			serverCertPath:    influxdbServerCertFile,
+			clientCertPath:    clientCertFile,
+			clientCertKeyPath: clientKeyFile,
+		},
+		{
+			name:           "mtls success with valid client p12 file",
+			serverCertPath: influxdbServerCertFile,
+			clientCertPath: clientCertP12,
+			password:       password,
+		},
+		{
+			name:           "mtls fail with wrong password client p12 file",
+			serverCertPath: influxdbServerCertFile,
+			clientCertPath: clientCertP12,
+			password:       "wrongpass",
+			assertErr: func(t *testing.T, clientErr, queryError error) {
+				require.Error(t, clientErr)
+				assert.Contains(t, clientErr.Error(), "loading client certificate: pkcs12: decryption password incorrect")
+			},
+		},
+		{
+			name:              "mtls fail with wrong client certificates",
+			serverCertPath:    influxdbServerCertFile,
+			clientCertPath:    otherServerCertFile,
+			clientCertKeyPath: otherKeyFile,
+			assertErr: func(t *testing.T, clientErr, queryError error) {
+				require.NoError(t, clientErr)
+				require.Error(t, queryError)
+				assert.Regexp(t, `(tls: certificate required|rpc error)`, queryError.Error())
+
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clientCert := ""
+			// tc.clientCertPath != "" means this is a mTLS test
+			if tc.clientCertPath != "" {
+				clientCert = clientCertFile
+			}
+
+			tlsConfig, err := createServerTlsConfig(influxdbServerCertFile, influxdbKeyFile, clientCert)
+			require.NoError(t, err)
+
+			server := *testutil.StartMockFlightServer(t, 0, tlsConfig)
+			defer func() {
+				server.Shutdown()
+			}()
+			u := "https://" + server.Addr().String()
+			client, clientErr := createClient(t, u, tc.serverCertPath, tc.clientCertPath, tc.clientCertKeyPath, tc.password)
+			defer func() {
+				if client != nil {
+					client.Close()
+				}
+			}()
+			var queryErr error
+			if client != nil {
+				_, queryErr = client.Query(context.Background(), "select * from test")
+			}
+			if tc.assertErr != nil {
+				tc.assertErr(t, clientErr, queryErr)
+			} else {
+				require.NoError(t, clientErr)
+				require.NoError(t, queryErr)
+			}
+		})
+	}
+}
+
+func createServerTlsConfig(serverCertPath string, serverKeyPath string, clientCertPath string) (*tls.Config, error) {
+	certificate, err := loadCertificate(serverCertPath, serverKeyPath, "")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{certificate},
+	}
+
+	if clientCertPath != "" {
+		clientCertPool, err := loadX509CertPool(clientCertFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = clientCertPool
+	}
+
+	return tlsConfig, nil
+}
+
+func createClient(
+	t *testing.T, url string,
+	serverCert string,
+	clientCert string,
+	clientKey string,
+	clientPassword string) (*Client, error) {
+	client, err := New(ClientConfig{
+		Host:                  url,
+		Token:                 "my-token",
+		Database:              "my-database",
+		SSLRootsFilePath:      serverCert,
+		ClientCertificatePath: clientCert,
+		ClientKeyPath:         clientKey,
+		ClientKeyFilePassword: clientPassword,
+	})
+	if err != nil {
+		return nil, err
+	}
+	t.Cleanup(func() {
+		client.Close()
+	})
+
+	return client, nil
+}
+
+type dummyRoundTripper struct{}
+
+func (d *dummyRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return nil, nil
+}
+
+func TestSetTlsConfig(t *testing.T) {
+	t.Run("nil TLSClientConfig is set directly", func(t *testing.T) {
+		customTransport := &http.Transport{
+			TLSClientConfig: nil,
+		}
+		httpClient := &http.Client{
+			Transport: customTransport,
+		}
+		tlsConfig := &tls.Config{
+			ServerName: "influxdb.test",
+		}
+		config := ClientConfig{}
+
+		setTlsConfig(httpClient, tlsConfig, config)
+
+		assert.Same(t, customTransport, httpClient.Transport)
+		assert.Same(t, tlsConfig, customTransport.TLSClientConfig)
+	})
+
+	t.Run("nil Transport ensures transport and configures TLS", func(t *testing.T) {
+		httpClient := &http.Client{}
+		newPool := x509.NewCertPool()
+		newCert := tls.Certificate{
+			Certificate: [][]byte{[]byte("dummy")},
+		}
+		tlsConfig := &tls.Config{
+			ServerName:   "influxdb.test",
+			RootCAs:      newPool,
+			Certificates: []tls.Certificate{newCert},
+		}
+		config := ClientConfig{}
+
+		setTlsConfig(httpClient, tlsConfig, config)
+
+		transport, ok := httpClient.Transport.(*http.Transport)
+		require.True(t, ok)
+		require.NotNil(t, transport)
+		require.NotNil(t, transport.TLSClientConfig)
+		if transport.TLSClientConfig.RootCAs != nil {
+			assert.Same(t, newPool, transport.TLSClientConfig.RootCAs)
+		}
+		assert.Equal(t, []tls.Certificate{newCert}, transport.TLSClientConfig.Certificates)
+	})
+
+	t.Run("existing TLSClientConfig is cloned and merged", func(t *testing.T) {
+		existingPool := x509.NewCertPool()
+		existingTLS := &tls.Config{
+			ServerName:         "custom-server",
+			InsecureSkipVerify: true, // #nosec G402
+			RootCAs:            existingPool,
+		}
+		customTransport := &http.Transport{
+			TLSClientConfig: existingTLS,
+		}
+		httpClient := &http.Client{
+			Transport: customTransport,
+		}
+
+		newPool := x509.NewCertPool()
+		newCert := tls.Certificate{
+			Certificate: [][]byte{[]byte("dummy")},
+		}
+		newTLSConfig := &tls.Config{
+			RootCAs:      newPool,
+			Certificates: []tls.Certificate{newCert},
+		}
+		config := ClientConfig{}
+
+		setTlsConfig(httpClient, newTLSConfig, config)
+
+		assert.Same(t, customTransport, httpClient.Transport)
+		require.NotNil(t, customTransport.TLSClientConfig)
+		assert.NotSame(t, existingTLS, customTransport.TLSClientConfig)
+		assert.Equal(t, "custom-server", customTransport.TLSClientConfig.ServerName)
+		assert.True(t, customTransport.TLSClientConfig.InsecureSkipVerify)
+		assert.Same(t, newPool, customTransport.TLSClientConfig.RootCAs)
+		assert.Equal(t, []tls.Certificate{newCert}, customTransport.TLSClientConfig.Certificates)
+	})
+
+	t.Run("existing TLSClientConfig with empty new TLSConfig keeps existing RootCAs and Certificates", func(t *testing.T) {
+		existingPool := x509.NewCertPool()
+		existingCert := tls.Certificate{
+			Certificate: [][]byte{[]byte("existing-cert")},
+		}
+		existingTLS := &tls.Config{
+			ServerName:   "custom-server",
+			RootCAs:      existingPool,
+			Certificates: []tls.Certificate{existingCert},
+		}
+		customTransport := &http.Transport{
+			TLSClientConfig: existingTLS,
+		}
+		httpClient := &http.Client{
+			Transport: customTransport,
+		}
+
+		emptyNewTLS := &tls.Config{}
+		config := ClientConfig{}
+
+		setTlsConfig(httpClient, emptyNewTLS, config)
+
+		assert.Same(t, customTransport, httpClient.Transport)
+		require.NotNil(t, customTransport.TLSClientConfig)
+		assert.Same(t, existingPool, customTransport.TLSClientConfig.RootCAs)
+		assert.Equal(t, []tls.Certificate{existingCert}, customTransport.TLSClientConfig.Certificates)
+	})
+
+	t.Run("non-http.Transport is left unmodified", func(t *testing.T) {
+		roundTripper := &dummyRoundTripper{}
+		httpClient := &http.Client{
+			Transport: roundTripper,
+		}
+		tlsConfig := &tls.Config{
+			ServerName: "influxdb.test",
+		}
+		config := ClientConfig{}
+
+		setTlsConfig(httpClient, tlsConfig, config)
+
+		assert.Same(t, roundTripper, httpClient.Transport)
+	})
 }

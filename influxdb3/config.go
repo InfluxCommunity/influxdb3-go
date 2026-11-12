@@ -152,6 +152,15 @@ type ClientConfig struct {
 	// SSL root certificates file path
 	SSLRootsFilePath string
 
+	// Client certificate file path when config mTLS
+	ClientCertificatePath string
+
+	// Client certificate key file path when config mTLS
+	ClientKeyPath string
+
+	// Client certificate key file password when config mTLS
+	ClientKeyFilePassword string
+
 	// Proxy URL
 	Proxy string
 
