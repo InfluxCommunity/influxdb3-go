@@ -26,16 +26,13 @@ package influxdb3
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -100,23 +97,24 @@ func New(config ClientConfig) (*Client, error) {
 	}
 	c.authorization = fmt.Sprintf("%s %s", authScheme, c.config.Token)
 
-	// Prepare SSL certificate pool (if host URL is secure)
-	var certPool *x509.CertPool
+	var tlsConfig *tls.Config
 	hostPortURL, secure := ReplaceURLProtocolWithPort(c.config.Host)
-	if config.SSLRootsFilePath != "" && secure {
-		// Use the system certificate pool
-		certPool, err = x509.SystemCertPool()
-		if err != nil {
-			return nil, fmt.Errorf("x509: %w", err)
+	if secure {
+		tlsConfig = &tls.Config{}
+		if config.SSLRootsFilePath != "" {
+			certPool, err := loadX509CertPool(config.SSLRootsFilePath)
+			if err != nil {
+				return nil, fmt.Errorf("loading SSL certificate pool: %w", err)
+			}
+			tlsConfig.RootCAs = certPool
 		}
 
-		certs, err := os.ReadFile(config.SSLRootsFilePath)
-		if err != nil {
-			return nil, fmt.Errorf("error reading %s: %w", config.SSLRootsFilePath, err)
-		}
-		ok := certPool.AppendCertsFromPEM(certs)
-		if !ok {
-			slog.Warn("No valid certificates found in " + config.SSLRootsFilePath)
+		if config.ClientCertificatePath != "" {
+			clientCert, err := loadCertificate(config.ClientCertificatePath, config.ClientKeyPath, config.ClientKeyFilePassword)
+			if err != nil {
+				return nil, fmt.Errorf("loading client certificate: %w", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{clientCert}
 		}
 	}
 
@@ -136,8 +134,8 @@ func New(config ClientConfig) (*Client, error) {
 		// HTTPClient provided by the user.
 		configureHTTPClient(c.config.HTTPClient, config)
 	}
-	if certPool != nil {
-		setHTTPClientCertPool(c.config.HTTPClient, certPool, config)
+	if secure {
+		setTlsConfig(c.config.HTTPClient, tlsConfig, config)
 	}
 	if proxyURL != nil {
 		setHTTPClientProxy(c.config.HTTPClient, proxyURL, config)
@@ -222,13 +220,21 @@ func setHTTPClientProxy(httpClient *http.Client, proxyURL *url.URL, config Clien
 	}
 }
 
-func setHTTPClientCertPool(httpClient *http.Client, certPool *x509.CertPool, config ClientConfig) {
+func setTlsConfig(httpClient *http.Client, tlsConfig *tls.Config, config ClientConfig) {
 	ensureTransportSet(httpClient, config)
 	if transport, ok := httpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig = &tls.Config{
-			RootCAs:    certPool,
-			MinVersion: tls.VersionTLS12,
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = tlsConfig
+			return
 		}
+		merged := transport.TLSClientConfig.Clone()
+		if tlsConfig.RootCAs != nil {
+			merged.RootCAs = tlsConfig.RootCAs
+		}
+		if len(tlsConfig.Certificates) > 0 {
+			merged.Certificates = tlsConfig.Certificates
+		}
+		transport.TLSClientConfig = merged
 	}
 }
 
