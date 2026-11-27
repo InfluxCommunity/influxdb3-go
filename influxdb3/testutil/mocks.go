@@ -4,6 +4,7 @@ package testutil
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +21,9 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -89,9 +92,15 @@ func (f *MockFlightServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoG
 }
 
 //nolint:all
-func StartMockFlightServer(t *testing.T, blobSize int64) *flight.Server {
+func StartMockFlightServer(t *testing.T, blobSize int64, tlsConfig *tls.Config) *flight.Server {
 	mockServer := MockFlightServer{BlobSize: blobSize, Records: make(map[string][]arrow.Record)}
-	s := flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
+	var s flight.Server
+	if tlsConfig != nil {
+		cred := credentials.NewTLS(tlsConfig)
+		s = flight.NewServerWithMiddleware([]flight.ServerMiddleware{}, grpc.Creds(cred))
+	} else {
+		s = flight.NewServerWithMiddleware([]flight.ServerMiddleware{})
+	}
 	err := s.Init("localhost:0")
 	if err != nil {
 		assert.Fail(t, err.Error())
